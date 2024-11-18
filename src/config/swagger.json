@@ -1,0 +1,120 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.1.0",
+    "title": "API Nova Residence",
+    "description": "Documentação - Nova API"
+  },
+  "host": "api.condominionovaresidence.com",
+  "basePath": "/",
+  "schemes": ["https"],
+  "tags": [
+    {
+      "name": "Basic",
+      "description": "Rotas Básicas"
+    },
+    {
+      "name": "Database",
+      "description": "Rotas relacionadas ao Banco de Dados"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["Basic"],
+        "summary": "Rota Base",
+        "description": "Retorna 'ok'.",
+        "responses": {
+          "200": {
+            "description": "Sucesso"
+          }
+        }
+      }
+    },
+    "/healthchecker": {
+      "get": {
+        "tags": ["Basic"],
+        "summary": "Health Checker",
+        "description": "Verifica a saúde da API e retorna a data/hora atual.",
+        "responses": {
+          "200": {
+            "description": "Saúde da API"
+          }
+        }
+      }
+    },
+    "/query": {
+      "post": {
+        "tags": ["Database"],
+        "summary": "Executa uma query no banco de dados",
+        "description": "Permite executar queries genéricas no banco de dados. **Use com cuidado.**",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Objeto contendo a query a ser executada.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "example": "SELECT * FROM YOUR_TABLE_NAME"
+                }
+              },
+              "required": ["query"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultado da consulta",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "success"
+                },
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Query is required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro interno do servidor",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Erro ao executar a query"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
