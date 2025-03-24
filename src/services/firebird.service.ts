@@ -436,8 +436,10 @@ export const insertAccess = async (data: {
       }
 
       try {
-        const currentDateTime = new Date().toISOString().replace('T', ' ').slice(0, 19); // "YYYY-MM-DD HH:mm:ss"
-
+        const now = new Date();
+        const offset = now.getTimezoneOffset() * 60000; // Ajusta o timezone do servidor
+        const localISOTime = new Date(now.getTime() - offset).toISOString().slice(0, 19).replace('T', ' ');
+        
         transaction.query(`
           INSERT INTO CIRCULACAODISP (
             DISPOSITIVO, "PESSOA", CLASSIFICACAO, CLASSAUTORIZADO, AUTORIZACAOLANC,
@@ -455,7 +457,7 @@ export const insertAccess = async (data: {
           data.classificacao,
           data.classAutorizado,
           data.autorizacaoLanc,
-          currentDateTime,
+          localISOTime,
           data.origem,
           data.seqIdAcesso,
           data.sentido,
