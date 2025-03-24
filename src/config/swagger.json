@@ -434,13 +434,17 @@
             "schema": {
               "type": "object",
               "properties": {
-                "tag": {
+                "id": {
                   "type": "string",
                   "example": "1234567890"
                 },
                 "dispositivo": {
                   "type": "integer",
                   "example": 3
+                },
+                "foto": {
+                  "type": "string",
+                  "example": null
                 },
                 "sentido": {
                   "type": "string",
