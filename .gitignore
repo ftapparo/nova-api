@@ -20,7 +20,7 @@ yarn-error.log*
 
 #!.yarn/cache
 .pnp.*
-*.lock
+**/*.lock
 
 # Env files
 .env
