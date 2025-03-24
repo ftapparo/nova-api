@@ -76,10 +76,10 @@ export const registerVehicle = async (vehicleData: {
   model: string;
   color: string;
   user_seq: string;
-  unit_seq:string;
+  unit_seq: string;
   tag: string
 }): Promise<any> => {
-  const { plate, brand, model, color, user_seq, unit_seq, tag} = vehicleData;
+  const { plate, brand, model, color, user_seq, unit_seq, tag } = vehicleData;
 
   const query = `
     INSERT INTO VEICULOS (PLACA, MARCA, MODELO, COR, PROPRIETARIO, SEQUNIDADE, TAGVEICULO)
@@ -89,7 +89,7 @@ export const registerVehicle = async (vehicleData: {
 
   const db = await openConnection();
   return new Promise((resolve, reject) => {
-    db.query(query, [plate, brand, model, color, user_seq, unit_seq, tag ],(err: any, result: unknown) => {
+    db.query(query, [plate, brand, model, color, user_seq, unit_seq, tag], (err: any, result: unknown) => {
       if (err) {
         reject(err);
       } else {
@@ -102,7 +102,7 @@ export const registerVehicle = async (vehicleData: {
 // Função para cadastrar foto do veiculo
 export const registerVehiclePhoto = async (accessData: {
   vehicleSequence: number;
-  photoTag?: Buffer; 
+  photoTag?: Buffer;
   photoVehicle?: Buffer;
 }): Promise<any> => {
   const { vehicleSequence, photoTag, photoVehicle } = accessData;
@@ -111,7 +111,7 @@ export const registerVehiclePhoto = async (accessData: {
 
   const db = await openConnection();
   return new Promise((resolve, reject) => {
-    db.query(query, [vehicleSequence, photoTag, photoVehicle ],(err: any, result: unknown) => {
+    db.query(query, [vehicleSequence, photoTag, photoVehicle], (err: any, result: unknown) => {
       if (err) {
         reject(err);
       } else {
@@ -130,13 +130,13 @@ export const registerAccess = async (accessData: {
   user: string,
   vehicleSequence: string
 }): Promise<any> => {
-  const { personSequence, type, panic , id2, user, vehicleSequence} = accessData;
+  const { personSequence, type, panic, id2, user, vehicleSequence } = accessData;
 
   const query = `INSERT INTO IDACESSO (SEQPESSOA, TIPO, PANICO, ID2, USR, VEICULO) VALUES ( ?, ?, ?, ?, ?, ?)`;
 
   const db = await openConnection();
   return new Promise((resolve, reject) => {
-    db.query(query, [personSequence, type, panic , id2, user, vehicleSequence ],(err: any, result: unknown) => {
+    db.query(query, [personSequence, type, panic, id2, user, vehicleSequence], (err: any, result: unknown) => {
       if (err) {
         reject(err);
       } else {
@@ -146,7 +146,7 @@ export const registerAccess = async (accessData: {
   });
 };
 
-// Função para liberar pedestre
+// Função para abrir portão de pedestres
 export const openGatePedestrian = async (data: { device: number; usuario: string; quadra: string; lote: number; motivo: string; complemento: string; seqAutorizador: number; botaoTexto: string }): Promise<any> => {
   const { device, usuario, quadra, lote, motivo, complemento, seqAutorizador, botaoTexto } = data;
 
@@ -240,7 +240,7 @@ export const openGatePedestrian = async (data: { device: number; usuario: string
   }
 };
 
-// Função para liberar veiculos
+// Função para abrir portão de veiculos
 export const openGateVehicle = async (data: { device: number; usuario: string; quadra: string; lote: number; motivo: string; complemento: string; seqAutorizador: number; botaoTexto: string }): Promise<any> => {
   const { device, usuario, quadra, lote, motivo, complemento, seqAutorizador, botaoTexto } = data;
 
@@ -341,7 +341,7 @@ export const openGateVehicle = async (data: { device: number; usuario: string; q
   });
 };
 
-// Funćão de troca de imagem do facial
+// Função de troca de imagem do facial
 export const sendMqttMessage = async (deviceId: number, messagePath: string): Promise<void> => {
   const broker = '192.168.0.250'; // IP do broker MQTT
   const port = 1883; // Porta padrão MQTT
@@ -387,3 +387,24 @@ export const sendMqttMessage = async (deviceId: number, messagePath: string): Pr
     });
   });
 };
+
+// Função para validar acesso
+export const validateAccessById = async (id: string, dispositivo: number, foto: string, sentido: string): Promise<any> => {
+
+  const query = `EXECUTE PROCEDURE ACESSO_DISPOSITIVO (?, ?, ?, ?);`;
+
+  const db = await openConnection();
+  return new Promise((resolve, reject) => {
+    db.query(
+      query,
+      [id, dispositivo, foto, sentido],
+      (err: any, result: unknown) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
+  });
+};
+

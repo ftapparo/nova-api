@@ -1,6 +1,19 @@
 {
   "name": "nova-api",
-  "packageManager": "yarn@4.5.1",
+  "version": "1.0.0",
+  "description": "API para acesso ao banco e dados Firebase - Condomínio Nova Residence",
+  "homepage": "https://github.com/ftapparo/nova-api#readme",
+  "bugs": {
+    "url": "https://github.com/ftapparo/nova-api/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ftapparo/nova-api.git"
+  },
+  "license": "MIT",
+  "author": "Flavio Eduardo Tapparo",
+  "type": "commonjs",
+  "main": "index.js",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
@@ -19,6 +32,7 @@
     "@types/cors": "^2",
     "@types/express": "^5.0.0",
     "@types/multer": "^1",
+    "@types/node": "^22.13.11",
     "@types/swagger-ui-express": "^4.1.7",
     "@typescript-eslint/eslint-plugin": "^8.14.0",
     "@typescript-eslint/parser": "^8.14.0",

@@ -5,7 +5,8 @@ import {
   registerVehiclePhoto,
   registerAccess,
   openGatePedestrian,
-  openGateVehicle
+  openGateVehicle,
+  validateAccessById
 } from '../services/firebird.service';
 import multer from 'multer';
 import path from 'path';
@@ -207,6 +208,34 @@ router.post('/releaseVehicles', async (req, res) => {
     res.json({ status: 'success', data: result });
   } catch (error) {
     console.error('Erro ao liberar veículo:', error);
+    res.status(500).json({ status: 'error', message: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
+// Rota para validar acesso
+router.post('/validateAccess', async (req, res) => {
+  const { id, dispositivo, foto, sentido } = req.body;
+
+  // Valida se todos os campos obrigatórios estão presentes
+  if (!id || !dispositivo || !foto || sentido === undefined) {
+    res.status(400).json({ error: 'Missing required fields' });
+    return;
+  }
+
+  // Verifica se o número do dispositivo é válido
+  if (dispositivo > 10 || dispositivo < 1) {
+    res.status(400).json({ error: 'Field value unknown' });
+    return;
+  }
+
+  try {
+    // Chama a função validateAccess passando os parâmetros recebidos
+    const result = await validateAccessById(id, dispositivo, foto, sentido);
+
+    // Retorna o resultado
+    res.json({ status: 'success', data: result });
+  } catch (error) {
+    console.error('Erro ao validar acesso:', error);
     res.status(500).json({ status: 'error', message: error instanceof Error ? error.message : 'Unknown error' });
   }
 });

@@ -32,7 +32,7 @@
     "/": {
       "get": {
         "tags": [
-          "Basic"
+          "Base"
         ],
         "summary": "Rota Base",
         "description": "Retorna 'ok'.",
@@ -46,7 +46,7 @@
     "/healthchecker": {
       "get": {
         "tags": [
-          "Basic"
+          "Base"
         ],
         "summary": "Health Checker",
         "description": "Verifica a saúde da API e retorna a data/hora atual.",
@@ -60,7 +60,7 @@
     "/query": {
       "post": {
         "tags": [
-          "Database"
+          "Genérico"
         ],
         "summary": "Executa uma query no banco de dados",
         "description": "Permite executar queries genéricas no banco de dados. **Use com cuidado.**",
@@ -137,7 +137,7 @@
     "/registerVehicle": {
       "post": {
         "tags": [
-          "Vehicle"
+          "Veículos"
         ],
         "summary": "Cadastrar veículo",
         "description": "Registra um novo veículo no banco de dados.",
@@ -241,9 +241,9 @@
     "/registerVehiclePhoto": {
       "post": {
         "tags": [
-          "Vehicle"
+          "Veículos"
         ],
-        "summary": "Registrar fotos do veículo",
+        "summary": "Cadastrar foto do veículo",
         "description": "Registra fotos do veículo no banco de dados.",
         "consumes": [
           "multipart/form-data"
@@ -322,10 +322,10 @@
     "/registerAccess": {
       "post": {
         "tags": [
-          "Access"
+          "Veículos"
         ],
-        "summary": "Registrar acesso",
-        "description": "Registra um novo acesso no banco de dados.",
+        "summary": "Cadastra liberação de acesso",
+        "description": "Registra TAG do veículo no banco de dados.",
         "parameters": [
           {
             "name": "body",
@@ -418,76 +418,47 @@
         }
       }
     },
-    "/releasePedestrian": {
+    "/validateAccess": {
       "post": {
         "tags": [
-          "Access"
+          "Acessos"
         ],
-        "summary": "Liberar pedestres",
-        "description": "Rota para liberar pedestres no portão designado.",
+        "summary": "Validar acesso por TAG",
+        "description": "Executa a procedure ACESSO_DISPOSITIVO para validar o acesso de um veículo com base na TAG.",
         "parameters": [
           {
             "name": "body",
             "in": "body",
             "required": true,
-            "description": "Dados necessários para liberar pedestres.",
+            "description": "Dados para validação de acesso",
             "schema": {
               "type": "object",
               "properties": {
-                "device": {
+                "tag": {
+                  "type": "string",
+                  "example": "1234567890"
+                },
+                "dispositivo": {
                   "type": "integer",
-                  "example": 1,
-                  "description": "Número do dispositivo do portão (1-7)."
+                  "example": 3
                 },
-                "usuario": {
+                "sentido": {
                   "type": "string",
-                  "example": "João",
-                  "description": "Nome do usuário que solicita a liberação."
-                },
-                "quadra": {
-                  "type": "string",
-                  "example": "A1",
-                  "description": "Identificação da quadra."
-                },
-                "lote": {
-                  "type": "integer",
-                  "example": 101,
-                  "description": "Número do lote associado à solicitação."
-                },
-                "motivo": {
-                  "type": "string",
-                  "example": "Entrega de mercadoria",
-                  "description": "Motivo da solicitação."
-                },
-                "complemento": {
-                  "type": "string",
-                  "example": "Sem observações",
-                  "description": "Informações adicionais (opcional)."
-                },
-                "seqAutorizador": {
-                  "type": "integer",
-                  "example": 123,
-                  "description": "Sequência do autorizador (opcional)."
-                },
-                "botaoTexto": {
-                  "type": "string",
-                  "example": "Abrir portão",
-                  "description": "Texto adicional para o botão (opcional)."
+                  "example": "S",
+                  "description": "Sentido do acesso: E (entrada), S (saída)"
                 }
               },
               "required": [
-                "device",
-                "usuario",
-                "quadra",
-                "lote",
-                "motivo"
+                "tag",
+                "dispositivo",
+                "sentido"
               ]
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Sucesso na liberação do pedestre.",
+            "description": "Resultado da validação de acesso.",
             "schema": {
               "type": "object",
               "properties": {
@@ -496,13 +467,16 @@
                   "example": "success"
                 },
                 "data": {
-                  "type": "object"
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
                 }
               }
             }
           },
           "400": {
-            "description": "Erro de validação (campos ausentes ou inválidos).",
+            "description": "Erro de validação",
             "schema": {
               "type": "object",
               "properties": {
@@ -514,7 +488,7 @@
             }
           },
           "500": {
-            "description": "Erro interno do servidor.",
+            "description": "Erro interno do servidor",
             "schema": {
               "type": "object",
               "properties": {
@@ -524,121 +498,7 @@
                 },
                 "message": {
                   "type": "string",
-                  "example": "Unknown error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/releaseVehicles": {
-      "post": {
-        "tags": [
-          "Access"
-        ],
-        "summary": "Liberar veículos",
-        "description": "Rota para liberar veículos nos portões designados.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "description": "Dados necessários para liberar veículos.",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "device": {
-                  "type": "integer",
-                  "example": 2,
-                  "description": "Número do dispositivo do portão (1: entrada, 2: saída)."
-                },
-                "usuario": {
-                  "type": "string",
-                  "example": "Maria",
-                  "description": "Nome do usuário que solicita a liberação."
-                },
-                "quadra": {
-                  "type": "string",
-                  "example": "B2",
-                  "description": "Identificação da quadra."
-                },
-                "lote": {
-                  "type": "integer",
-                  "example": 202,
-                  "description": "Número do lote associado à solicitação."
-                },
-                "motivo": {
-                  "type": "string",
-                  "example": "Saída autorizada",
-                  "description": "Motivo da solicitação."
-                },
-                "complemento": {
-                  "type": "string",
-                  "example": "Portão lateral",
-                  "description": "Informações adicionais (opcional)."
-                },
-                "seqAutorizador": {
-                  "type": "integer",
-                  "example": 456,
-                  "description": "Sequência do autorizador (opcional)."
-                },
-                "botaoTexto": {
-                  "type": "string",
-                  "example": "Abrir saída",
-                  "description": "Texto adicional para o botão (opcional)."
-                }
-              },
-              "required": [
-                "device",
-                "usuario",
-                "quadra",
-                "lote",
-                "motivo"
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Sucesso na liberação do veículo.",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "status": {
-                  "type": "string",
-                  "example": "success"
-                },
-                "data": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Erro de validação (campos ausentes ou inválidos).",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "string",
-                  "example": "Missing required fields"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Erro interno do servidor.",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "status": {
-                  "type": "string",
-                  "example": "error"
-                },
-                "message": {
-                  "type": "string",
-                  "example": "Unknown error"
+                  "example": "Erro ao executar a procedure"
                 }
               }
             }
