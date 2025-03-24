@@ -7,7 +7,9 @@
   },
   "host": "api.condominionovaresidence.com",
   "basePath": "/",
-  "schemes": ["https"],
+  "schemes": [
+    "https"
+  ],
   "tags": [
     {
       "name": "Basic",
@@ -16,12 +18,22 @@
     {
       "name": "Database",
       "description": "Rotas relacionadas ao Banco de Dados"
+    },
+    {
+      "name": "Vehicle",
+      "description": "Rotas relacionadas a veículos"
+    },
+    {
+      "name": "Access",
+      "description": "Rotas relacionadas a acessos"
     }
   ],
   "paths": {
     "/": {
       "get": {
-        "tags": ["Basic"],
+        "tags": [
+          "Basic"
+        ],
         "summary": "Rota Base",
         "description": "Retorna 'ok'.",
         "responses": {
@@ -33,7 +45,9 @@
     },
     "/healthchecker": {
       "get": {
-        "tags": ["Basic"],
+        "tags": [
+          "Basic"
+        ],
         "summary": "Health Checker",
         "description": "Verifica a saúde da API e retorna a data/hora atual.",
         "responses": {
@@ -45,7 +59,9 @@
     },
     "/query": {
       "post": {
-        "tags": ["Database"],
+        "tags": [
+          "Database"
+        ],
         "summary": "Executa uma query no banco de dados",
         "description": "Permite executar queries genéricas no banco de dados. **Use com cuidado.**",
         "parameters": [
@@ -62,7 +78,9 @@
                   "example": "SELECT * FROM YOUR_TABLE_NAME"
                 }
               },
-              "required": ["query"]
+              "required": [
+                "query"
+              ]
             }
           }
         ],
@@ -109,6 +127,518 @@
                 "message": {
                   "type": "string",
                   "example": "Erro ao executar a query"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registerVehicle": {
+      "post": {
+        "tags": [
+          "Vehicle"
+        ],
+        "summary": "Cadastrar veículo",
+        "description": "Registra um novo veículo no banco de dados.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Informações do veículo",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "plate": {
+                  "type": "string",
+                  "example": "ABC1234"
+                },
+                "brand": {
+                  "type": "string",
+                  "example": "Toyota"
+                },
+                "model": {
+                  "type": "string",
+                  "example": "Corolla"
+                },
+                "color": {
+                  "type": "string",
+                  "example": "Preto"
+                },
+                "user_seq": {
+                  "type": "integer",
+                  "example": 101
+                },
+                "unit_seq": {
+                  "type": "integer",
+                  "example": 0
+                },
+                "tag": {
+                  "type": "integer",
+                  "example": 1234567890
+                }
+              },
+              "required": [
+                "plate",
+                "brand",
+                "model",
+                "color",
+                "user_seq",
+                "unit_seq",
+                "tag"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Veículo registrado com sucesso.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "success"
+                },
+                "data": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Missing required fields"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro interno do servidor",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Unknown error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registerVehiclePhoto": {
+      "post": {
+        "tags": [
+          "Vehicle"
+        ],
+        "summary": "Registrar fotos do veículo",
+        "description": "Registra fotos do veículo no banco de dados.",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "parameters": [
+          {
+            "name": "vehicleSequence",
+            "in": "formData",
+            "required": true,
+            "type": "integer",
+            "description": "Sequência do veículo",
+            "example": 1
+          },
+          {
+            "name": "photoTag",
+            "in": "formData",
+            "required": false,
+            "type": "file",
+            "description": "Foto da TAG do veículo"
+          },
+          {
+            "name": "photoVehicle",
+            "in": "formData",
+            "required": false,
+            "type": "file",
+            "description": "Foto do veículo"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fotos registradas com sucesso.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "success"
+                },
+                "data": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Vehicle sequence is required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro interno do servidor",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Unknown error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registerAccess": {
+      "post": {
+        "tags": [
+          "Access"
+        ],
+        "summary": "Registrar acesso",
+        "description": "Registra um novo acesso no banco de dados.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Informações do acesso",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "personSequence": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "type": {
+                  "type": "string",
+                  "example": "Y"
+                },
+                "panic": {
+                  "type": "string",
+                  "example": "N"
+                },
+                "id2": {
+                  "type": "string",
+                  "example": "1234567890"
+                },
+                "user": {
+                  "type": "string",
+                  "example": "NARA"
+                },
+                "vehicleSequence": {
+                  "type": "integer",
+                  "example": 1
+                }
+              },
+              "required": [
+                "personSequence",
+                "type",
+                "panic",
+                "id2",
+                "user",
+                "vehicleSequence"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Acesso registrado com sucesso.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "success"
+                },
+                "data": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Missing required fields"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro interno do servidor",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Unknown error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/releasePedestrian": {
+      "post": {
+        "tags": [
+          "Access"
+        ],
+        "summary": "Liberar pedestres",
+        "description": "Rota para liberar pedestres no portão designado.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Dados necessários para liberar pedestres.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "device": {
+                  "type": "integer",
+                  "example": 1,
+                  "description": "Número do dispositivo do portão (1-7)."
+                },
+                "usuario": {
+                  "type": "string",
+                  "example": "João",
+                  "description": "Nome do usuário que solicita a liberação."
+                },
+                "quadra": {
+                  "type": "string",
+                  "example": "A1",
+                  "description": "Identificação da quadra."
+                },
+                "lote": {
+                  "type": "integer",
+                  "example": 101,
+                  "description": "Número do lote associado à solicitação."
+                },
+                "motivo": {
+                  "type": "string",
+                  "example": "Entrega de mercadoria",
+                  "description": "Motivo da solicitação."
+                },
+                "complemento": {
+                  "type": "string",
+                  "example": "Sem observações",
+                  "description": "Informações adicionais (opcional)."
+                },
+                "seqAutorizador": {
+                  "type": "integer",
+                  "example": 123,
+                  "description": "Sequência do autorizador (opcional)."
+                },
+                "botaoTexto": {
+                  "type": "string",
+                  "example": "Abrir portão",
+                  "description": "Texto adicional para o botão (opcional)."
+                }
+              },
+              "required": [
+                "device",
+                "usuario",
+                "quadra",
+                "lote",
+                "motivo"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso na liberação do pedestre.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "success"
+                },
+                "data": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação (campos ausentes ou inválidos).",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Missing required fields"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro interno do servidor.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Unknown error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/releaseVehicles": {
+      "post": {
+        "tags": [
+          "Access"
+        ],
+        "summary": "Liberar veículos",
+        "description": "Rota para liberar veículos nos portões designados.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Dados necessários para liberar veículos.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "device": {
+                  "type": "integer",
+                  "example": 2,
+                  "description": "Número do dispositivo do portão (1: entrada, 2: saída)."
+                },
+                "usuario": {
+                  "type": "string",
+                  "example": "Maria",
+                  "description": "Nome do usuário que solicita a liberação."
+                },
+                "quadra": {
+                  "type": "string",
+                  "example": "B2",
+                  "description": "Identificação da quadra."
+                },
+                "lote": {
+                  "type": "integer",
+                  "example": 202,
+                  "description": "Número do lote associado à solicitação."
+                },
+                "motivo": {
+                  "type": "string",
+                  "example": "Saída autorizada",
+                  "description": "Motivo da solicitação."
+                },
+                "complemento": {
+                  "type": "string",
+                  "example": "Portão lateral",
+                  "description": "Informações adicionais (opcional)."
+                },
+                "seqAutorizador": {
+                  "type": "integer",
+                  "example": 456,
+                  "description": "Sequência do autorizador (opcional)."
+                },
+                "botaoTexto": {
+                  "type": "string",
+                  "example": "Abrir saída",
+                  "description": "Texto adicional para o botão (opcional)."
+                }
+              },
+              "required": [
+                "device",
+                "usuario",
+                "quadra",
+                "lote",
+                "motivo"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso na liberação do veículo.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "success"
+                },
+                "data": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação (campos ausentes ou inválidos).",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Missing required fields"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro interno do servidor.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Unknown error"
                 }
               }
             }
