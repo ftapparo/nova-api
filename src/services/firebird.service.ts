@@ -428,14 +428,16 @@ export const insertAccess = async (data: {
   const db = await openConnection();
 
   return new Promise((resolve, reject) => {
-    db.transaction(async (err: any, transaction: any) => {
+    // 👇 Nível de isolamento explicitado
+    db.transaction(Firebird.ISOLATION_READ_COMMITTED, (err: any, transaction: any) => {
       if (err) {
         reject(err);
         return;
       }
 
       try {
-        // INSERE EM CIRCULACAODISP
+        const currentDateTime = new Date().toISOString().replace('T', ' ').slice(0, 19); // "YYYY-MM-DD HH:mm:ss"
+
         transaction.query(`
           INSERT INTO CIRCULACAODISP (
             DISPOSITIVO, "PESSOA", CLASSIFICACAO, CLASSAUTORIZADO, AUTORIZACAOLANC,
@@ -443,7 +445,7 @@ export const insertAccess = async (data: {
             ONOFF, PANICO, FORMAACESSO, IDACESSO, BAIXADO, SEQVEICULO, SINCRONIZAR
           ) VALUES (
             ?, ?, ?, ?, ?,
-            CURRENT_TIMESTAMP, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?,
             'ON', ?, ?, ?, 'N', ?, 'S'
           )
           RETURNING SEQUENCIA;
@@ -453,6 +455,7 @@ export const insertAccess = async (data: {
           data.classificacao,
           data.classAutorizado,
           data.autorizacaoLanc,
+          currentDateTime,
           data.origem,
           data.seqIdAcesso,
           data.sentido,
@@ -462,40 +465,37 @@ export const insertAccess = async (data: {
           data.formaAcesso,
           data.idAcesso,
           data.seqVeiculo
-        ], (err1: any, result1: any[]) => {
+        ], (err1: any, result1: any) => {
           if (err1) {
             transaction.rollback();
             reject(err1);
             return;
           }
 
-          const seqCircDisp = result1[0].SEQUENCIA;
+          
+          const seqCircDisp = result1.SEQUENCIA;
 
-          // BUSCA SEQUNIDADE
           transaction.query(`
             SELECT SEQUENCIA FROM UNIDADES
             WHERE QUADRA = ? AND LOTE = ?
           `, [
             data.quadra.trim(),
             data.lote.trim()
-          ], (err2: any, unidadeResult: any[]) => {
+          ], (err2: any, unidadeResult: any) => {
             if (err2 || unidadeResult.length === 0) {
               transaction.rollback();
               reject(err2 || new Error('Unidade não encontrada'));
               return;
             }
-
+            
             const seqUnidade = unidadeResult[0].SEQUENCIA;
 
-            // INSERE EM CIRCULACOESDET
             transaction.query(`
-              INSERT INTO CIRCULACOESDET (
+              INSERT INTO CIRCULACAODISPDEST (
                 SEQCIRCDISP,
                 SEQUNIDADE,
                 SEQAUTORIZADOR
-              ) VALUES (
-                ?, ?, NULL
-              );
+              ) VALUES (?, ?, NULL);
             `, [seqCircDisp, seqUnidade], (err3: any) => {
               if (err3) {
                 transaction.rollback();

@@ -214,7 +214,7 @@ router.post('/releaseVehicles', async (req, res) => {
 });
 
 // Rota para validar acesso
-router.post('access/verify', async (req, res) => {
+router.post('/access/verify', async (req, res) => {
   const { id, dispositivo, foto, sentido } = req.body;
 
   // Valida se todos os campos obrigatórios estão presentes
@@ -242,7 +242,7 @@ router.post('access/verify', async (req, res) => {
 });
 
 // Rota para registrar acesso
-router.post('access/register', async (req, res) => {
+router.post('/access/register', async (req, res) => {
   const {
     dispositivo,
     pessoa,
