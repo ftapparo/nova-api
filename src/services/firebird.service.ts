@@ -389,7 +389,7 @@ export const sendMqttMessage = async (deviceId: number, messagePath: string): Pr
 };
 
 // Função para validar acesso
-export const validateAccessById = async (id: string, dispositivo: number, foto: string, sentido: string): Promise<any> => {
+export const verifyAccessById = async (id: string, dispositivo: number, foto: string, sentido: string): Promise<any> => {
 
   const query = `EXECUTE PROCEDURE ACESSO_DISPOSITIVO (?, ?, ?, ?);`;
 
@@ -407,4 +407,118 @@ export const validateAccessById = async (id: string, dispositivo: number, foto: 
       });
   });
 };
+
+// Função para inserir acesso
+export const insertAccess = async (data: {
+  dispositivo: number;
+  pessoa: number;
+  classificacao: number;
+  classAutorizado: string;
+  autorizacaoLanc: string;
+  origem: string;
+  seqIdAcesso: number;
+  sentido: string;
+  quadra: string;
+  lote: string;
+  panico: string;
+  formaAcesso: string;
+  idAcesso: string;
+  seqVeiculo: number;
+}) => {
+  const db = await openConnection();
+
+  return new Promise((resolve, reject) => {
+    db.transaction(async (err: any, transaction: any) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+
+      try {
+        // INSERE EM CIRCULACAODISP
+        transaction.query(`
+          INSERT INTO CIRCULACAODISP (
+            DISPOSITIVO, "PESSOA", CLASSIFICACAO, CLASSAUTORIZADO, AUTORIZACAOLANC,
+            DATAHORA, ORIGEM, SEQIDACESSO, SENTIDO, QUADRADEST, LOTEDEST,
+            ONOFF, PANICO, FORMAACESSO, IDACESSO, BAIXADO, SEQVEICULO, SINCRONIZAR
+          ) VALUES (
+            ?, ?, ?, ?, ?,
+            CURRENT_TIMESTAMP, ?, ?, ?, ?, ?,
+            'ON', ?, ?, ?, 'N', ?, 'S'
+          )
+          RETURNING SEQUENCIA;
+        `, [
+          data.dispositivo,
+          data.pessoa,
+          data.classificacao,
+          data.classAutorizado,
+          data.autorizacaoLanc,
+          data.origem,
+          data.seqIdAcesso,
+          data.sentido,
+          data.quadra,
+          data.lote,
+          data.panico,
+          data.formaAcesso,
+          data.idAcesso,
+          data.seqVeiculo
+        ], (err1: any, result1: any[]) => {
+          if (err1) {
+            transaction.rollback();
+            reject(err1);
+            return;
+          }
+
+          const seqCircDisp = result1[0].SEQUENCIA;
+
+          // BUSCA SEQUNIDADE
+          transaction.query(`
+            SELECT SEQUENCIA FROM UNIDADES
+            WHERE QUADRA = ? AND LOTE = ?
+          `, [
+            data.quadra.trim(),
+            data.lote.trim()
+          ], (err2: any, unidadeResult: any[]) => {
+            if (err2 || unidadeResult.length === 0) {
+              transaction.rollback();
+              reject(err2 || new Error('Unidade não encontrada'));
+              return;
+            }
+
+            const seqUnidade = unidadeResult[0].SEQUENCIA;
+
+            // INSERE EM CIRCULACOESDET
+            transaction.query(`
+              INSERT INTO CIRCULACOESDET (
+                SEQCIRCDISP,
+                SEQUNIDADE,
+                SEQAUTORIZADOR
+              ) VALUES (
+                ?, ?, NULL
+              );
+            `, [seqCircDisp, seqUnidade], (err3: any) => {
+              if (err3) {
+                transaction.rollback();
+                reject(err3);
+              } else {
+                transaction.commit((commitErr: any) => {
+                  if (commitErr) {
+                    reject(commitErr);
+                  } else {
+                    resolve({ status: 'success', seqCircDisp, seqUnidade });
+                  }
+                });
+              }
+            });
+          });
+        });
+      } catch (e) {
+        transaction.rollback();
+        reject(e);
+      }
+    });
+  });
+};
+
+
 

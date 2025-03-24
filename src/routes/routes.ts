@@ -6,7 +6,8 @@ import {
   registerAccess,
   openGatePedestrian,
   openGateVehicle,
-  validateAccessById
+  verifyAccessById,
+  insertAccess
 } from '../services/firebird.service';
 import multer from 'multer';
 import path from 'path';
@@ -213,11 +214,11 @@ router.post('/releaseVehicles', async (req, res) => {
 });
 
 // Rota para validar acesso
-router.post('/validateAccess', async (req, res) => {
+router.post('access/verify', async (req, res) => {
   const { id, dispositivo, foto, sentido } = req.body;
 
   // Valida se todos os campos obrigatórios estão presentes
-  if (!id || !dispositivo || !foto || sentido === undefined) {
+  if (!id || !dispositivo || sentido === undefined) {
     res.status(400).json({ error: 'Missing required fields' });
     return;
   }
@@ -230,7 +231,7 @@ router.post('/validateAccess', async (req, res) => {
 
   try {
     // Chama a função validateAccess passando os parâmetros recebidos
-    const result = await validateAccessById(id, dispositivo, foto, sentido);
+    const result = await verifyAccessById(id, dispositivo, foto, sentido);
 
     // Retorna o resultado
     res.json({ status: 'success', data: result });
@@ -239,5 +240,55 @@ router.post('/validateAccess', async (req, res) => {
     res.status(500).json({ status: 'error', message: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
+
+// Rota para registrar acesso
+router.post('access/register', async (req, res) => {
+  const {
+    dispositivo,
+    pessoa,
+    classificacao,
+    classAutorizado,
+    autorizacaoLanc,
+    origem,
+    seqIdAcesso,
+    sentido,
+    quadra,
+    lote,
+    panico,
+    formaAcesso,
+    idAcesso,
+    seqVeiculo
+  } = req.body;
+
+  if (!dispositivo || !pessoa || !sentido || !idAcesso) {
+    res.status(400).json({ error: 'Missing required fields' });
+    return;
+  }
+
+  try {
+    const result = await insertAccess({
+      dispositivo,
+      pessoa,
+      classificacao,
+      classAutorizado,
+      autorizacaoLanc,
+      origem,
+      seqIdAcesso,
+      sentido,
+      quadra,
+      lote,
+      panico,
+      formaAcesso,
+      idAcesso,
+      seqVeiculo
+    });
+
+    res.json({ status: 'success', data: result });
+  } catch (error) {
+    console.error('Erro ao registrar passagem:', error);
+    res.status(500).json({ status: 'error', message: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
 
 export default router;

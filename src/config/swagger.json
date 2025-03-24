@@ -418,7 +418,7 @@
         }
       }
     },
-    "/validateAccess": {
+    "/access/verify": {
       "post": {
         "tags": [
           "Acessos"
@@ -503,6 +503,150 @@
                 "message": {
                   "type": "string",
                   "example": "Erro ao executar a procedure"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/access/register": {
+      "post": {
+        "tags": [
+          "Acessos"
+        ],
+        "summary": "Registrar acesso por um dispositivo",
+        "description": "Registra a passagem de um morador ou veículo no sistema. Após validação, os dados são inseridos nas tabelas CIRCULACAODISP e CIRCULACOESDET dentro de uma transação. A unidade é determinada automaticamente com base na quadra e lote.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Dados a serem registrados",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "dispositivo": {
+                  "type": "integer",
+                  "example": 9,
+                  "description": "Número do dispositivo de entrada/saída"
+                },
+                "pessoa": {
+                  "type": "integer",
+                  "example": 91,
+                  "description": "Sequência da pessoa"
+                },
+                "classificacao": {
+                  "type": "integer",
+                  "example": 10
+                },
+                "classAutorizado": {
+                  "type": "string",
+                  "example": "N"
+                },
+                "autorizacaoLanc": {
+                  "type": "string",
+                  "example": "N"
+                },
+                "origem": {
+                  "type": "string",
+                  "example": "Y"
+                },
+                "seqIdAcesso": {
+                  "type": "integer",
+                  "example": 49
+                },
+                "sentido": {
+                  "type": "string",
+                  "example": "E",
+                  "description": "Sentido do acesso: E (entrada) ou S (saída)"
+                },
+                "quadra": {
+                  "type": "string",
+                  "example": "A",
+                  "description": "Quadra da unidade (será usada para buscar o SEQUNIDADE automaticamente)"
+                },
+                "lote": {
+                  "type": "string",
+                  "example": "124",
+                  "description": "Lote da unidade (será usada para buscar o SEQUNIDADE automaticamente)"
+                },
+                "panico": {
+                  "type": "string",
+                  "example": "N"
+                },
+                "formaAcesso": {
+                  "type": "string",
+                  "example": "TAG"
+                },
+                "idAcesso": {
+                  "type": "string",
+                  "example": "0005624566",
+                  "description": "Identificador do acesso (ex: número da TAG)"
+                },
+                "seqVeiculo": {
+                  "type": "integer",
+                  "example": 745
+                }
+              },
+              "required": [
+                "dispositivo",
+                "pessoa",
+                "sentido",
+                "idAcesso",
+                "quadra",
+                "lote"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Acesso registrado com sucesso.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "success"
+                },
+                "seqCircDisp": {
+                  "type": "integer",
+                  "example": 1234,
+                  "description": "ID gerado na tabela CIRCULACAODISP"
+                },
+                "seqUnidade": {
+                  "type": "integer",
+                  "example": 567,
+                  "description": "ID da unidade recuperado com base na quadra e lote"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro de validação",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Missing required fields"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro interno do servidor",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "error"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Erro ao registrar acesso"
                 }
               }
             }
