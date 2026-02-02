@@ -1,150 +1,9 @@
+// src/repositories/freedomAccessRepository.ts
 import Firebird from 'node-firebird';
-import dotenv from 'dotenv';
 import axios from 'axios';
 import net from 'net';
 import mqtt from 'mqtt';
-
-dotenv.config();
-
-const firebirdOptions = {
-  host: process.env.FIREBIRD_HOST,
-  port: parseInt(process.env.FIREBIRD_PORT || '3050', 10),
-  database: process.env.FIREBIRD_DATABASE,
-  user: process.env.FIREBIRD_USER,
-  password: process.env.FIREBIRD_PASSWORD,
-};
-
-// Variável global para armazenar a conexão
-let dbConnection: any = null;
-
-// Função para obter a conexão persistente
-export const openConnection = (): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    if (dbConnection) {
-      // Se a conexão já existe, retorna ela
-      resolve(dbConnection);
-    } else {
-      // Se não existir, cria uma nova conexão
-      Firebird.attach(firebirdOptions, (err, db: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          dbConnection = db; // Armazena a conexão globalmente
-          resolve(dbConnection);
-        }
-      });
-    }
-  });
-};
-
-// Função para encerrar a conexão quando o aplicativo terminar
-export const closeConnection = (): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    if (dbConnection) {
-      dbConnection.detach((err: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          dbConnection = null; // Limpa a conexão global
-          resolve();
-        }
-      });
-    } else {
-      resolve(); // Se não houver conexão, resolve imediatamente
-    }
-  });
-};
-
-// Função para executar uma consulta
-export const executeQuery = async (query: string): Promise<any> => {
-  const db = await openConnection();
-  return new Promise((resolve, reject) => {
-    db.query(query, (err: any, result: unknown) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(result);
-      }
-    });
-  });
-};
-
-// Função para cadastrar veículo
-export const registerVehicle = async (vehicleData: {
-  plate: string;
-  brand: string;
-  model: string;
-  color: string;
-  user_seq: string;
-  unit_seq: string;
-  tag: string
-}): Promise<any> => {
-  const { plate, brand, model, color, user_seq, unit_seq, tag } = vehicleData;
-
-  const query = `
-    INSERT INTO VEICULOS (PLACA, MARCA, MODELO, COR, PROPRIETARIO, SEQUNIDADE, TAGVEICULO)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    RETURNING SEQUENCIA;
-  `;
-
-  const db = await openConnection();
-  return new Promise((resolve, reject) => {
-    db.query(query, [plate, brand, model, color, user_seq, unit_seq, tag], (err: any, result: unknown) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(result);
-      }
-    });
-  });
-};
-
-// Função para cadastrar foto do veiculo
-export const registerVehiclePhoto = async (accessData: {
-  vehicleSequence: number;
-  photoTag?: Buffer;
-  photoVehicle?: Buffer;
-}): Promise<any> => {
-  const { vehicleSequence, photoTag, photoVehicle } = accessData;
-
-  const query = `INSERT INTO VEICULOSFOTO (SEQVEICULO, FOTOTAG, FOTO)  VALUES ( ?, ?, ?)`;
-
-  const db = await openConnection();
-  return new Promise((resolve, reject) => {
-    db.query(query, [vehicleSequence, photoTag, photoVehicle], (err: any, result: unknown) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(result);
-      }
-    });
-  });
-};
-
-// Função para cadastrar acesso
-export const registerAccess = async (accessData: {
-  personSequence: number;
-  type: string;
-  panic: string,
-  id2: string,
-  user: string,
-  vehicleSequence: string
-}): Promise<any> => {
-  const { personSequence, type, panic, id2, user, vehicleSequence } = accessData;
-
-  const query = `INSERT INTO IDACESSO (SEQPESSOA, TIPO, PANICO, ID2, USR, VEICULO) VALUES ( ?, ?, ?, ?, ?, ?)`;
-
-  const db = await openConnection();
-  return new Promise((resolve, reject) => {
-    db.query(query, [personSequence, type, panic, id2, user, vehicleSequence], (err: any, result: unknown) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(result);
-      }
-    });
-  });
-};
+import { openConnection } from '../services/firebirdService';
 
 // Função para abrir portão de pedestres
 export const openGatePedestrian = async (data: { device: number; usuario: string; quadra: string; lote: number; motivo: string; complemento: string; seqAutorizador: number; botaoTexto: string }): Promise<any> => {
@@ -391,7 +250,7 @@ export const sendMqttMessage = async (deviceId: number, messagePath: string): Pr
 // Função para validar acesso
 export const verifyAccessById = async (id: string, dispositivo: number, foto: string, sentido: string): Promise<any> => {
 
-  const query = `EXECUTE PROCEDURE ACESSO_DISPOSITIVO (?, ?, ?, ?);`;
+  const query = `EXECUTE PROCEDURE ACESSO_DISPOSITIVO_(?, ?, ?, ?);`;
 
   const db = await openConnection();
   return new Promise((resolve, reject) => {

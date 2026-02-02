@@ -1,7 +1,7 @@
 {
-  "name": "nova-api",
+  "name": "freedom-api",
   "version": "1.0.0",
-  "description": "API para acesso ao banco e dados Firebase - Condomínio Nova Residence",
+  "description": "Serviço de integração aplicação Freedom Proansi",
   "homepage": "https://github.com/ftapparo/nova-api#readme",
   "bugs": {
     "url": "https://github.com/ftapparo/nova-api/issues"
@@ -10,30 +10,34 @@
     "type": "git",
     "url": "git+https://github.com/ftapparo/nova-api.git"
   },
-  "license": "MIT",
+  "license": "UNLICENSED",
   "author": "Flavio Eduardo Tapparo",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
+    "dev": "dotenv -e .env.dev -- cross-env 'NODE_ENV=development' ts-node-dev --respawn src/server.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn src/index.ts"
+    "start": "node dist/server.js"
   },
   "dependencies": {
     "axios": "^1.7.9",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.5.0",
+    "dotenv-cli": "^8.0.0",
     "express": "^4.21.1",
     "mqtt": "^5.10.3",
     "multer": "^1.4.5-lts.1",
-    "node-firebird": "^1.1.9"
+    "node-firebird": "^1.1.9",
+    "swagger-jsdoc": "^6.2.8"
   },
   "devDependencies": {
     "@types/cors": "^2",
     "@types/express": "^5.0.0",
     "@types/multer": "^1",
     "@types/node": "^22.13.11",
-    "@types/swagger-ui-express": "^4.1.7",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "@typescript-eslint/eslint-plugin": "^8.14.0",
     "@typescript-eslint/parser": "^8.14.0",
     "eslint": "^9.15.0",
