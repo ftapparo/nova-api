@@ -1,0 +1,516 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Freedom API",
+    "description": "Servico de integracao com o sistema Freedom Proansi.",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "Monitoramento",
+      "description": "Verificacao de status e saude da API (health check)."
+    },
+    {
+      "name": "Acessos",
+      "description": "Operacoes relacionadas a verificacao, liberacao e registro de acessos (pedestres e veiculos)."
+    },
+    {
+      "name": "Veiculos",
+      "description": "Gerenciamento de dados de veiculos, incluindo cadastro, bloqueio, imagem e TAG de acesso."
+    }
+  ],
+  "paths": {
+    "/api/healthcheck": {
+      "get": {
+        "tags": ["Monitoramento"],
+        "summary": "Verificacao de status da API",
+        "description": "Retorna o status de funcionamento da API e o ambiente atual.",
+        "responses": {
+          "200": {
+            "description": "API em funcionamento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                      "example": "API em funcionamento - ambiente: desenvolvimento"
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "messageError": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/access/verify": {
+      "post": {
+        "tags": ["Acessos"],
+        "summary": "Verificar permissao de acesso",
+        "description": "Verifica se uma pessoa ou veiculo possui permissao para acessar o condominio.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" },
+                  "dispositivo": { "type": "string" },
+                  "foto": { "type": "string" },
+                  "sentido": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permissao de acesso verificada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                      "example": "IDENT:..."
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "messageError": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/access/register": {
+      "post": {
+        "tags": ["Acessos"],
+        "summary": "Registrar novo acesso",
+        "description": "Registra um novo evento de acesso ao sistema (entrada ou saida).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tipo": {
+                    "type": "string",
+                    "enum": ["entrada", "saida"]
+                  },
+                  "documento": { "type": "string" },
+                  "placa": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Acesso registrado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "string",
+                      "example": "IDENT:..."
+                    },
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "messageError": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/access/release/pedestrian": {
+      "get": {
+        "tags": ["Acessos"],
+        "summary": "Liberar acesso de pedestre",
+        "description": "Libera o acesso imediato para pedestre (por exemplo, via botao ou comando externo).",
+        "deprecated": true,
+        "responses": {
+          "410": {
+            "description": "Recurso obsoleto ou removido"
+          }
+        }
+      }
+    },
+    "/api/access/release/vehicle": {
+      "get": {
+        "tags": ["Acessos"],
+        "summary": "Liberar acesso de veiculo",
+        "description": "Libera o acesso imediato para veiculos (por exemplo, via botao ou comando externo).",
+        "deprecated": true,
+        "responses": {
+          "410": {
+            "description": "Recurso obsoleto ou removido"
+          }
+        }
+      }
+    },
+    "/api/vehicles": {
+      "get": {
+        "tags": ["Veiculos"],
+        "summary": "Listar veiculos",
+        "description": "Retorna todos os veiculos cadastrados no sistema.",
+        "responses": {
+          "200": {
+            "description": "Lista de veiculos retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "items": { "type": "object" }
+                    },
+                    "success": { "type": "boolean" },
+                    "errorMessage": { "type": "string", "nullable": true },
+                    "errors": { "type": "string", "nullable": true }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Veiculos"],
+        "summary": "Cadastrar veiculo",
+        "description": "Cria um novo veiculo no sistema.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "plate",
+                  "brand",
+                  "model",
+                  "color",
+                  "user_seq",
+                  "unit_seq",
+                  "tag"
+                ],
+                "properties": {
+                  "plate": { "type": "string" },
+                  "brand": { "type": "string" },
+                  "model": { "type": "string" },
+                  "color": { "type": "string" },
+                  "user_seq": { "type": "integer" },
+                  "unit_seq": { "type": "integer" },
+                  "tag": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Veiculo cadastrado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": { "type": "object" },
+                    "success": { "type": "boolean", "example": true },
+                    "messageError": { "type": "string", "nullable": true, "example": null },
+                    "errors": { "type": "string", "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vehicles/{id}": {
+      "get": {
+        "tags": ["Veiculos"],
+        "summary": "Obter veiculo",
+        "description": "Retorna os dados de um veiculo especifico pelo ID.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "ID do veiculo"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dados do veiculo retornados com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": { "type": "object" },
+                    "success": { "type": "boolean", "example": true },
+                    "messageError": { "type": "string", "nullable": true, "example": null },
+                    "errors": { "type": "string", "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vehicles/{id}/photo": {
+      "put": {
+        "tags": ["Veiculos"],
+        "summary": "Atualizar imagem do veiculo",
+        "description": "Atualiza a imagem do veiculo. Requer pelo menos uma das imagens.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "photoTag": { "type": "string", "format": "binary" },
+                  "photoVehicle": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Imagem atualizada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": { "type": "object" },
+                    "success": { "type": "boolean", "example": true },
+                    "messageError": { "type": "string", "nullable": true, "example": null },
+                    "errors": { "type": "string", "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vehicles/{id}/access": {
+      "put": {
+        "tags": ["Veiculos"],
+        "summary": "Atualizar acesso do veiculo",
+        "description": "Atualiza as informacoes de acesso do veiculo.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["personSequence", "id2", "user", "vehicleSequence"],
+                "properties": {
+                  "personSequence": { "type": "integer" },
+                  "type": { "type": "string", "example": "Y" },
+                  "panic": { "type": "string", "example": "N" },
+                  "id2": { "type": "string", "example": "0005629999" },
+                  "useType": { "type": "string", "example": "N" },
+                  "user": { "type": "string", "example": "JONH" },
+                  "vehicleSequence": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Acesso atualizado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": { "type": "object" },
+                    "success": { "type": "boolean", "example": true },
+                    "messageError": { "type": "string", "nullable": true, "example": null },
+                    "errors": { "type": "string", "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vehicles/{id}/lock": {
+      "put": {
+        "tags": ["Veiculos"],
+        "summary": "Bloquear veiculo",
+        "description": "Bloqueia o acesso do veiculo no sistema.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID do veiculo",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Veiculo bloqueado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": { "type": "object" },
+                    "success": { "type": "boolean", "example": true },
+                    "messageError": { "type": "string", "nullable": true, "example": null },
+                    "errors": { "type": "string", "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vehicles/{id}/unlock": {
+      "put": {
+        "tags": ["Veiculos"],
+        "summary": "Desbloquear veiculo",
+        "description": "Desbloqueia o acesso do veiculo no sistema.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID do veiculo",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Veiculo desbloqueado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": { "type": "object" },
+                    "success": { "type": "boolean", "example": true },
+                    "messageError": { "type": "string", "nullable": true, "example": null },
+                    "errors": { "type": "string", "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vehicles/purge/{period}": {
+      "put": {
+        "tags": ["Veiculos"],
+        "summary": "Bloquear veiculo",
+        "description": "Bloqueia o acesso de veiculos com base no periodo determinado.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "period",
+            "required": true,
+            "description": "Periodo em dias",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Veiculos bloqueados com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": { "type": "object" },
+                    "success": { "type": "boolean", "example": true },
+                    "messageError": { "type": "string", "nullable": true, "example": null },
+                    "errors": { "type": "string", "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
