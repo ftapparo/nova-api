@@ -7,7 +7,7 @@ const router = Router();
 router.use(freedomValidate);
 
 // Rotas de controle de acesso
-router.post('/access/verify', checkAccessPermission);
+router.get('/access/verify', checkAccessPermission);
 
 // Rota para registrar novo acesso
 router.post('/access/register', registerNewAccess);

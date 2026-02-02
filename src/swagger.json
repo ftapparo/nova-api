@@ -113,36 +113,38 @@
       }
     },
     "/v2/api/access/verify": {
-      "post": {
+      "get": {
         "tags": [
           "Acessos"
         ],
         "summary": "Verificar permissao de acesso",
         "description": "Verifica se uma pessoa ou veiculo possui permissao para acessar o condominio.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "dispositivo": {
-                    "type": "string"
-                  },
-                  "foto": {
-                    "type": "string"
-                  },
-                  "sentido": {
-                    "type": "string"
-                  }
-                }
-              }
+        "parameters": [
+          {
+            "in": "query",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dispositivo",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sentido",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
           }
-        },
+        ],
         "responses": {
           "200": {
             "description": "Permissao de acesso verificada com sucesso",

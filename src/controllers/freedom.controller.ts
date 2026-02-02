@@ -196,12 +196,14 @@ export const unlockVehicle = async (req: Request, res: Response) => {
 
 /**
  * Verifica permissão de acesso por ID.
- * @param req Requisição HTTP (body com id/dispositivo/sentido).
+ * @param req Requisição HTTP (query com id/dispositivo/sentido).
  * @param res Resposta HTTP.
  * @returns Promise<void>.
  */
 export const checkAccessPermission = async (req: Request, res: Response) => {
-  const { id, dispositivo, foto = null, sentido } = req.body;
+  const { id, dispositivo, sentido } = req.query;
+
+  const dispositivoNumber = Number(dispositivo);
 
   if (!id || !dispositivo || !sentido) {
     res.fail('Necessário todos os dados obrigatórios', 400);
@@ -209,13 +211,13 @@ export const checkAccessPermission = async (req: Request, res: Response) => {
   }
 
   // Verifica se o número do dispositivo é válido
-  if (dispositivo < 1) {
+  if (Number.isNaN(dispositivoNumber) || dispositivoNumber < 1) {
     res.fail('Número do dispositivo incorreto', 400);
     return;
   }
 
   try {
-    const result = await verifyAccessById(id, dispositivo, foto, sentido);
+    const result = await verifyAccessById(String(id), dispositivoNumber, String(sentido));
     res.ok(result);
   } catch (error: any) {
     console.error('Erro ao verificar acesso:', error.message);
