@@ -10,11 +10,11 @@ services:
     environment:
       - NODE_ENV=production
       - DEV_MODE=false
+    env_file:
+      - .env
     volumes:
       # Mapeia logs para pasta local do projeto
       - ./logs:/app/logs
-      # Mapeia arquivo .env para o container
-      - ./.env:/app/.env:ro
     networks:
       - nova-api-network
     healthcheck:
