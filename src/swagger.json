@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.1",
   "info": {
-    "title": "Freedom API",
-    "description": "Servico de integracao com o sistema Freedom Proansi.",
+    "title": "NOVA-API",
+    "description": "API de serviços para condomínio Nova Residence Quintas das Paineiras.",
     "version": "1.0.0"
   },
   "tags": [
