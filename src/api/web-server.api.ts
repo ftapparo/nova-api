@@ -3,8 +3,9 @@ import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocument from '../swagger.json';
 import healthRoutes from '../routes/health.routes';
-import ProansiAccessRoutes from '../routes/freedomAccessRoutes';
-import ProansiVehicleRoutes from '../routes/freedomVehicleRoutes';
+import accessRoutes from '../routes/access.routes';
+import vehicleRoutes from '../routes/vehicle.routes';
+import { responseHandler } from '../middleware/response-handler';
 
 export async function StartWebServer(): Promise<void> {
     const app = express();
@@ -26,13 +27,19 @@ export async function StartWebServer(): Promise<void> {
     app.use(express.json());
 
     /**
+     * Middleware para padronizar respostas da API.
+     */
+    app.use(responseHandler);
+
+    /**
      * Registro das rotas principais da API.
-     * - /api/health: Healthcheck
-     * - /api/gate: Controle de Portão
+     * - /v2/api/health: Healthcheck
+     * - /v2/api/access: Rotas de controle de acesso
+     * - /v2/api/vehicles: Rotas de controle de veículos
      */
     app.use('/v2/api', healthRoutes);
-    app.use('/v2/api', ProansiAccessRoutes);
-    app.use('/v2/api', ProansiVehicleRoutes);
+    app.use('/v2/api', accessRoutes);
+    app.use('/v2/api', vehicleRoutes);
 
     /**
      * Rota para servir a documentação Swagger UI.

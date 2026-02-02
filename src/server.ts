@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { StartWebServer } from './api/web-server.api';
-import { closeConnection } from './services/firebirdService';
+import { closeConnection } from './services/firebird.service';
 
 // Carrega variáveis de ambiente do arquivo .env
 const dotenvResult = dotenv.config();
