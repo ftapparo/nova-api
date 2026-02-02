@@ -20,7 +20,7 @@
     }
   ],
   "paths": {
-    "/api/healthcheck": {
+    "/v2/api/healthcheck": {
       "get": {
         "tags": ["Monitoramento"],
         "summary": "Verificacao de status da API",
@@ -59,7 +59,7 @@
         }
       }
     },
-    "/api/access/verify": {
+    "/v2/api/access/verify": {
       "post": {
         "tags": ["Acessos"],
         "summary": "Verificar permissao de acesso",
@@ -114,7 +114,7 @@
         }
       }
     },
-    "/api/access/register": {
+    "/v2/api/access/register": {
       "post": {
         "tags": ["Acessos"],
         "summary": "Registrar novo acesso",
@@ -171,7 +171,7 @@
         }
       }
     },
-    "/api/access/release/pedestrian": {
+    "/v2/api/access/release/pedestrian": {
       "get": {
         "tags": ["Acessos"],
         "summary": "Liberar acesso de pedestre",
@@ -184,7 +184,7 @@
         }
       }
     },
-    "/api/access/release/vehicle": {
+    "/v2/api/access/release/vehicle": {
       "get": {
         "tags": ["Acessos"],
         "summary": "Liberar acesso de veiculo",
@@ -197,7 +197,7 @@
         }
       }
     },
-    "/api/vehicles": {
+    "/v2/api/vehicles": {
       "get": {
         "tags": ["Veiculos"],
         "summary": "Listar veiculos",
@@ -276,7 +276,7 @@
         }
       }
     },
-    "/api/vehicles/{id}": {
+    "/v2/api/vehicles/{id}": {
       "get": {
         "tags": ["Veiculos"],
         "summary": "Obter veiculo",
@@ -310,7 +310,7 @@
         }
       }
     },
-    "/api/vehicles/{id}/photo": {
+    "/v2/api/vehicles/{id}/photo": {
       "put": {
         "tags": ["Veiculos"],
         "summary": "Atualizar imagem do veiculo",
@@ -357,7 +357,7 @@
         }
       }
     },
-    "/api/vehicles/{id}/access": {
+    "/v2/api/vehicles/{id}/access": {
       "put": {
         "tags": ["Veiculos"],
         "summary": "Atualizar acesso do veiculo",
@@ -410,7 +410,7 @@
         }
       }
     },
-    "/api/vehicles/{id}/lock": {
+    "/v2/api/vehicles/{id}/lock": {
       "put": {
         "tags": ["Veiculos"],
         "summary": "Bloquear veiculo",
@@ -444,7 +444,7 @@
         }
       }
     },
-    "/api/vehicles/{id}/unlock": {
+    "/v2/api/vehicles/{id}/unlock": {
       "put": {
         "tags": ["Veiculos"],
         "summary": "Desbloquear veiculo",
@@ -478,7 +478,7 @@
         }
       }
     },
-    "/api/vehicles/purge/{period}": {
+    "/v2/api/vehicles/purge/{period}": {
       "put": {
         "tags": ["Veiculos"],
         "summary": "Bloquear veiculo",
