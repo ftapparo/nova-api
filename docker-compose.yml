@@ -9,7 +9,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - DEV_MODE=false
     volumes:
       # Mapeia logs para pasta local do projeto
       - ./logs:/app/logs
