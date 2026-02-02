@@ -1,7 +1,7 @@
 {
-  "name": "freedom-api",
-  "version": "1.0.0",
-  "description": "Serviço de integração aplicação Freedom Proansi",
+  "name": "nova-api",
+  "version": "2.0.0",
+  "description": "API de serviços para condomínio Nova Residence",
   "homepage": "https://github.com/ftapparo/nova-api#readme",
   "bugs": {
     "url": "https://github.com/ftapparo/nova-api/issues"
@@ -10,14 +10,14 @@
     "type": "git",
     "url": "git+https://github.com/ftapparo/nova-api.git"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "author": "Flavio Eduardo Tapparo",
   "type": "commonjs",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "dotenv -e .env.dev -- cross-env 'NODE_ENV=development' ts-node-dev --respawn src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "dev": "dotenv -e .env.dev -- cross-env 'NODE_ENV=development' ts-node-dev --respawn src/server.ts"
   },
   "dependencies": {
     "axios": "^1.7.9",
