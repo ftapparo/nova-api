@@ -167,11 +167,16 @@ export const sendMqttMessage = async (deviceId: number, messagePath: string): Pr
 };
 
 // Função para validar acesso
-export const verifyAccessById = async (id: string, dispositivo: number, sentido: string): Promise<any> => {
+export const verifyAccessById = async (
+  id: string,
+  dispositivo: number,
+  foto: string | null,
+  sentido: string
+): Promise<any> => {
 
   const query = `EXECUTE PROCEDURE ACESSO_DISPOSITIVO_V2(?, ?, ?, ?);`;
 
-  return await executeQuery(query, [id, dispositivo, '', sentido]);
+  return await executeQuery(query, [id, dispositivo, foto, sentido]);
 };
 
 // Função para inserir acesso

@@ -201,9 +201,10 @@ export const unlockVehicle = async (req: Request, res: Response) => {
  * @returns Promise<void>.
  */
 export const checkAccessPermission = async (req: Request, res: Response) => {
-  const { id, dispositivo, sentido } = req.query;
+  const { id, dispositivo, sentido, foto } = req.query;
 
   const dispositivoNumber = Number(dispositivo);
+  const fotoValue = foto ? String(foto) : null;
 
   if (!id || !dispositivo || !sentido) {
     res.fail('Necessário todos os dados obrigatórios', 400);
@@ -217,7 +218,7 @@ export const checkAccessPermission = async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await verifyAccessById(String(id), dispositivoNumber, String(sentido));
+    const result = await verifyAccessById(String(id), dispositivoNumber, fotoValue, String(sentido));
     res.ok(result);
   } catch (error: any) {
     console.error('Erro ao verificar acesso:', error.message);
