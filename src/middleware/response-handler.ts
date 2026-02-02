@@ -6,6 +6,12 @@ export type ApiResponse<T> = {
     errors: unknown | null;
 };
 
+/**
+ * Middleware que adiciona helpers de resposta padronizada ao `res`.
+ * @param _req Requisição HTTP.
+ * @param res Resposta HTTP.
+ * @param next Função para seguir para o próximo middleware.
+ */
 export const responseHandler = (_req: Request, res: Response, next: NextFunction) => {
     res.ok = <T>(data: T, status = 200) =>
         res.status(status).json({
