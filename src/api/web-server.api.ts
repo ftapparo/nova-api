@@ -30,19 +30,19 @@ export async function StartWebServer(): Promise<void> {
      * - /api/health: Healthcheck
      * - /api/gate: Controle de Portão
      */
-    app.use('/api', healthRoutes);
-    app.use('/api', ProansiAccessRoutes);
-    app.use('/api', ProansiVehicleRoutes);
+    app.use('/v2/api', healthRoutes);
+    app.use('/v2/api', ProansiAccessRoutes);
+    app.use('/v2/api', ProansiVehicleRoutes);
 
     /**
      * Rota para servir a documentação Swagger UI.
      */
-    app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+    app.use('/v2/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
     /**
      * Endpoint para servir o arquivo swagger.json (OpenAPI spec).
      */
-    app.get('/apispec_1.json', (_req, res) => {
+    app.get('/v2/apispec_1.json', (_req, res) => {
         res.setHeader('Content-Type', 'application/json');
         res.send(swaggerDocument);
     });
