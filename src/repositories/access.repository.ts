@@ -176,7 +176,17 @@ export const verifyAccessById = async (
 
   const query = `SELECT * FROM ACESSO_DISPOSITIVO_V2(?, ?, ?, ?);`;
 
-  return await executeQuery(query, [id, dispositivo, foto, sentido]);
+  const result = await executeQuery(query, [id, dispositivo, foto, sentido]);
+
+  if (Array.isArray(result)) {
+    for (const row of result) {
+      if (row?.FOTO && Buffer.isBuffer(row.FOTO)) {
+        row.FOTO = row.FOTO.toString('base64');
+      }
+    }
+  }
+
+  return result;
 };
 
 // Função para inserir acesso
