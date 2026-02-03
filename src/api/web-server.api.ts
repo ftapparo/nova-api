@@ -5,6 +5,7 @@ import swaggerDocument from '../swagger.json';
 import healthRoutes from '../routes/health.routes';
 import accessRoutes from '../routes/access.routes';
 import vehicleRoutes from '../routes/vehicle.routes';
+import exaustorRoutes from '../routes/exaustor.routes';
 import { responseHandler } from '../middleware/response-handler';
 
 export async function StartWebServer(): Promise<void> {
@@ -40,6 +41,7 @@ export async function StartWebServer(): Promise<void> {
     app.use('/v2/api', healthRoutes);
     app.use('/v2/api', accessRoutes);
     app.use('/v2/api', vehicleRoutes);
+    app.use('/v2/api', exaustorRoutes);
 
     /**
      * Rota para servir a documentação Swagger UI.

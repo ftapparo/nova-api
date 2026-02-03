@@ -1,0 +1,286 @@
+import axios from 'axios';
+
+/**
+ * Torres disponíveis.
+ */
+type Tower = 'A' | 'B' | 'C';
+/**
+ * Grupos de finais (1-4 ou 5-8).
+ */
+type Group = '14' | '58';
+
+/**
+ * Mapeamento de módulos para seus respectivos hosts.
+ */
+const EXAUSTOR_HOSTS: Record<string, string | undefined> = {
+    A_14: process.env.EXAUSTOR_A_14_HOST,
+    A_58: process.env.EXAUSTOR_A_58_HOST,
+    B_14: process.env.EXAUSTOR_B_14_HOST,
+    B_58: process.env.EXAUSTOR_B_58_HOST,
+    C_14: process.env.EXAUSTOR_C_14_HOST,
+    C_58: process.env.EXAUSTOR_C_58_HOST,
+    PWR_14: process.env.EXAUSTOR_PWR_14_HOST,
+    PWR_58: process.env.EXAUSTOR_PWR_58_HOST,
+};
+
+/**
+ * Porta dos módulos Tasmota.
+ */
+const EXAUSTOR_PORT = Number(process.env.EXAUSTOR_PORT || 80);
+/**
+ * Timeout das chamadas HTTP.
+ */
+const EXAUSTOR_TIMEOUT_MS = Number(process.env.EXAUSTOR_TIMEOUT_MS || 5000);
+/**
+ * Tempo de pulso do relé em décimos de segundo.
+ * Ex: 5 = 500ms.
+ */
+const EXAUSTOR_PULSE_TIME = Number(process.env.EXAUSTOR_PULSE_TIME || 5); // 500ms
+
+/**
+ * Estado em memória de um exaustor.
+ */
+type ExaustorState = {
+    id: string;
+    tower: Tower;
+    final: number;
+    group: Group;
+    relay: number;
+    moduleId: string;
+    expiresAt: number | null;
+    timer?: NodeJS.Timeout;
+};
+
+/**
+ * Memória dos exaustores ligados e seus timers.
+ */
+const exaustorStates = new Map<string, ExaustorState>();
+
+/**
+ * Normaliza o ID do apartamento.
+ * @param id Identificador do exaustor.
+ */
+const normalizeApartmentId = (id: string) => id.trim().toUpperCase().replace(/\s+/g, '').replace(/-/g, '_');
+
+/**
+ * Resolve o host do módulo.
+ * @param moduleId ID do módulo (ex: A_14).
+ * @returns Host configurado.
+ */
+const resolveModuleHost = (moduleId: string): string => {
+    const normalized = moduleId.trim().toUpperCase();
+    const host = EXAUSTOR_HOSTS[normalized];
+    if (!host) {
+        throw new Error(`Host não configurado para o módulo: ${moduleId}`);
+    }
+    return host;
+};
+
+/**
+ * Monta a URL base do Tasmota.
+ * @param host IP/host do módulo.
+ */
+const buildUrl = (host: string): string => {
+    const portPart = EXAUSTOR_PORT ? `:${EXAUSTOR_PORT}` : '';
+    return `http://${host}${portPart}/cm`;
+};
+
+/**
+ * Envia um comando ao módulo Tasmota.
+ * @param host IP/host do módulo.
+ * @param cmnd Comando Tasmota.
+ */
+const sendCommand = async (host: string, cmnd: string): Promise<any> => {
+    const url = buildUrl(host);
+    const response = await axios.post(url, { cmnd }, { timeout: EXAUSTOR_TIMEOUT_MS });
+    return response.data;
+};
+
+/**
+ * Converte o ID do exaustor em metadados de torre, final e relé.
+ * @param id Identificador (A1, A-1, A_1).
+ */
+const parseApartment = (id: string): { tower: Tower; final: number; relay: number; group: Group; moduleId: string } => {
+    const normalized = normalizeApartmentId(id);
+    const match = normalized.match(/^(A|B|C)_?([1-8])$/i);
+
+    if (!match) {
+        throw new Error('ID do exaustor inválido. Use formato A1, A-1, A_1 (torre A/B/C e final 1-8).');
+    }
+
+    const tower = match[1].toUpperCase() as Tower;
+    const final = Number(match[2]);
+    const group: Group = final <= 4 ? '14' : '58';
+    const relay = final <= 4 ? final : final - 4;
+    const moduleId = `${tower}_${group}`;
+
+    return { tower, final, relay, group, moduleId };
+};
+
+/**
+ * Retorna o relé do módulo PWR correspondente à torre.
+ * @param tower Torre.
+ */
+const getPwrRelayForTower = (tower: Tower): number => {
+    if (tower === 'A') return 1;
+    if (tower === 'B') return 2;
+    return 3;
+};
+
+/**
+ * Agenda o desligamento automático em memória.
+ * @param state Estado do exaustor.
+ * @param minutes Minutos para desligar.
+ */
+const scheduleOffTimer = (state: ExaustorState, minutes: number): void => {
+    if (state.timer) {
+        clearTimeout(state.timer);
+    }
+
+    const timeoutMs = Math.round(minutes * 60 * 1000);
+    state.expiresAt = Date.now() + timeoutMs;
+    state.timer = setTimeout(async () => {
+        try {
+            await turnOffExaustor(state.id);
+        } catch (error) {
+            console.error('[Exaustor] Falha ao desligar automaticamente:', error);
+        }
+    }, timeoutMs);
+};
+
+/**
+ * Atualiza o estado em memória e agenda desligamento se necessário.
+ * @param state Estado do exaustor.
+ * @param minutes Minutos para desligar.
+ */
+const setState = (state: ExaustorState, minutes?: number): void => {
+    if (minutes && minutes > 0) {
+        scheduleOffTimer(state, minutes);
+    } else {
+        state.expiresAt = null;
+    }
+
+    exaustorStates.set(state.id, state);
+};
+
+/**
+ * Remove o estado em memória.
+ * @param id Identificador do exaustor.
+ */
+const clearState = (id: string): void => {
+    const normalizedId = normalizeApartmentId(id);
+    const state = exaustorStates.get(normalizedId);
+    if (state?.timer) {
+        clearTimeout(state.timer);
+    }
+    exaustorStates.delete(normalizedId);
+};
+
+/**
+ * Calcula minutos restantes para desligamento.
+ * @param state Estado do exaustor.
+ */
+const getRemainingMinutes = (state: ExaustorState): number | null => {
+    if (!state.expiresAt) return null;
+    const remainingMs = state.expiresAt - Date.now();
+    if (remainingMs <= 0) return null;
+    return Math.ceil(remainingMs / 60000);
+};
+
+/**
+ * Envia pulso e comando de ligar para um relé.
+ * @param moduleHost Host do módulo.
+ * @param relay Número do relé.
+ */
+const pulseRelay = async (moduleHost: string, relay: number): Promise<any[]> => {
+    const pulseCommand = `PulseTime${relay} ${EXAUSTOR_PULSE_TIME}`;
+    const onCommand = `Power${relay} On`;
+    const pulseResult = await sendCommand(moduleHost, pulseCommand);
+    const onResult = await sendCommand(moduleHost, onCommand);
+    return [pulseResult, onResult];
+};
+
+/**
+ * Liga um exaustor por pulso no relé.
+ * @param id Identificador do exaustor.
+ * @param minutes Minutos para permanecer ligado.
+ */
+export const turnOnExaustor = async (id: string, minutes?: number): Promise<any> => {
+    const normalizedId = normalizeApartmentId(id);
+    const { tower, final, relay, group, moduleId } = parseApartment(normalizedId);
+    const host = resolveModuleHost(moduleId);
+
+    const result = await pulseRelay(host, relay);
+
+    setState({
+        id: normalizedId,
+        tower,
+        final,
+        relay,
+        group,
+        moduleId,
+        expiresAt: null,
+    }, minutes);
+
+    return result;
+};
+
+/**
+ * Desliga um exaustor via módulo PWR e religa os demais do grupo.
+ * @param id Identificador do exaustor.
+ */
+export const turnOffExaustor = async (id: string): Promise<any> => {
+    const normalizedId = normalizeApartmentId(id);
+    const { tower, relay, group } = parseApartment(normalizedId);
+    const pwrModuleId = `PWR_${group}`;
+    const pwrHost = resolveModuleHost(pwrModuleId);
+    const pwrRelay = getPwrRelayForTower(tower);
+
+    const offResult = await pulseRelay(pwrHost, pwrRelay);
+
+    clearState(normalizedId);
+
+    const statesToRestore = Array.from(exaustorStates.values())
+        .filter((state) => state.tower === tower && state.group === group);
+
+    const restoreResults: Record<string, any> = {};
+
+    for (const state of statesToRestore) {
+        const moduleHost = resolveModuleHost(state.moduleId);
+        restoreResults[state.id] = await pulseRelay(moduleHost, state.relay);
+        const remaining = getRemainingMinutes(state);
+        if (remaining) {
+            scheduleOffTimer(state, remaining);
+        }
+    }
+
+    return { offResult, restoreResults };
+};
+
+/**
+ * Consulta status do exaustor ou do módulo (Status geral).
+ * @param id Identificador do exaustor (A1) ou módulo (A_14/PWR_14).
+ */
+export const getExaustorStatus = async (id: string): Promise<any> => {
+    const normalized = normalizeApartmentId(id);
+    const moduleMatch = normalized.match(/^(A|B|C|PWR)_(14|58)$/i);
+
+    if (moduleMatch) {
+        const moduleId = `${moduleMatch[1].toUpperCase()}_${moduleMatch[2]}`;
+        const host = resolveModuleHost(moduleId);
+        return sendCommand(host, 'Status');
+    }
+
+    const { relay, moduleId } = parseApartment(normalized);
+    const host = resolveModuleHost(moduleId);
+    return sendCommand(host, `Power${relay}`);
+};
+
+/**
+ * Retorna o estado em memória de um exaustor.
+ * @param id Identificador do exaustor.
+ */
+export const getExaustorMemory = (id: string): ExaustorState | null => {
+    const normalizedId = normalizeApartmentId(id);
+    return exaustorStates.get(normalizedId) ?? null;
+};

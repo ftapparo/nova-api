@@ -17,6 +17,10 @@
     {
       "name": "Veiculos",
       "description": "Gerenciamento de dados de veiculos, incluindo cadastro, bloqueio, imagem e TAG de acesso."
+    },
+    {
+      "name": "Exaustores",
+      "description": "Controle de exaustores das churrasqueiras (ligar, desligar e status)."
     }
   ],
   "paths": {
@@ -737,6 +741,191 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/v2/api/exaustores/{id}/on": {
+      "post": {
+        "tags": [
+          "Exaustores"
+        ],
+        "summary": "Ligar exaustor",
+        "description": "Liga o exaustor por pulso no relé. O tempo pode ser informado em minutos.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID do exaustor (ex: A1, B-6, C_3)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "minutes",
+            "required": false,
+            "description": "Tempo em minutos para permanecer ligado",
+            "schema": {
+              "type": "number",
+              "format": "float"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "minutes": {
+                    "type": "number",
+                    "format": "float"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Exaustor ligado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parâmetros inválidos"
+          },
+          "500": {
+            "description": "Erro ao ligar exaustor"
+          }
+        }
+      }
+    },
+    "/v2/api/exaustores/{id}/off": {
+      "post": {
+        "tags": [
+          "Exaustores"
+        ],
+        "summary": "Desligar exaustor",
+        "description": "Desliga o exaustor via módulo PWR e religa os demais do grupo.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID do exaustor (ex: A1, B-6, C_3)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exaustor desligado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parâmetros inválidos"
+          },
+          "500": {
+            "description": "Erro ao desligar exaustor"
+          }
+        }
+      }
+    },
+    "/v2/api/exaustores/{id}/status": {
+      "get": {
+        "tags": [
+          "Exaustores"
+        ],
+        "summary": "Status do exaustor ou módulo",
+        "description": "Retorna o status do relé do exaustor ou o status geral do módulo.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "description": "ID do exaustor (A1) ou módulo (A_14, PWR_14)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parâmetros inválidos"
+          },
+          "500": {
+            "description": "Erro ao consultar status"
           }
         }
       }
