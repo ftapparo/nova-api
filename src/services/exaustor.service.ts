@@ -31,6 +31,10 @@ const EXAUSTOR_PORT = Number(process.env.EXAUSTOR_PORT || 80);
  * Timeout das chamadas HTTP.
  */
 const EXAUSTOR_TIMEOUT_MS = Number(process.env.EXAUSTOR_TIMEOUT_MS || 30000);
+/**
+ * Delay entre reativações de relés (ms).
+ */
+const EXAUSTOR_REARM_DELAY_MS = 2000;
 
 /**
  * Estado em memória de um exaustor.
@@ -257,6 +261,12 @@ const buildMemorySnapshot = () => {
 };
 
 /**
+ * Aguarda o tempo informado em ms.
+ * @param ms Tempo em milissegundos.
+ */
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
  * Envia pulso e comando de ligar para um relé.
  * @param moduleHost Host do módulo.
  * @param relay Número do relé.
@@ -315,12 +325,17 @@ export const turnOffExaustor = async (id: string): Promise<any> => {
 
     const restoreResults: Record<string, any> = {};
 
+    let needsDelay = false;
     for (const state of statesToRestore) {
         const moduleHost = resolveModuleHost(state.moduleId);
         const remaining = getRemainingMinutes(state);
         if (remaining && remaining > 5) {
+            if (needsDelay) {
+                await delay(EXAUSTOR_REARM_DELAY_MS);
+            }
             restoreResults[state.id] = await setRelay(moduleHost, state.relay);
             scheduleOffTimer(state, remaining);
+            needsDelay = true;
         } else {
             restoreResults[state.id] = { skipped: true, remainingMinutes: remaining };
         }
