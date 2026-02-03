@@ -924,6 +924,45 @@
         }
       }
     },
+    "/v2/api/exaustores/process/status": {
+      "get": {
+        "tags": [
+          "Exaustores"
+        ],
+        "summary": "Status do processo de relés",
+        "description": "Retorna a memória de relés gerenciada pela API.",
+        "responses": {
+          "200": {
+            "description": "Status retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro ao consultar status do processo"
+          }
+        }
+      }
+    },
     "/v2/api/exaustores/config": {
       "post": {
         "tags": [

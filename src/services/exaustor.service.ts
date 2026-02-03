@@ -317,10 +317,12 @@ export const turnOffExaustor = async (id: string): Promise<any> => {
 
     for (const state of statesToRestore) {
         const moduleHost = resolveModuleHost(state.moduleId);
-        restoreResults[state.id] = await setRelay(moduleHost, state.relay);
         const remaining = getRemainingMinutes(state);
-        if (remaining) {
+        if (remaining && remaining > 5) {
+            restoreResults[state.id] = await setRelay(moduleHost, state.relay);
             scheduleOffTimer(state, remaining);
+        } else {
+            restoreResults[state.id] = { skipped: true, remainingMinutes: remaining };
         }
     }
 
@@ -392,4 +394,17 @@ export const configureExaustorModule = async (module: string, command: string): 
 export const getExaustorMemory = (id: string): ExaustorState | null => {
     const normalizedId = normalizeApartmentId(id);
     return exaustorStates.get(normalizedId) ?? null;
+};
+
+/**
+ * Retorna o status do processo de memória dos relés.
+ * @returns Snapshot do processo e contadores.
+ */
+export const getExaustorProcessStatus = () => {
+    const memory = buildMemorySnapshot();
+    return {
+        total: memory.length,
+        memory,
+        generatedAt: new Date().toISOString(),
+    };
 };

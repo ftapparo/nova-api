@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { configureExaustorModule, getAllModulesStatus, getExaustorMemory, turnOffExaustor, turnOnExaustor } from '../services/exaustor.service';
+import { configureExaustorModule, getAllModulesStatus, getExaustorMemory, getExaustorProcessStatus, turnOffExaustor, turnOnExaustor } from '../services/exaustor.service';
 
 type ExaustorPayload = {
     bloco?: string;
@@ -149,6 +149,21 @@ export const getExaustorStatusController = async (req: Request, res: Response) =
     } catch (error: any) {
         console.error('Erro ao consultar status do exaustor:', error.message || error);
         res.fail('Erro ao consultar status do exaustor', error.status || 500, error.message ?? error);
+    }
+};
+
+/**
+ * Obtém o status do processo da API (memória de relés).
+ * @param req Requisição HTTP.
+ * @param res Resposta HTTP.
+ */
+export const getExaustorProcessStatusController = (_req: Request, res: Response) => {
+    try {
+        const result = getExaustorProcessStatus();
+        res.ok(result);
+    } catch (error: any) {
+        console.error('Erro ao consultar status do processo:', error.message || error);
+        res.fail('Erro ao consultar status do processo', error.status || 500, error.message ?? error);
     }
 };
 
