@@ -82,7 +82,7 @@ const resolveModuleHost = (moduleId: string): string => {
  */
 const buildUrl = (host: string): string => {
     const portPart = EXAUSTOR_PORT ? `:${EXAUSTOR_PORT}` : '';
-    return `http://${host}${portPart}/cm?cmnd=`;
+    return `http://${host}${portPart}/cm`;
 };
 
 /**
@@ -93,7 +93,11 @@ const buildUrl = (host: string): string => {
  */
 const sendCommand = async (host: string, cmnd: string): Promise<any> => {
     const url = buildUrl(host);
-    const response = await axios.get(url, { params: { cmnd }, timeout: EXAUSTOR_TIMEOUT_MS });
+    const config = { params: { cmnd }, timeout: EXAUSTOR_TIMEOUT_MS };
+    const fullUrl = axios.getUri({ url, ...config });
+    console.log('[Exaustor] Enviando comando:', { url, cmnd, fullUrl });
+    const response = await axios.get(url, config);
+    console.log('[Exaustor] Resposta recebida:', { url, cmnd, fullUrl, data: response.data });
     return response.data;
 };
 
