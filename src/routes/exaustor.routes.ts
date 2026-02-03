@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { freedomValidate } from '../middleware/freedom-validate';
-import { getExaustorStatusController, turnOffExaustorController, turnOnExaustorController } from '../controllers/exaustor.controller';
+import { configureExaustorController, getExaustorStatusController, turnOffExaustorController, turnOnExaustorController } from '../controllers/exaustor.controller';
 
 const router = Router();
 
@@ -14,5 +14,8 @@ router.post('/exaustores/off', turnOffExaustorController);
 
 // Obtém o status geral dos módulos e memória de acionamentos
 router.get('/exaustores/status', getExaustorStatusController);
+
+// Configura módulos via backlog
+router.post('/exaustores/config', configureExaustorController);
 
 export default router;

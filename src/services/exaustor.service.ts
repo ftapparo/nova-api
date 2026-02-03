@@ -31,11 +31,6 @@ const EXAUSTOR_PORT = Number(process.env.EXAUSTOR_PORT || 80);
  * Timeout das chamadas HTTP.
  */
 const EXAUSTOR_TIMEOUT_MS = Number(process.env.EXAUSTOR_TIMEOUT_MS || 30000);
-/**
- * Tempo de pulso do relé em décimos de segundo.
- * Ex: 5 = 500ms.
- */
-const EXAUSTOR_PULSE_TIME = Number(process.env.EXAUSTOR_PULSE_TIME || 5); // 500ms
 
 /**
  * Estado em memória de um exaustor.
@@ -94,10 +89,49 @@ const buildUrl = (host: string): string => {
 const sendCommand = async (host: string, cmnd: string): Promise<any> => {
     const url = buildUrl(host);
     const config = { params: { cmnd }, timeout: EXAUSTOR_TIMEOUT_MS };
-    const fullUrl = axios.getUri({ url, ...config });
-    console.log('[Exaustor] Enviando comando:', { url, cmnd, fullUrl });
     const response = await axios.get(url, config);
-    console.log('[Exaustor] Resposta recebida:', { url, cmnd, fullUrl, data: response.data });
+    return response.data;
+};
+
+/**
+ * Mapeamento de índices para módulos (1-based).
+ */
+const MODULE_INDEX_MAP = ['A_14', 'A_58', 'B_14', 'B_58', 'C_14', 'C_58', 'PWR_14', 'PWR_58'];
+
+/**
+ * Resolve o host a partir do identificador do módulo.
+ * @param module Identificador do módulo (nome, índice ou IP).
+ * @returns Host configurado.
+ */
+const resolveHostByModule = (module: string): string => {
+    const normalized = module.trim();
+
+    if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(normalized)) {
+        return normalized;
+    }
+
+    const upper = normalized.toUpperCase();
+    if (EXAUSTOR_HOSTS[upper]) {
+        return resolveModuleHost(upper);
+    }
+
+    const index = Number(normalized);
+    if (Number.isFinite(index) && index >= 1 && index <= MODULE_INDEX_MAP.length) {
+        return resolveModuleHost(MODULE_INDEX_MAP[index - 1]);
+    }
+
+    throw new Error(`Módulo inválido: ${module}`);
+};
+
+/**
+ * Envia comando bruto via backlog (sem re-encode).
+ * @param host IP/host do módulo.
+ * @param command Comando já encodado para o Tasmota.
+ * @returns Resposta bruta do módulo.
+ */
+const sendRawCommand = async (host: string, command: string): Promise<any> => {
+    const url = `${buildUrl(host)}?cmnd=${command}`;
+    const response = await axios.get(url, { timeout: EXAUSTOR_TIMEOUT_MS });
     return response.data;
 };
 
@@ -228,12 +262,10 @@ const buildMemorySnapshot = () => {
  * @param relay Número do relé.
  * @returns Respostas dos comandos (pulso e power on).
  */
-const pulseRelay = async (moduleHost: string, relay: number): Promise<any[]> => {
-    const pulseCommand = `PulseTime${relay} ${EXAUSTOR_PULSE_TIME}`;
+const setRelay = async (moduleHost: string, relay: number): Promise<any[]> => {
     const onCommand = `Power${relay} On`;
-    const pulseResult = await sendCommand(moduleHost, pulseCommand);
     const onResult = await sendCommand(moduleHost, onCommand);
-    return [pulseResult, onResult];
+    return [onResult];
 };
 
 /**
@@ -247,7 +279,7 @@ export const turnOnExaustor = async (id: string, minutes?: number): Promise<any>
     const { tower, final, relay, group, moduleId } = parseApartment(normalizedId);
     const host = resolveModuleHost(moduleId);
 
-    const result = await pulseRelay(host, relay);
+    const result = await setRelay(host, relay);
 
     setState({
         id: normalizedId,
@@ -274,7 +306,7 @@ export const turnOffExaustor = async (id: string): Promise<any> => {
     const pwrHost = resolveModuleHost(pwrModuleId);
     const pwrRelay = getPwrRelayForTower(tower);
 
-    const offResult = await pulseRelay(pwrHost, pwrRelay);
+    const offResult = await setRelay(pwrHost, pwrRelay);
 
     clearState(normalizedId);
 
@@ -285,7 +317,7 @@ export const turnOffExaustor = async (id: string): Promise<any> => {
 
     for (const state of statesToRestore) {
         const moduleHost = resolveModuleHost(state.moduleId);
-        restoreResults[state.id] = await pulseRelay(moduleHost, state.relay);
+        restoreResults[state.id] = await setRelay(moduleHost, state.relay);
         const remaining = getRemainingMinutes(state);
         if (remaining) {
             scheduleOffTimer(state, remaining);
@@ -339,6 +371,17 @@ export const getAllModulesStatus = async (): Promise<{ modules: Record<string, a
         modules: modulesStatus,
         memory: buildMemorySnapshot(),
     };
+};
+
+/**
+ * Configura um módulo via backlog.
+ * @param module Identificador do módulo (nome, índice ou IP).
+ * @param command Comando backlog já encodado.
+ * @returns Resposta do módulo.
+ */
+export const configureExaustorModule = async (module: string, command: string): Promise<any> => {
+    const host = resolveHostByModule(module);
+    return sendRawCommand(host, command);
 };
 
 /**

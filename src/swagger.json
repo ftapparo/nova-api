@@ -923,6 +923,72 @@
           }
         }
       }
+    },
+    "/v2/api/exaustores/config": {
+      "post": {
+        "tags": [
+          "Exaustores"
+        ],
+        "summary": "Configurar módulo (Backlog)",
+        "description": "Envia um comando backlog para o módulo Tasmota (comando já encodado).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "modulo",
+                  "comando"
+                ],
+                "properties": {
+                  "modulo": {
+                    "type": "string",
+                    "example": "1"
+                  },
+                  "comando": {
+                    "type": "string",
+                    "example": "Backlog%20PulseTime1%205;%20PulseTime2%205;%20PulseTime3%205;%20PulseTime4%205"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comando enviado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parâmetros inválidos"
+          },
+          "500": {
+            "description": "Erro ao configurar módulo"
+          }
+        }
+      }
     }
   }
 }

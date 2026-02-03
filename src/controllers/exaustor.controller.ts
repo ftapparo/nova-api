@@ -1,11 +1,16 @@
 import { Request, Response } from 'express';
-import { getAllModulesStatus, getExaustorMemory, turnOffExaustor, turnOnExaustor } from '../services/exaustor.service';
+import { configureExaustorModule, getAllModulesStatus, getExaustorMemory, turnOffExaustor, turnOnExaustor } from '../services/exaustor.service';
 
 type ExaustorPayload = {
     bloco?: string;
     apartamento?: string | number;
     tempo?: string | number;
     id?: string;
+};
+
+type ExaustorConfigPayload = {
+    modulo?: string | number;
+    comando?: string;
 };
 
 /**
@@ -144,5 +149,29 @@ export const getExaustorStatusController = async (req: Request, res: Response) =
     } catch (error: any) {
         console.error('Erro ao consultar status do exaustor:', error.message || error);
         res.fail('Erro ao consultar status do exaustor', error.status || 500, error.message ?? error);
+    }
+};
+
+/**
+ * Configura um módulo via backlog.
+ * @param req Requisição HTTP.
+ * @param res Resposta HTTP.
+ */
+export const configureExaustorController = async (req: Request, res: Response) => {
+    const payload = req.body as ExaustorConfigPayload;
+    const modulo = payload.modulo !== undefined && payload.modulo !== null ? String(payload.modulo).trim() : '';
+    const comando = payload.comando ? String(payload.comando).trim() : '';
+
+    if (!modulo || !comando) {
+        res.fail('Parâmetros obrigatórios: modulo e comando.', 400);
+        return;
+    }
+
+    try {
+        const result = await configureExaustorModule(modulo, comando);
+        res.ok(result);
+    } catch (error: any) {
+        console.error('Erro ao configurar módulo:', error.message || error);
+        res.fail('Erro ao configurar módulo', error.status || 500, error.message ?? error);
     }
 };
