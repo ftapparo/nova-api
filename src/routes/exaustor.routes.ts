@@ -7,12 +7,12 @@ const router = Router();
 router.use(freedomValidate);
 
 // Rotas para controle dos exaustores
-router.post('/exaustores/:id/on', turnOnExaustorController);
+router.post('/exaustores/on', turnOnExaustorController);
 
-// Desliga o exaustor especificado pelo ID
-router.post('/exaustores/:id/off', turnOffExaustorController);
+// Desliga o exaustor especificado no body
+router.post('/exaustores/off', turnOffExaustorController);
 
-// Obtém o status do exaustor especificado pelo ID
-router.get('/exaustores/:id/status', getExaustorStatusController);
+// Obtém o status geral dos módulos e memória de acionamentos
+router.get('/exaustores/status', getExaustorStatusController);
 
 export default router;

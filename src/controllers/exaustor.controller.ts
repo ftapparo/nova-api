@@ -1,5 +1,12 @@
 import { Request, Response } from 'express';
-import { getExaustorMemory, getExaustorStatus, turnOffExaustor, turnOnExaustor } from '../services/exaustor.service';
+import { getAllModulesStatus, getExaustorMemory, turnOffExaustor, turnOnExaustor } from '../services/exaustor.service';
+
+type ExaustorPayload = {
+    bloco?: string;
+    apartamento?: string | number;
+    tempo?: string | number;
+    id?: string;
+};
 
 /**
  * Converte o parâmetro de minutos em número.
@@ -19,27 +26,72 @@ const parseMinutes = (value: unknown): number | undefined => {
 };
 
 /**
+ * Extrai o ID do exaustor a partir do body.
+ * @param payload Body da requisição.
+ */
+const resolveExaustorId = (payload: ExaustorPayload): string | null => {
+    if (payload.id) {
+        return String(payload.id).trim();
+    }
+
+    const bloco = payload.bloco ? String(payload.bloco).trim().toUpperCase() : '';
+    const apartamento = payload.apartamento !== undefined && payload.apartamento !== null
+        ? String(payload.apartamento).trim()
+        : '';
+
+    if (!bloco || !apartamento) {
+        return null;
+    }
+
+    const lastDigitMatch = apartamento.match(/(\d)\D*$/);
+    if (!lastDigitMatch) {
+        return null;
+    }
+
+    return `${bloco}${lastDigitMatch[1]}`;
+};
+
+/**
+ * Remove propriedades não serializáveis do estado em memória.
+ * @param memory Estado do exaustor.
+ */
+const serializeMemory = (memory: ReturnType<typeof getExaustorMemory>) => {
+    if (!memory) return null;
+
+    return {
+        id: memory.id,
+        tower: memory.tower,
+        final: memory.final,
+        group: memory.group,
+        relay: memory.relay,
+        moduleId: memory.moduleId,
+        expiresAt: memory.expiresAt,
+    };
+};
+
+/**
  * Liga um exaustor.
  * @param req Requisição HTTP.
  * @param res Resposta HTTP.
  */
 export const turnOnExaustorController = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const minutes = parseMinutes(req.query.minutes ?? req.body?.minutes);
+    const payload = req.body as ExaustorPayload;
+    const id = resolveExaustorId(payload);
+    const minutes = parseMinutes(payload.tempo);
 
     if (!id) {
-        res.fail('ID do exaustor é obrigatório.', 400);
+        res.fail('Parâmetros obrigatórios: bloco e apartamento.', 400);
         return;
     }
 
     if (Number.isNaN(minutes)) {
-        res.fail('Parâmetro minutes inválido.', 400);
+        res.fail('Parâmetro tempo inválido.', 400);
         return;
     }
 
     try {
         const result = await turnOnExaustor(id, minutes);
-        const memory = getExaustorMemory(id);
+        const memory = serializeMemory(getExaustorMemory(id));
         res.ok({
             id,
             status: 'on',
@@ -59,10 +111,11 @@ export const turnOnExaustorController = async (req: Request, res: Response) => {
  * @param res Resposta HTTP.
  */
 export const turnOffExaustorController = async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const payload = req.body as ExaustorPayload;
+    const id = resolveExaustorId(payload);
 
     if (!id) {
-        res.fail('ID do exaustor é obrigatório.', 400);
+        res.fail('Parâmetros obrigatórios: bloco e apartamento.', 400);
         return;
     }
 
@@ -80,24 +133,14 @@ export const turnOffExaustorController = async (req: Request, res: Response) => 
 };
 
 /**
- * Obtém o status de um exaustor ou módulo.
+ * Obtém o status de todos os módulos e memória de acionamentos.
  * @param req Requisição HTTP.
  * @param res Resposta HTTP.
  */
 export const getExaustorStatusController = async (req: Request, res: Response) => {
-    const { id } = req.params;
-
-    if (!id) {
-        res.fail('ID do exaustor é obrigatório.', 400);
-        return;
-    }
-
     try {
-        const result = await getExaustorStatus(id);
-        res.ok({
-            id,
-            result,
-        });
+        const result = await getAllModulesStatus();
+        res.ok(result);
     } catch (error: any) {
         console.error('Erro ao consultar status do exaustor:', error.message || error);
         res.fail('Erro ao consultar status do exaustor', error.status || 500, error.message ?? error);

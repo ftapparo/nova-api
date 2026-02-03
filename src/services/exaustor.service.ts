@@ -89,6 +89,7 @@ const buildUrl = (host: string): string => {
  * Envia um comando ao módulo Tasmota.
  * @param host IP/host do módulo.
  * @param cmnd Comando Tasmota.
+ * @returns Resposta bruta do módulo.
  */
 const sendCommand = async (host: string, cmnd: string): Promise<any> => {
     const url = buildUrl(host);
@@ -97,8 +98,19 @@ const sendCommand = async (host: string, cmnd: string): Promise<any> => {
 };
 
 /**
+ * Lista todos os módulos configurados com host válido.
+ * @returns Lista de módulos com seu host.
+ */
+const listModules = (): { moduleId: string; host: string }[] => {
+    return Object.entries(EXAUSTOR_HOSTS)
+        .filter(([, host]) => Boolean(host))
+        .map(([moduleId, host]) => ({ moduleId, host: host as string }));
+};
+
+/**
  * Converte o ID do exaustor em metadados de torre, final e relé.
  * @param id Identificador (A1, A-1, A_1).
+ * @returns Metadados do exaustor.
  */
 const parseApartment = (id: string): { tower: Tower; final: number; relay: number; group: Group; moduleId: string } => {
     const normalized = normalizeApartmentId(id);
@@ -120,6 +132,7 @@ const parseApartment = (id: string): { tower: Tower; final: number; relay: numbe
 /**
  * Retorna o relé do módulo PWR correspondente à torre.
  * @param tower Torre.
+ * @returns Número do relé do PWR.
  */
 const getPwrRelayForTower = (tower: Tower): number => {
     if (tower === 'A') return 1;
@@ -179,6 +192,7 @@ const clearState = (id: string): void => {
 /**
  * Calcula minutos restantes para desligamento.
  * @param state Estado do exaustor.
+ * @returns Minutos restantes ou null.
  */
 const getRemainingMinutes = (state: ExaustorState): number | null => {
     if (!state.expiresAt) return null;
@@ -188,9 +202,27 @@ const getRemainingMinutes = (state: ExaustorState): number | null => {
 };
 
 /**
+ * Cria um snapshot serializável dos acionamentos em memória.
+ * @returns Lista de acionamentos com tempo restante.
+ */
+const buildMemorySnapshot = () => {
+    return Array.from(exaustorStates.values()).map((state) => ({
+        id: state.id,
+        tower: state.tower,
+        final: state.final,
+        group: state.group,
+        relay: state.relay,
+        moduleId: state.moduleId,
+        expiresAt: state.expiresAt,
+        remainingMinutes: getRemainingMinutes(state),
+    }));
+};
+
+/**
  * Envia pulso e comando de ligar para um relé.
  * @param moduleHost Host do módulo.
  * @param relay Número do relé.
+ * @returns Respostas dos comandos (pulso e power on).
  */
 const pulseRelay = async (moduleHost: string, relay: number): Promise<any[]> => {
     const pulseCommand = `PulseTime${relay} ${EXAUSTOR_PULSE_TIME}`;
@@ -204,6 +236,7 @@ const pulseRelay = async (moduleHost: string, relay: number): Promise<any[]> => 
  * Liga um exaustor por pulso no relé.
  * @param id Identificador do exaustor.
  * @param minutes Minutos para permanecer ligado.
+ * @returns Resposta do módulo Tasmota.
  */
 export const turnOnExaustor = async (id: string, minutes?: number): Promise<any> => {
     const normalizedId = normalizeApartmentId(id);
@@ -228,6 +261,7 @@ export const turnOnExaustor = async (id: string, minutes?: number): Promise<any>
 /**
  * Desliga um exaustor via módulo PWR e religa os demais do grupo.
  * @param id Identificador do exaustor.
+ * @returns Resultado do desligamento e reativações.
  */
 export const turnOffExaustor = async (id: string): Promise<any> => {
     const normalizedId = normalizeApartmentId(id);
@@ -258,8 +292,9 @@ export const turnOffExaustor = async (id: string): Promise<any> => {
 };
 
 /**
- * Consulta status do exaustor ou do módulo (Status geral).
+ * Consulta status do exaustor ou do módulo.
  * @param id Identificador do exaustor (A1) ou módulo (A_14/PWR_14).
+ * @returns Status retornado pelo módulo.
  */
 export const getExaustorStatus = async (id: string): Promise<any> => {
     const normalized = normalizeApartmentId(id);
@@ -277,8 +312,35 @@ export const getExaustorStatus = async (id: string): Promise<any> => {
 };
 
 /**
+ * Retorna o status de todos os módulos e a memória de acionamentos.
+ * @returns Status por módulo e memória serializada.
+ */
+export const getAllModulesStatus = async (): Promise<{ modules: Record<string, any>; memory: ReturnType<typeof buildMemorySnapshot> }> => {
+    const modules = listModules();
+    const results = await Promise.all(modules.map(async ({ moduleId, host }) => {
+        try {
+            const status = await sendCommand(host, 'Status');
+            return { moduleId, status };
+        } catch (error: any) {
+            return { moduleId, status: null, error: error?.message ?? String(error) };
+        }
+    }));
+
+    const modulesStatus = results.reduce<Record<string, any>>((acc, item) => {
+        acc[item.moduleId] = item;
+        return acc;
+    }, {});
+
+    return {
+        modules: modulesStatus,
+        memory: buildMemorySnapshot(),
+    };
+};
+
+/**
  * Retorna o estado em memória de um exaustor.
  * @param id Identificador do exaustor.
+ * @returns Estado em memória ou null.
  */
 export const getExaustorMemory = (id: string): ExaustorState | null => {
     const normalizedId = normalizeApartmentId(id);

@@ -745,44 +745,36 @@
         }
       }
     },
-    "/v2/api/exaustores/{id}/on": {
+    "/v2/api/exaustores/on": {
       "post": {
         "tags": [
           "Exaustores"
         ],
         "summary": "Ligar exaustor",
-        "description": "Liga o exaustor por pulso no relé. O tempo pode ser informado em minutos.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "description": "ID do exaustor (ex: A1, B-6, C_3)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "minutes",
-            "required": false,
-            "description": "Tempo em minutos para permanecer ligado",
-            "schema": {
-              "type": "number",
-              "format": "float"
-            }
-          }
-        ],
+        "description": "Liga o exaustor por pulso no relé. Informe bloco, apartamento e tempo em minutos.",
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "bloco",
+                  "apartamento"
+                ],
                 "properties": {
-                  "minutes": {
+                  "bloco": {
+                    "type": "string",
+                    "example": "A"
+                  },
+                  "apartamento": {
+                    "type": "string",
+                    "example": "123"
+                  },
+                  "tempo": {
                     "type": "number",
-                    "format": "float"
+                    "format": "float",
+                    "example": 10
                   }
                 }
               }
@@ -824,24 +816,37 @@
         }
       }
     },
-    "/v2/api/exaustores/{id}/off": {
+    "/v2/api/exaustores/off": {
       "post": {
         "tags": [
           "Exaustores"
         ],
         "summary": "Desligar exaustor",
         "description": "Desliga o exaustor via módulo PWR e religa os demais do grupo.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "description": "ID do exaustor (ex: A1, B-6, C_3)",
-            "schema": {
-              "type": "string"
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "bloco",
+                  "apartamento"
+                ],
+                "properties": {
+                  "bloco": {
+                    "type": "string",
+                    "example": "A"
+                  },
+                  "apartamento": {
+                    "type": "string",
+                    "example": "123"
+                  }
+                }
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
             "description": "Exaustor desligado com sucesso",
@@ -877,24 +882,13 @@
         }
       }
     },
-    "/v2/api/exaustores/{id}/status": {
+    "/v2/api/exaustores/status": {
       "get": {
         "tags": [
           "Exaustores"
         ],
-        "summary": "Status do exaustor ou módulo",
-        "description": "Retorna o status do relé do exaustor ou o status geral do módulo.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "description": "ID do exaustor (A1) ou módulo (A_14, PWR_14)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "summary": "Status geral dos módulos",
+        "description": "Retorna o status de todos os módulos e a memória de acionamentos.",
         "responses": {
           "200": {
             "description": "Status retornado com sucesso",
