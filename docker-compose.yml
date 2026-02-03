@@ -5,7 +5,8 @@ services:
       dockerfile: Dockerfile
     container_name: nova-api
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - "3030:3030"
     environment:
       - NODE_ENV=production
     env_file:
@@ -13,6 +14,8 @@ services:
     volumes:
       # Mapeia logs para pasta local do projeto
       - ./logs:/app/logs
+    networks:
+      - nova-api-network
     healthcheck:
       test: ["CMD", "sh", "-c", "wget --quiet --tries=1 --spider http://localhost:3030/v2/api/healthcheck"]
       interval: 30s
@@ -25,3 +28,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
+networks:
+  nova-api-network:
+    driver: bridge

@@ -30,7 +30,7 @@ const EXAUSTOR_PORT = Number(process.env.EXAUSTOR_PORT || 80);
 /**
  * Timeout das chamadas HTTP.
  */
-const EXAUSTOR_TIMEOUT_MS = Number(process.env.EXAUSTOR_TIMEOUT_MS || 5000);
+const EXAUSTOR_TIMEOUT_MS = Number(process.env.EXAUSTOR_TIMEOUT_MS || 30000);
 /**
  * Tempo de pulso do relé em décimos de segundo.
  * Ex: 5 = 500ms.
@@ -82,7 +82,7 @@ const resolveModuleHost = (moduleId: string): string => {
  */
 const buildUrl = (host: string): string => {
     const portPart = EXAUSTOR_PORT ? `:${EXAUSTOR_PORT}` : '';
-    return `http://${host}${portPart}/cm`;
+    return `http://${host}${portPart}/cm?cmnd=`;
 };
 
 /**
@@ -93,7 +93,7 @@ const buildUrl = (host: string): string => {
  */
 const sendCommand = async (host: string, cmnd: string): Promise<any> => {
     const url = buildUrl(host);
-    const response = await axios.post(url, { cmnd }, { timeout: EXAUSTOR_TIMEOUT_MS });
+    const response = await axios.get(url, { params: { cmnd }, timeout: EXAUSTOR_TIMEOUT_MS });
     return response.data;
 };
 
