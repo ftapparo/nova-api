@@ -174,7 +174,7 @@ export const verifyAccessById = async (
   sentido: string
 ): Promise<any> => {
 
-  const query = `EXECUTE PROCEDURE ACESSO_DISPOSITIVO_V2(?, ?, ?, ?);`;
+  const query = `SELECT * FROM ACESSO_DISPOSITIVO_V2(?, ?, ?, ?);`;
 
   return await executeQuery(query, [id, dispositivo, foto, sentido]);
 };
