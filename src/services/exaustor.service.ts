@@ -329,7 +329,7 @@ export const turnOffExaustor = async (id: string): Promise<any> => {
     for (const state of statesToRestore) {
         const moduleHost = resolveModuleHost(state.moduleId);
         const remaining = getRemainingMinutes(state);
-        if (remaining && remaining > 5) {
+        if (remaining && remaining > 1) {
             if (needsDelay) {
                 await delay(EXAUSTOR_REARM_DELAY_MS);
             }
