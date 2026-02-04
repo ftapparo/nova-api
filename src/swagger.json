@@ -338,7 +338,7 @@
             "application/json": {
               "examples": {
                 "minimo": {
-                  "summary": "Somente obrigatórios",
+                  "summary": "Mínimo",
                   "value": {
                     "device": 1,
                     "usuario": "PORTARIA",
@@ -348,7 +348,7 @@
                   }
                 },
                 "completo": {
-                  "summary": "Com opcionais",
+                  "summary": "Completo",
                   "value": {
                     "device": 1,
                     "usuario": "PORTARIA",
@@ -442,7 +442,7 @@
             "application/json": {
               "examples": {
                 "minimo": {
-                  "summary": "Somente obrigatórios",
+                  "summary": "Mínimo",
                   "value": {
                     "device": 1,
                     "usuario": "PORTARIA",
@@ -452,7 +452,7 @@
                   }
                 },
                 "completo": {
-                  "summary": "Com opcionais",
+                  "summary": "Completo",
                   "value": {
                     "device": 1,
                     "usuario": "PORTARIA",
@@ -581,7 +581,7 @@
             "application/json": {
               "examples": {
                 "minimo": {
-                  "summary": "Somente obrigatórios",
+                  "summary": "Mínimo",
                   "value": {
                     "plate": "ABC1234",
                     "brand": "VW",
@@ -592,7 +592,7 @@
                   }
                 },
                 "completo": {
-                  "summary": "Com opcionais",
+                  "summary": "Completo",
                   "value": {
                     "plate": "ABC1234",
                     "brand": "VW",
@@ -806,7 +806,7 @@
             "application/json": {
               "examples": {
                 "minimo": {
-                  "summary": "Somente obrigatórios",
+                  "summary": "Mínimo",
                   "value": {
                     "personSequence": 1,
                     "type": "Y",
@@ -817,7 +817,7 @@
                   }
                 },
                 "completo": {
-                  "summary": "Com opcionais",
+                  "summary": "Completo",
                   "value": {
                     "personSequence": 1,
                     "type": "Y",
@@ -1018,13 +1018,13 @@
             "application/json": {
               "examples": {
                 "minimo": {
-                  "summary": "Somente obrigatórios",
+                  "summary": "Mínimo",
                   "value": {
                     "period": 30
                   }
                 },
                 "completo": {
-                  "summary": "Com opcionais",
+                  "summary": "Completo",
                   "value": {
                     "period": 30
                   }
@@ -1087,14 +1087,14 @@
             "application/json": {
               "examples": {
                 "minimo": {
-                  "summary": "Somente obrigatórios",
+                  "summary": "Mínimo",
                   "value": {
                     "bloco": "A",
                     "apartamento": "123"
                   }
                 },
                 "completo": {
-                  "summary": "Com opcionais",
+                  "summary": "Completo",
                   "value": {
                     "bloco": "A",
                     "apartamento": "123",
@@ -1175,14 +1175,14 @@
             "application/json": {
               "examples": {
                 "minimo": {
-                  "summary": "Somente obrigatórios",
+                  "summary": "Mínimo",
                   "value": {
                     "bloco": "A",
                     "apartamento": "123"
                   }
                 },
                 "completo": {
-                  "summary": "Com opcionais",
+                  "summary": "Completo",
                   "value": {
                     "bloco": "A",
                     "apartamento": "123"
@@ -1349,14 +1349,14 @@
             "application/json": {
               "examples": {
                 "minimo": {
-                  "summary": "Somente obrigatórios",
+                  "summary": "Mínimo",
                   "value": {
                     "modulo": "1",
                     "comando": "Backlog%20PulseTime1%205;%20PulseTime2%205;%20PulseTime3%205;%20PulseTime4%205"
                   }
                 },
                 "completo": {
-                  "summary": "Com opcionais",
+                  "summary": "Completo",
                   "value": {
                     "modulo": "1",
                     "comando": "Backlog%20PulseTime1%205;%20PulseTime2%205;%20PulseTime3%205;%20PulseTime4%205"
