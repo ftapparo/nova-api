@@ -13,9 +13,9 @@ router.get('/access/verify', checkAccessPermission);
 router.post('/access/register', registerNewAccess);
 
 // Rotas para liberar acesso
-router.get('/access/release/pedestrian', allowPedestrianAccess);
+router.post('/access/release/pedestrian', allowPedestrianAccess);
 
 // Rota para liberar acesso de veículo
-router.get('/access/release/vehicle', allowvehicleAccess);
+router.post('/access/release/vehicle', allowvehicleAccess);
 
 export default router;

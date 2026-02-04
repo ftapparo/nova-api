@@ -201,19 +201,54 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "dispositivo",
+                  "pessoa",
+                  "sentido",
+                  "idAcesso"
+                ],
                 "properties": {
-                  "tipo": {
-                    "type": "string",
-                    "enum": [
-                      "entrada",
-                      "saida"
-                    ]
+                  "dispositivo": {
+                    "type": "integer"
                   },
-                  "documento": {
+                  "pessoa": {
+                    "type": "integer"
+                  },
+                  "classificacao": {
+                    "type": "integer"
+                  },
+                  "classAutorizado": {
                     "type": "string"
                   },
-                  "placa": {
+                  "autorizacaoLanc": {
                     "type": "string"
+                  },
+                  "origem": {
+                    "type": "string"
+                  },
+                  "seqIdAcesso": {
+                    "type": "integer"
+                  },
+                  "sentido": {
+                    "type": "string"
+                  },
+                  "quadra": {
+                    "type": "string"
+                  },
+                  "lote": {
+                    "type": "integer"
+                  },
+                  "panico": {
+                    "type": "string"
+                  },
+                  "formaAcesso": {
+                    "type": "string"
+                  },
+                  "idAcesso": {
+                    "type": "string"
+                  },
+                  "seqVeiculo": {
+                    "type": "integer"
                   }
                 }
               }
@@ -251,31 +286,159 @@
       }
     },
     "/v2/api/access/release/pedestrian": {
-      "get": {
+      "post": {
         "tags": [
           "Acessos"
         ],
         "summary": "Liberar acesso de pedestre",
         "description": "Libera o acesso imediato para pedestre (por exemplo, via botao ou comando externo).",
-        "deprecated": true,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "device",
+                  "usuario",
+                  "quadra",
+                  "lote",
+                  "motivo"
+                ],
+                "properties": {
+                  "device": {
+                    "type": "integer"
+                  },
+                  "usuario": {
+                    "type": "string"
+                  },
+                  "quadra": {
+                    "type": "string"
+                  },
+                  "lote": {
+                    "type": "integer"
+                  },
+                  "motivo": {
+                    "type": "string"
+                  },
+                  "complemento": {
+                    "type": "string"
+                  },
+                  "seqAutorizador": {
+                    "type": "integer"
+                  },
+                  "botaoTexto": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
-          "410": {
-            "description": "Recurso obsoleto ou removido"
+          "200": {
+            "description": "Acesso liberado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/v2/api/access/release/vehicle": {
-      "get": {
+      "post": {
         "tags": [
           "Acessos"
         ],
         "summary": "Liberar acesso de veiculo",
         "description": "Libera o acesso imediato para veiculos (por exemplo, via botao ou comando externo).",
-        "deprecated": true,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "device",
+                  "usuario",
+                  "quadra",
+                  "lote",
+                  "motivo"
+                ],
+                "properties": {
+                  "device": {
+                    "type": "integer"
+                  },
+                  "usuario": {
+                    "type": "string"
+                  },
+                  "quadra": {
+                    "type": "string"
+                  },
+                  "lote": {
+                    "type": "integer"
+                  },
+                  "motivo": {
+                    "type": "string"
+                  },
+                  "complemento": {
+                    "type": "string"
+                  },
+                  "seqAutorizador": {
+                    "type": "integer"
+                  },
+                  "botaoTexto": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
-          "410": {
-            "description": "Recurso obsoleto ou removido"
+          "200": {
+            "description": "Acesso liberado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -334,7 +497,6 @@
                   "model",
                   "color",
                   "user_seq",
-                  "unit_seq",
                   "tag"
                 ],
                 "properties": {
@@ -531,6 +693,8 @@
                 "type": "object",
                 "required": [
                   "personSequence",
+                  "type",
+                  "panic",
                   "id2",
                   "user",
                   "vehicleSequence"
@@ -697,8 +861,19 @@
         ],
         "summary": "Purgar veiculos por periodo",
         "description": "Bloqueia o acesso de veiculos com base no periodo determinado.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "description": "Periodo em dias",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
