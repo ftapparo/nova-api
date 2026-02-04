@@ -745,7 +745,7 @@
         }
       }
     },
-    "/v2/api/exaustores/on": {
+    "/v2/api/exaustors/on": {
       "post": {
         "tags": [
           "Exaustores"
@@ -816,7 +816,7 @@
         }
       }
     },
-    "/v2/api/exaustores/off": {
+    "/v2/api/exaustors/off": {
       "post": {
         "tags": [
           "Exaustores"
@@ -882,7 +882,7 @@
         }
       }
     },
-    "/v2/api/exaustores/status": {
+    "/v2/api/exaustors/status": {
       "get": {
         "tags": [
           "Exaustores"
@@ -935,7 +935,7 @@
         }
       }
     },
-    "/v2/api/exaustores/process/status": {
+    "/v2/api/exaustors/process/status": {
       "get": {
         "tags": [
           "Exaustores"
@@ -974,7 +974,7 @@
         }
       }
     },
-    "/v2/api/exaustores/config": {
+    "/v2/api/exaustors/config": {
       "post": {
         "tags": [
           "Exaustores"

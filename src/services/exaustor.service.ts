@@ -108,7 +108,8 @@ type ModuleStatusCache = {
     status: any;
     pulseTime: any;
     updatedAt: number;
-    error?: string;
+    errorCode?: string | null;
+    error?: string | null;
 };
 
 /**
@@ -179,6 +180,24 @@ const updateModuleCache = (moduleId: string, status: any, pulseTime: any): void 
         status,
         pulseTime,
         updatedAt: Date.now(),
+        errorCode: null,
+        error: null,
+    });
+};
+
+/**
+ * Atualiza o cache com erro para o módulo.
+ * @param moduleId Identificador do módulo.
+ * @param errorCode Código do erro.
+ * @param error Mensagem do erro.
+ */
+const updateModuleCacheError = (moduleId: string, errorCode: string, error: unknown): void => {
+    modulesStatusCache.set(moduleId, {
+        status: null,
+        pulseTime: null,
+        updatedAt: Date.now(),
+        errorCode,
+        error: error ? String(error) : null,
     });
 };
 
@@ -205,6 +224,11 @@ const ensurePulseTime = async (host: string, pulseTime: any): Promise<void> => {
     for (let relay = 1; relay <= EXPECTED_RELAY_COUNT; relay += 1) {
         const current = setValues[relay - 1];
         if (current !== EXPECTED_PULSE_TIME) {
+            console.log('[ExaustorService] Corrigindo PulseTime', {
+                relay,
+                atual: current,
+                esperado: EXPECTED_PULSE_TIME,
+            });
             await sendCommand(host, `PulseTime${relay} ${EXPECTED_PULSE_TIME}`);
         }
     }
@@ -217,16 +241,77 @@ const ensurePulseTime = async (host: string, pulseTime: any): Promise<void> => {
  */
 const initializeModule = async (moduleId: string, host: string): Promise<void> => {
     console.log('[ExaustorService] Inicializando módulo', { moduleId, host });
-    const status = await sendCommand(host, 'Status');
-    console.log('[ExaustorService] Status recebido', { moduleId });
-    await forceModuleOff(host);
-    console.log('[ExaustorService] Relés desligados', { moduleId });
-    const pulseTime = await sendCommand(host, 'PulseTime');
-    console.log('[ExaustorService] PulseTime recebido', { moduleId, pulseTime });
-    await ensurePulseTime(host, pulseTime);
-    console.log('[ExaustorService] PulseTime validado', { moduleId });
-    const refreshedPulseTime = await sendCommand(host, 'PulseTime');
-    console.log('[ExaustorService] PulseTime final', { moduleId, pulseTime: refreshedPulseTime });
+
+    // 1. Consulta status inicial
+    let status: any;
+    try {
+        status = await sendCommand(host, 'Status');
+        console.log('[ExaustorService] Status recebido', { moduleId });
+    } catch (error) {
+        updateModuleCacheError(moduleId, 'STATUS_READ_FAILED', error);
+        console.error('[ExaustorService] Falha ao ler Status', { moduleId, error });
+        throw error;
+    }
+
+    // 2. Força desligamento de todos os relés
+    try {
+        await forceModuleOff(host);
+        console.log('[ExaustorService] Relés desligados', { moduleId });
+    } catch (error) {
+        updateModuleCacheError(moduleId, 'POWER_OFF_FAILED', error);
+        console.error('[ExaustorService] Falha ao desligar relés', { moduleId, error });
+        throw error;
+    }
+
+    // 3. Valida PulseTime
+    let pulseTime: any;
+    try {
+        pulseTime = await sendCommand(host, 'PulseTime');
+        console.log('[ExaustorService] PulseTime recebido', {
+            moduleId,
+            pulseTime: JSON.stringify(pulseTime),
+        });
+    } catch (error) {
+        updateModuleCacheError(moduleId, 'PULSETIME_READ_FAILED', error);
+        console.error('[ExaustorService] Falha ao ler PulseTime', { moduleId, error });
+        throw error;
+    }
+
+    try {
+        await ensurePulseTime(host, pulseTime);
+        console.log('[ExaustorService] PulseTime validado', { moduleId });
+    } catch (error) {
+        updateModuleCacheError(moduleId, 'PULSETIME_CONFIG_FAILED', error);
+        console.error('[ExaustorService] Falha ao configurar PulseTime', { moduleId, error });
+        throw error;
+    }
+
+    // 4. Corrige PulseTime se necessário
+    let refreshedPulseTime: any;
+    try {
+        refreshedPulseTime = await sendCommand(host, 'PulseTime');
+        console.log('[ExaustorService] PulseTime final', {
+            moduleId,
+            pulseTime: JSON.stringify(refreshedPulseTime),
+        });
+    } catch (error) {
+        updateModuleCacheError(moduleId, 'PULSETIME_VERIFY_FAILED', error);
+        console.error('[ExaustorService] Falha ao verificar PulseTime', { moduleId, error });
+        throw error;
+    }
+
+    const finalValues = Array.isArray(refreshedPulseTime?.PulseTime?.Set)
+        ? refreshedPulseTime.PulseTime.Set
+        : [];
+    const hasMismatch = Array.from({ length: EXPECTED_RELAY_COUNT }).some((_, index) => finalValues[index] !== EXPECTED_PULSE_TIME);
+    if (hasMismatch) {
+        const error = 'PulseTime final diferente do esperado';
+        updateModuleCacheError(moduleId, 'PULSETIME_VERIFY_FAILED', error);
+        console.error('[ExaustorService] PulseTime final inválido', { moduleId, finalValues });
+        throw new Error(error);
+    }
+
+    // 5. Atualiza cache de status
     updateModuleCache(moduleId, status, refreshedPulseTime);
     console.log('[ExaustorService] Módulo inicializado', { moduleId });
 };
@@ -243,18 +328,20 @@ const refreshModuleStatus = async (moduleId: string, host: string): Promise<void
             sendCommand(host, 'PulseTime'),
         ]);
 
+        if (!status) {
+            updateModuleCacheError(moduleId, 'STATUS_READ_FAILED', 'Status vazio');
+            return;
+        }
+
         modulesStatusCache.set(moduleId, {
             status,
             pulseTime,
             updatedAt: Date.now(),
+            errorCode: null,
+            error: null,
         });
     } catch (error: any) {
-        modulesStatusCache.set(moduleId, {
-            status: null,
-            pulseTime: null,
-            updatedAt: Date.now(),
-            error: error?.message ?? String(error),
-        });
+        updateModuleCacheError(moduleId, 'STATUS_READ_FAILED', error);
     }
 };
 
@@ -345,23 +432,30 @@ export async function startExaustorService(): Promise<void> {
         if (exaustorServiceRunning) return;
         exaustorServiceRunning = true;
         try {
+            const modules = listModules();
             if (!exaustorServiceInitialized) {
-                const modules = listModules();
                 for (const { moduleId, host } of modules) {
                     try {
                         await initializeModule(moduleId, host);
                     } catch (error: any) {
-                        modulesStatusCache.set(moduleId, {
-                            status: null,
-                            pulseTime: null,
-                            updatedAt: Date.now(),
-                            error: error?.message ?? String(error),
-                        });
+                        console.error('[ExaustorService] Falha ao inicializar módulo', { moduleId, error });
                     }
                 }
                 exaustorServiceInitialized = true;
             } else {
-                await refreshAllModulesStatus();
+                for (const { moduleId, host } of modules) {
+                    const cached = modulesStatusCache.get(moduleId);
+                    if (!cached || cached.errorCode) {
+                        try {
+                            await initializeModule(moduleId, host);
+                        } catch (error: any) {
+                            console.error('[ExaustorService] Falha ao reinicializar módulo', { moduleId, error });
+                        }
+                        continue;
+                    }
+
+                    await refreshModuleStatus(moduleId, host);
+                }
             }
             await processExpiredExaustores();
             console.log('[ExaustorService] Execução do ciclo concluída');
