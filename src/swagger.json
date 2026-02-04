@@ -199,11 +199,35 @@
           "required": true,
           "content": {
             "application/json": {
-              "example": {
-                "dispositivo": 1,
-                "pessoa": 1,
-                "sentido": "entrada",
-                "idAcesso": "ABC123"
+              "examples": {
+                "minimo": {
+                  "summary": "Somente obrigatórios",
+                  "value": {
+                    "dispositivo": 1,
+                    "pessoa": 1,
+                    "sentido": "entrada",
+                    "idAcesso": "ABC123"
+                  }
+                },
+                "completo": {
+                  "summary": "Com opcionais",
+                  "value": {
+                    "dispositivo": 1,
+                    "pessoa": 1,
+                    "classificacao": 1,
+                    "classAutorizado": "S",
+                    "autorizacaoLanc": "MANUAL",
+                    "origem": "PORTARIA",
+                    "seqIdAcesso": 123,
+                    "sentido": "entrada",
+                    "quadra": "A",
+                    "lote": 10,
+                    "panico": "N",
+                    "formaAcesso": "TAG",
+                    "idAcesso": "ABC123",
+                    "seqVeiculo": 999
+                  }
+                }
               },
               "schema": {
                 "type": "object",
