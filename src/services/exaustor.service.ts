@@ -551,6 +551,15 @@ export const turnOnExaustor = async (id: string, minutes?: number): Promise<any>
     const { tower, final, relay, group, moduleId } = parseApartment(normalizedId);
     const host = resolveModuleHost(moduleId);
 
+    console.log('[Exaustor] Ligando exaustor', {
+        id: normalizedId,
+        tower,
+        final,
+        relay,
+        group,
+        moduleId,
+        minutes: minutes ?? null,
+    });
     const result = await setRelay(host, relay);
 
     setState({
@@ -578,6 +587,14 @@ export const turnOffExaustor = async (id: string): Promise<any> => {
     const pwrHost = resolveModuleHost(pwrModuleId);
     const pwrRelay = getPwrRelayForTower(tower);
 
+    console.log('[Exaustor] Desligando exaustor', {
+        id: normalizedId,
+        tower,
+        relay,
+        group,
+        pwrModuleId,
+        pwrRelay,
+    });
     const offResult = await setRelay(pwrHost, pwrRelay);
 
     clearState(normalizedId);
