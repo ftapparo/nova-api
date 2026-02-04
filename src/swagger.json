@@ -1016,19 +1016,8 @@
           "required": false,
           "content": {
             "application/json": {
-              "examples": {
-                "minimo": {
-                  "summary": "Mínimo",
-                  "value": {
-                    "period": 30
-                  }
-                },
-                "completo": {
-                  "summary": "Completo",
-                  "value": {
-                    "period": 30
-                  }
-                }
+              "example": {
+                "period": 30
               },
               "schema": {
                 "type": "object",
@@ -1173,21 +1162,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "examples": {
-                "minimo": {
-                  "summary": "Mínimo",
-                  "value": {
-                    "bloco": "A",
-                    "apartamento": "123"
-                  }
-                },
-                "completo": {
-                  "summary": "Completo",
-                  "value": {
-                    "bloco": "A",
-                    "apartamento": "123"
-                  }
-                }
+              "example": {
+                "bloco": "A",
+                "apartamento": "123"
               },
               "schema": {
                 "type": "object",
@@ -1347,21 +1324,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "examples": {
-                "minimo": {
-                  "summary": "Mínimo",
-                  "value": {
-                    "modulo": "1",
-                    "comando": "Backlog%20PulseTime1%205;%20PulseTime2%205;%20PulseTime3%205;%20PulseTime4%205"
-                  }
-                },
-                "completo": {
-                  "summary": "Completo",
-                  "value": {
-                    "modulo": "1",
-                    "comando": "Backlog%20PulseTime1%205;%20PulseTime2%205;%20PulseTime3%205;%20PulseTime4%205"
-                  }
-                }
+              "example": {
+                "modulo": "1",
+                "comando": "Backlog%20PulseTime1%205;%20PulseTime2%205;%20PulseTime3%205;%20PulseTime4%205"
               },
               "schema": {
                 "type": "object",
