@@ -888,7 +888,18 @@
           "Exaustores"
         ],
         "summary": "Status geral dos módulos",
-        "description": "Retorna o status de todos os módulos e a memória de acionamentos.",
+        "description": "Retorna o status de todos os módulos e a memória de acionamentos. Se informar id, retorna apenas o exaustor.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "id",
+            "required": false,
+            "description": "ID do exaustor (ex: A1, B-6, C_3)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Status retornado com sucesso",

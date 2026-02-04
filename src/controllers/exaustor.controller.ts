@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { configureExaustorModule, getAllModulesStatus, getExaustorMemory, getExaustorProcessStatus, turnOffExaustor, turnOnExaustor } from '../services/exaustor.service';
+import { configureExaustorModule, getAllModulesStatus, getExaustorMemory, getExaustorProcessStatus, getExaustorStatus, turnOffExaustor, turnOnExaustor } from '../services/exaustor.service';
 
 type ExaustorPayload = {
     bloco?: string;
@@ -144,6 +144,16 @@ export const turnOffExaustorController = async (req: Request, res: Response) => 
  */
 export const getExaustorStatusController = async (req: Request, res: Response) => {
     try {
+        const paramId = typeof req.params.id === 'string' ? req.params.id : undefined;
+        const queryId = typeof req.query.id === 'string' ? req.query.id : undefined;
+        const id = paramId || queryId;
+
+        if (id) {
+            const result = await getExaustorStatus(id);
+            res.ok(result);
+            return;
+        }
+
         const result = await getAllModulesStatus();
         res.ok(result);
     } catch (error: any) {

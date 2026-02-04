@@ -37,6 +37,14 @@ const EXAUSTOR_TIMEOUT_MS = Number(process.env.EXAUSTOR_TIMEOUT_MS || 30000);
 const EXAUSTOR_REARM_DELAY_MS = 2000;
 
 /**
+ * Intervalo de varredura para desligar expirados (ms).
+ */
+const EXAUSTOR_SWEEP_INTERVAL_MS = Number(process.env.EXAUSTOR_SWEEP_INTERVAL_MS || 60000);
+
+const EXPECTED_PULSE_TIME = 5;
+const EXPECTED_RELAY_COUNT = 4;
+
+/**
  * Estado em memória de um exaustor.
  */
 type ExaustorState = {
@@ -47,7 +55,6 @@ type ExaustorState = {
     relay: number;
     moduleId: string;
     expiresAt: number | null;
-    timer?: NodeJS.Timeout;
 };
 
 /**
@@ -96,6 +103,18 @@ const sendCommand = async (host: string, cmnd: string): Promise<any> => {
     const response = await axios.get(url, config);
     return response.data;
 };
+
+type ModuleStatusCache = {
+    status: any;
+    pulseTime: any;
+    updatedAt: number;
+    error?: string;
+};
+
+/**
+ * Cache de status dos módulos.
+ */
+const modulesStatusCache = new Map<string, ModuleStatusCache>();
 
 /**
  * Mapeamento de índices para módulos (1-based).
@@ -150,6 +169,106 @@ const listModules = (): { moduleId: string; host: string }[] => {
 };
 
 /**
+ * Atualiza o cache com os dados coletados do módulo.
+ * @param moduleId Identificador do módulo.
+ * @param status Status retornado.
+ * @param pulseTime PulseTime retornado.
+ */
+const updateModuleCache = (moduleId: string, status: any, pulseTime: any): void => {
+    modulesStatusCache.set(moduleId, {
+        status,
+        pulseTime,
+        updatedAt: Date.now(),
+    });
+};
+
+/**
+ * Força desligamento de todos os relés do módulo.
+ * @param host Host do módulo.
+ */
+const forceModuleOff = async (host: string): Promise<void> => {
+    for (let relay = 1; relay <= EXPECTED_RELAY_COUNT; relay += 1) {
+        await sendCommand(host, `Power${relay} Off`);
+    }
+};
+
+/**
+ * Garante que os 4 primeiros PulseTime estão configurados corretamente.
+ * @param host Host do módulo.
+ * @param pulseTime Resposta atual de PulseTime.
+ */
+const ensurePulseTime = async (host: string, pulseTime: any): Promise<void> => {
+    const setValues = Array.isArray(pulseTime?.PulseTime?.Set)
+        ? pulseTime.PulseTime.Set
+        : [];
+
+    for (let relay = 1; relay <= EXPECTED_RELAY_COUNT; relay += 1) {
+        const current = setValues[relay - 1];
+        if (current !== EXPECTED_PULSE_TIME) {
+            await sendCommand(host, `PulseTime${relay} ${EXPECTED_PULSE_TIME}`);
+        }
+    }
+};
+
+/**
+ * Inicializa o módulo: lê status, desliga relés e valida PulseTime.
+ * @param moduleId Identificador do módulo.
+ * @param host Host do módulo.
+ */
+const initializeModule = async (moduleId: string, host: string): Promise<void> => {
+    console.log('[ExaustorService] Inicializando módulo', { moduleId, host });
+    const status = await sendCommand(host, 'Status');
+    console.log('[ExaustorService] Status recebido', { moduleId });
+    await forceModuleOff(host);
+    console.log('[ExaustorService] Relés desligados', { moduleId });
+    const pulseTime = await sendCommand(host, 'PulseTime');
+    console.log('[ExaustorService] PulseTime recebido', { moduleId, pulseTime });
+    await ensurePulseTime(host, pulseTime);
+    console.log('[ExaustorService] PulseTime validado', { moduleId });
+    const refreshedPulseTime = await sendCommand(host, 'PulseTime');
+    console.log('[ExaustorService] PulseTime final', { moduleId, pulseTime: refreshedPulseTime });
+    updateModuleCache(moduleId, status, refreshedPulseTime);
+    console.log('[ExaustorService] Módulo inicializado', { moduleId });
+};
+
+/**
+ * Atualiza o status e pulsetime de um módulo.
+ * @param moduleId Identificador do módulo.
+ * @param host Host do módulo.
+ */
+const refreshModuleStatus = async (moduleId: string, host: string): Promise<void> => {
+    try {
+        const [status, pulseTime] = await Promise.all([
+            sendCommand(host, 'Status'),
+            sendCommand(host, 'PulseTime'),
+        ]);
+
+        modulesStatusCache.set(moduleId, {
+            status,
+            pulseTime,
+            updatedAt: Date.now(),
+        });
+    } catch (error: any) {
+        modulesStatusCache.set(moduleId, {
+            status: null,
+            pulseTime: null,
+            updatedAt: Date.now(),
+            error: error?.message ?? String(error),
+        });
+    }
+};
+
+/**
+ * Atualiza o status de todos os módulos.
+ */
+const refreshAllModulesStatus = async (): Promise<void> => {
+    const modules = listModules();
+    for (const { moduleId, host } of modules) {
+        await refreshModuleStatus(moduleId, host);
+    }
+};
+
+/**
  * Converte o ID do exaustor em metadados de torre, final e relé.
  * @param id Identificador (A1, A-1, A_1).
  * @returns Metadados do exaustor.
@@ -183,25 +302,78 @@ const getPwrRelayForTower = (tower: Tower): number => {
 };
 
 /**
- * Agenda o desligamento automático em memória.
+ * Ajusta a expiração em memória.
  * @param state Estado do exaustor.
  * @param minutes Minutos para desligar.
  */
-const scheduleOffTimer = (state: ExaustorState, minutes: number): void => {
-    if (state.timer) {
-        clearTimeout(state.timer);
-    }
-
+const setExpiry = (state: ExaustorState, minutes: number): void => {
     const timeoutMs = Math.round(minutes * 60 * 1000);
     state.expiresAt = Date.now() + timeoutMs;
-    state.timer = setTimeout(async () => {
-        try {
-            await turnOffExaustor(state.id);
-        } catch (error) {
-            console.error('[Exaustor] Falha ao desligar automaticamente:', error);
-        }
-    }, timeoutMs);
 };
+
+/**
+ * Processa exaustores expirados.
+ * @returns Promise concluída após processar expirados.
+ */
+const processExpiredExaustores = async (): Promise<void> => {
+    const now = Date.now();
+    const expiredIds = Array.from(exaustorStates.values())
+        .filter((state) => state.expiresAt !== null && state.expiresAt <= now)
+        .map((state) => state.id);
+
+    for (const id of expiredIds) {
+        try {
+            await turnOffExaustor(id);
+        } catch (error) {
+            console.error('[Exaustor] Falha ao desligar expirado:', error);
+        }
+    }
+};
+
+let exaustorServiceLoop: NodeJS.Timeout | null = null;
+let exaustorServiceRunning = false;
+let exaustorServiceInitialized = false;
+
+/**
+ * Inicializa o serviço de exaustores (status e expiração).
+ */
+export async function startExaustorService(): Promise<void> {
+    if (exaustorServiceLoop) return;
+    console.log('[ExaustorService] Inicializando serviço de exaustores');
+
+    const run = async () => {
+        if (exaustorServiceRunning) return;
+        exaustorServiceRunning = true;
+        try {
+            if (!exaustorServiceInitialized) {
+                const modules = listModules();
+                for (const { moduleId, host } of modules) {
+                    try {
+                        await initializeModule(moduleId, host);
+                    } catch (error: any) {
+                        modulesStatusCache.set(moduleId, {
+                            status: null,
+                            pulseTime: null,
+                            updatedAt: Date.now(),
+                            error: error?.message ?? String(error),
+                        });
+                    }
+                }
+                exaustorServiceInitialized = true;
+            } else {
+                await refreshAllModulesStatus();
+            }
+            await processExpiredExaustores();
+            console.log('[ExaustorService] Execução do ciclo concluída');
+        } finally {
+            exaustorServiceRunning = false;
+        }
+    };
+
+    await run();
+    exaustorServiceLoop = setInterval(run, EXAUSTOR_SWEEP_INTERVAL_MS);
+    console.log('[ExaustorService] Serviço iniciado com sucesso');
+}
 
 /**
  * Atualiza o estado em memória e agenda desligamento se necessário.
@@ -210,7 +382,7 @@ const scheduleOffTimer = (state: ExaustorState, minutes: number): void => {
  */
 const setState = (state: ExaustorState, minutes?: number): void => {
     if (minutes && minutes > 0) {
-        scheduleOffTimer(state, minutes);
+        setExpiry(state, minutes);
     } else {
         state.expiresAt = null;
     }
@@ -224,10 +396,6 @@ const setState = (state: ExaustorState, minutes?: number): void => {
  */
 const clearState = (id: string): void => {
     const normalizedId = normalizeApartmentId(id);
-    const state = exaustorStates.get(normalizedId);
-    if (state?.timer) {
-        clearTimeout(state.timer);
-    }
     exaustorStates.delete(normalizedId);
 };
 
@@ -329,12 +497,12 @@ export const turnOffExaustor = async (id: string): Promise<any> => {
     for (const state of statesToRestore) {
         const moduleHost = resolveModuleHost(state.moduleId);
         const remaining = getRemainingMinutes(state);
-        if (remaining && remaining > 1) {
+        if (remaining && remaining > 5) {
             if (needsDelay) {
                 await delay(EXAUSTOR_REARM_DELAY_MS);
             }
             restoreResults[state.id] = await setRelay(moduleHost, state.relay);
-            scheduleOffTimer(state, remaining);
+            setExpiry(state, remaining);
             needsDelay = true;
         } else {
             restoreResults[state.id] = { skipped: true, remainingMinutes: remaining };
@@ -351,17 +519,20 @@ export const turnOffExaustor = async (id: string): Promise<any> => {
  */
 export const getExaustorStatus = async (id: string): Promise<any> => {
     const normalized = normalizeApartmentId(id);
-    const moduleMatch = normalized.match(/^(A|B|C|PWR)_(14|58)$/i);
+    const { tower, final, relay, group, moduleId } = parseApartment(normalized);
+    const moduleStatus = modulesStatusCache.get(moduleId) || null;
+    const memory = buildMemorySnapshot().find((state) => state.id === normalized) || null;
 
-    if (moduleMatch) {
-        const moduleId = `${moduleMatch[1].toUpperCase()}_${moduleMatch[2]}`;
-        const host = resolveModuleHost(moduleId);
-        return sendCommand(host, 'Status');
-    }
-
-    const { relay, moduleId } = parseApartment(normalized);
-    const host = resolveModuleHost(moduleId);
-    return sendCommand(host, `Power${relay}`);
+    return {
+        id: normalized,
+        tower,
+        final,
+        group,
+        relay,
+        moduleId,
+        moduleStatus,
+        memory,
+    };
 };
 
 /**
@@ -369,18 +540,8 @@ export const getExaustorStatus = async (id: string): Promise<any> => {
  * @returns Status por módulo e memória serializada.
  */
 export const getAllModulesStatus = async (): Promise<{ modules: Record<string, any>; memory: ReturnType<typeof buildMemorySnapshot> }> => {
-    const modules = listModules();
-    const results = await Promise.all(modules.map(async ({ moduleId, host }) => {
-        try {
-            const status = await sendCommand(host, 'Status');
-            return { moduleId, status };
-        } catch (error: any) {
-            return { moduleId, status: null, error: error?.message ?? String(error) };
-        }
-    }));
-
-    const modulesStatus = results.reduce<Record<string, any>>((acc, item) => {
-        acc[item.moduleId] = item;
+    const modulesStatus = Array.from(modulesStatusCache.entries()).reduce<Record<string, any>>((acc, [moduleId, data]) => {
+        acc[moduleId] = data;
         return acc;
     }, {});
 

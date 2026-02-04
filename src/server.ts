@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { StartWebServer } from './api/web-server.api';
 import { closeConnection } from './services/firebird.service';
+import { startExaustorService } from './services/exaustor.service';
 
 // Carrega variáveis de ambiente do arquivo .env
 const dotenvResult = dotenv.config();
@@ -43,6 +44,10 @@ async function StartService(): Promise<void> {
         // Inicializa o serviço web
         await StartWebServer();
         console.log('[Server] Serviço web inicializado.');
+
+        // Inicializa o serviço dos exaustores
+        await startExaustorService();
+        console.log('[Server] Serviço de exaustores inicializado.');
 
         // Encerramento com Ctrl+C
         process.on('SIGINT', () => {
