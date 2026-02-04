@@ -201,7 +201,7 @@
             "application/json": {
               "examples": {
                 "minimo": {
-                  "summary": "Somente obrigatórios",
+                  "summary": "Mínimo",
                   "value": {
                     "dispositivo": 1,
                     "pessoa": 1,
@@ -210,7 +210,7 @@
                   }
                 },
                 "completo": {
-                  "summary": "Com opcionais",
+                  "summary": "Completo",
                   "value": {
                     "dispositivo": 1,
                     "pessoa": 1,
@@ -336,6 +336,31 @@
           "required": true,
           "content": {
             "application/json": {
+              "examples": {
+                "minimo": {
+                  "summary": "Somente obrigatórios",
+                  "value": {
+                    "device": 1,
+                    "usuario": "PORTARIA",
+                    "quadra": "A",
+                    "lote": 10,
+                    "motivo": "ACESSO"
+                  }
+                },
+                "completo": {
+                  "summary": "Com opcionais",
+                  "value": {
+                    "device": 1,
+                    "usuario": "PORTARIA",
+                    "quadra": "A",
+                    "lote": 10,
+                    "motivo": "ACESSO",
+                    "complemento": "OBS",
+                    "seqAutorizador": 123,
+                    "botaoTexto": "LIBERAR"
+                  }
+                }
+              },
               "schema": {
                 "type": "object",
                 "required": [
@@ -415,6 +440,31 @@
           "required": true,
           "content": {
             "application/json": {
+              "examples": {
+                "minimo": {
+                  "summary": "Somente obrigatórios",
+                  "value": {
+                    "device": 1,
+                    "usuario": "PORTARIA",
+                    "quadra": "A",
+                    "lote": 10,
+                    "motivo": "ACESSO"
+                  }
+                },
+                "completo": {
+                  "summary": "Com opcionais",
+                  "value": {
+                    "device": 1,
+                    "usuario": "PORTARIA",
+                    "quadra": "A",
+                    "lote": 10,
+                    "motivo": "ACESSO",
+                    "complemento": "OBS",
+                    "seqAutorizador": 123,
+                    "botaoTexto": "LIBERAR"
+                  }
+                }
+              },
               "schema": {
                 "type": "object",
                 "required": [
@@ -529,6 +579,31 @@
           "required": true,
           "content": {
             "application/json": {
+              "examples": {
+                "minimo": {
+                  "summary": "Somente obrigatórios",
+                  "value": {
+                    "plate": "ABC1234",
+                    "brand": "VW",
+                    "model": "GOL",
+                    "color": "PRATA",
+                    "user_seq": 1,
+                    "tag": "TAG001"
+                  }
+                },
+                "completo": {
+                  "summary": "Com opcionais",
+                  "value": {
+                    "plate": "ABC1234",
+                    "brand": "VW",
+                    "model": "GOL",
+                    "color": "PRATA",
+                    "user_seq": 1,
+                    "unit_seq": 10,
+                    "tag": "TAG001"
+                  }
+                }
+              },
               "schema": {
                 "type": "object",
                 "required": [
@@ -729,6 +804,31 @@
           "required": true,
           "content": {
             "application/json": {
+              "examples": {
+                "minimo": {
+                  "summary": "Somente obrigatórios",
+                  "value": {
+                    "personSequence": 1,
+                    "type": "Y",
+                    "panic": "N",
+                    "id2": "0005629999",
+                    "user": "JOHN",
+                    "vehicleSequence": 10
+                  }
+                },
+                "completo": {
+                  "summary": "Com opcionais",
+                  "value": {
+                    "personSequence": 1,
+                    "type": "Y",
+                    "panic": "N",
+                    "id2": "0005629999",
+                    "useType": "N",
+                    "user": "JOHN",
+                    "vehicleSequence": 10
+                  }
+                }
+              },
               "schema": {
                 "type": "object",
                 "required": [
@@ -916,6 +1016,20 @@
           "required": false,
           "content": {
             "application/json": {
+              "examples": {
+                "minimo": {
+                  "summary": "Somente obrigatórios",
+                  "value": {
+                    "period": 30
+                  }
+                },
+                "completo": {
+                  "summary": "Com opcionais",
+                  "value": {
+                    "period": 30
+                  }
+                }
+              },
               "schema": {
                 "type": "object",
                 "required": [
@@ -971,6 +1085,23 @@
           "required": true,
           "content": {
             "application/json": {
+              "examples": {
+                "minimo": {
+                  "summary": "Somente obrigatórios",
+                  "value": {
+                    "bloco": "A",
+                    "apartamento": "123"
+                  }
+                },
+                "completo": {
+                  "summary": "Com opcionais",
+                  "value": {
+                    "bloco": "A",
+                    "apartamento": "123",
+                    "tempo": 10
+                  }
+                }
+              },
               "schema": {
                 "type": "object",
                 "required": [
@@ -1042,6 +1173,22 @@
           "required": true,
           "content": {
             "application/json": {
+              "examples": {
+                "minimo": {
+                  "summary": "Somente obrigatórios",
+                  "value": {
+                    "bloco": "A",
+                    "apartamento": "123"
+                  }
+                },
+                "completo": {
+                  "summary": "Com opcionais",
+                  "value": {
+                    "bloco": "A",
+                    "apartamento": "123"
+                  }
+                }
+              },
               "schema": {
                 "type": "object",
                 "required": [
@@ -1200,6 +1347,22 @@
           "required": true,
           "content": {
             "application/json": {
+              "examples": {
+                "minimo": {
+                  "summary": "Somente obrigatórios",
+                  "value": {
+                    "modulo": "1",
+                    "comando": "Backlog%20PulseTime1%205;%20PulseTime2%205;%20PulseTime3%205;%20PulseTime4%205"
+                  }
+                },
+                "completo": {
+                  "summary": "Com opcionais",
+                  "value": {
+                    "modulo": "1",
+                    "comando": "Backlog%20PulseTime1%205;%20PulseTime2%205;%20PulseTime3%205;%20PulseTime4%205"
+                  }
+                }
+              },
               "schema": {
                 "type": "object",
                 "required": [
