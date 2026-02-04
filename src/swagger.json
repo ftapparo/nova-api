@@ -199,6 +199,12 @@
           "required": true,
           "content": {
             "application/json": {
+              "example": {
+                "dispositivo": 1,
+                "pessoa": 1,
+                "sentido": "entrada",
+                "idAcesso": "ABC123"
+              },
               "schema": {
                 "type": "object",
                 "required": [
@@ -215,40 +221,50 @@
                     "type": "integer"
                   },
                   "classificacao": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Opcional"
                   },
                   "classAutorizado": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Opcional"
                   },
                   "autorizacaoLanc": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Opcional"
                   },
                   "origem": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Opcional"
                   },
                   "seqIdAcesso": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Opcional"
                   },
                   "sentido": {
                     "type": "string"
                   },
                   "quadra": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Opcional"
                   },
                   "lote": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Opcional"
                   },
                   "panico": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Opcional"
                   },
                   "formaAcesso": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Opcional"
                   },
                   "idAcesso": {
                     "type": "string"
                   },
                   "seqVeiculo": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Opcional"
                   }
                 }
               }
