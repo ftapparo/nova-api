@@ -25,7 +25,7 @@ export async function StartWebServer(): Promise<void> {
     /**
      * Middleware para tratar requisições OPTIONS (CORS Preflight).
      */
-    app.options('/*', cors());
+    app.options(/.*/, cors());
 
     /**
      * Middleware para parsear JSON nas requisições.
