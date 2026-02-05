@@ -12,8 +12,7 @@ services:
     env_file:
       - .env
     volumes:
-      # Mapeia logs para pasta local do projeto
-      - ./logs:/app/logs
+      - /mnt/windows/nova-api/logs:/app/logs
     networks:
       - nova-api-network
     healthcheck:

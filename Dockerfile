@@ -43,7 +43,7 @@ COPY ecosystem.config.js ./
 RUN mkdir -p logs
 
 # Expõe a porta da API
-EXPOSE 3000
+EXPOSE 3030
 
 # Define variáveis de ambiente padrão
 ENV NODE_ENV=production
