@@ -96,7 +96,7 @@ WHERE fd."NOME" IS NOT NULL
 };
 
 /**
- * Obtém uma porta pelo ID (DEVICEID).
+ * Obtém uma porta pelo ID (SEQUENCIA).
  * @param id ID da porta.
  * @returns Dados da porta ou null.
  */
@@ -116,7 +116,7 @@ SELECT
 FROM FACIAL_DISP fd
 WHERE fd."NOME" IS NOT NULL
     AND fd.ATIVO = 'S'
-    AND fd.DEVICEID = ?
+    AND fd.SEQUENCIA = ?
 `;
     const result = await executeQuery(query, [id]);
 
