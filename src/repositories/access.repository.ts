@@ -9,6 +9,21 @@ const freedom = {
   port: parseInt(process.env.FREEDOM_PORT || '8080', 10),
 };
 
+const resolveAppTimeZone = (): string => {
+  const fallback = 'America/Sao_Paulo';
+  const rawTimeZone = (process.env.APP_TIMEZONE || fallback).trim();
+
+  try {
+    Intl.DateTimeFormat('sv-SE', { timeZone: rawTimeZone });
+    return rawTimeZone;
+  } catch (error) {
+    console.error('[AccessRepository] APP_TIMEZONE invalido, usando padrao:', rawTimeZone, error);
+    return fallback;
+  }
+};
+
+const APP_TIMEZONE = resolveAppTimeZone();
+
 // Função para abrir portão de pedestres
 export const openGatePedestrian = async (data: { device: number; usuario: string; quadra: string; lote: number; motivo: string; complemento: string; seqAutorizador: number; botaoTexto: string }): Promise<any> => {
   const { device, usuario, quadra, lote, motivo, complemento, seqAutorizador, botaoTexto } = data;
@@ -218,9 +233,8 @@ export const insertAccess = async (data: {
         });
       });
 
-    const now = new Date();
-    const offset = now.getTimezoneOffset() * 60000; // Ajusta o timezone do servidor
-    const localISOTime = new Date(now.getTime() - offset).toISOString().slice(0, 19).replace('T', ' ');
+    // Comentario: usa timezone configuravel para gravar DATAHORA no horario local esperado.
+    const localISOTime = new Date().toLocaleString('sv-SE', { timeZone: APP_TIMEZONE });
 
     const result1 = await txQuery(`
       INSERT INTO CIRCULACAODISP (
