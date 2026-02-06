@@ -1430,7 +1430,8 @@
                         },
                         "person": {
                           "type": "object",
-                          "nullable": true
+                          "nullable": true,
+                          "description": "Dados da pessoa. O campo foto (quando presente) vem em base64."
                         },
                         "links": {
                           "type": "array",

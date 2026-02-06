@@ -177,7 +177,7 @@ export const queryCpf = async (req: Request, res: Response): Promise<void> => {
                 sexo: personRow.P_SEXO,
                 email: personRow.P_EMAIL,
                 telCelular: personRow.P_TELCELULAR,
-                foto: personRow.P_FOTO,
+                foto: personRow.P_FOTO ? personRow.P_FOTO.toString('base64') : null,
                 profissao: personRow.P_PROFISSAO,
                 tipo: personRow.P_TIPO,
                 categoria: personRow.P_CATEGORIA,
