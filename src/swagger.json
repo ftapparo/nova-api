@@ -25,6 +25,10 @@
     {
       "name": "Consultas",
       "description": "Consultas por CPF, placa e tag de veículo."
+    },
+    {
+      "name": "Controle",
+      "description": "Operacoes de abertura e listagem de portas e portoes."
     }
   ],
   "paths": {
@@ -1553,6 +1557,198 @@
           },
           "500": {
             "description": "Erro ao consultar placa"
+          }
+        }
+      }
+    },
+    "/v2/api/control/door/list": {
+      "get": {
+        "tags": [
+          "Controle"
+        ],
+        "summary": "Listar portas disponíveis",
+        "description": "Lista portas ativas do controle facial.",
+        "responses": {
+          "200": {
+            "description": "Lista de portas retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/api/control/door/open": {
+      "post": {
+        "tags": [
+          "Controle"
+        ],
+        "summary": "Abrir porta",
+        "description": "Aciona abertura da porta via dispositivo facial.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "SEQUENCIA da porta"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comando enviado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/api/control/gate/list": {
+      "get": {
+        "tags": [
+          "Controle"
+        ],
+        "summary": "Listar portões disponíveis",
+        "description": "Lista portões cadastrados com TAG.",
+        "responses": {
+          "200": {
+            "description": "Lista de portões retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/api/control/gate/open": {
+      "post": {
+        "tags": [
+          "Controle"
+        ],
+        "summary": "Abrir portão",
+        "description": "Aciona abertura do portão via serviço de controle.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "NUMDISPOSITIVO do portão"
+                  },
+                  "autoCloseTime": {
+                    "type": "integer",
+                    "description": "Tempo em segundos para fechamento automático"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comando enviado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
