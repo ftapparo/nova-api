@@ -21,6 +21,10 @@
     {
       "name": "Exaustores",
       "description": "Controle de exaustores das churrasqueiras (ligar, desligar e status)."
+    },
+    {
+      "name": "Consultas",
+      "description": "Consultas por CPF, placa e tag de veículo."
     }
   ],
   "paths": {
@@ -1379,6 +1383,256 @@
           },
           "500": {
             "description": "Erro ao configurar módulo"
+          }
+        }
+      }
+    },
+    "/v2/api/queries/cpf/{cpf}": {
+      "get": {
+        "tags": [
+          "Consultas"
+        ],
+        "summary": "Consultar CPF",
+        "description": "Valida o CPF e consulta sua existência no banco.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "cpf",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "12345678909"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consulta realizada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "cpf": {
+                          "type": "string",
+                          "example": "12345678909"
+                        },
+                        "isValid": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "exists": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "person": {
+                          "type": "object",
+                          "nullable": true
+                        },
+                        "links": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "pessoaVinculo": {
+                                "type": "object"
+                              },
+                              "unidade": {
+                                "type": "object"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "CPF inválido"
+          },
+          "422": {
+            "description": "Coluna de CPF não encontrada"
+          },
+          "500": {
+            "description": "Erro ao consultar CPF"
+          }
+        }
+      }
+    },
+    "/v2/api/queries/plate/{plate}": {
+      "get": {
+        "tags": [
+          "Consultas"
+        ],
+        "summary": "Consultar placa",
+        "description": "Consulta veículo pela placa.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plate",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "ABC1234"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consulta realizada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "plate": {
+                          "type": "string",
+                          "example": "ABC1234"
+                        },
+                        "exists": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "vehicle": {
+                          "type": "object",
+                          "nullable": true
+                        },
+                        "unit": {
+                          "type": "object",
+                          "nullable": true
+                        },
+                        "owner": {
+                          "type": "object",
+                          "nullable": true
+                        },
+                        "accesses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Placa inválida"
+          },
+          "500": {
+            "description": "Erro ao consultar placa"
+          }
+        }
+      }
+    },
+    "/v2/api/queries/tag/{tag}": {
+      "get": {
+        "tags": [
+          "Consultas"
+        ],
+        "summary": "Consultar tag",
+        "description": "Consulta veículo pela tag (10 dígitos).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tag",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "1234567890"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consulta realizada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "tag": {
+                          "type": "string",
+                          "example": "1234567890"
+                        },
+                        "exists": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "vehicle": {
+                          "type": "object",
+                          "nullable": true
+                        },
+                        "unit": {
+                          "type": "object",
+                          "nullable": true
+                        },
+                        "owner": {
+                          "type": "object",
+                          "nullable": true
+                        },
+                        "accesses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Tag inválida"
+          },
+          "500": {
+            "description": "Erro ao consultar tag"
           }
         }
       }
