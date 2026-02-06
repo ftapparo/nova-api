@@ -208,32 +208,23 @@
           "content": {
             "application/json": {
               "examples": {
-                "minimo": {
-                  "summary": "Mínimo",
-                  "value": {
-                    "dispositivo": 1,
-                    "pessoa": 1,
-                    "sentido": "entrada",
-                    "idAcesso": "ABC123"
-                  }
-                },
                 "completo": {
                   "summary": "Completo",
                   "value": {
-                    "dispositivo": 1,
-                    "pessoa": 1,
-                    "classificacao": 1,
-                    "classAutorizado": "S",
-                    "autorizacaoLanc": "MANUAL",
-                    "origem": "PORTARIA",
-                    "seqIdAcesso": 123,
-                    "sentido": "entrada",
+                    "dispositivo": 9,
+                    "pessoa": 91,
+                    "classificacao": 10,
+                    "classAutorizado": "N",
+                    "autorizacaoLanc": "N",
+                    "origem": "Y",
+                    "seqIdAcesso": 49,
+                    "sentido": "E",
                     "quadra": "A",
-                    "lote": 10,
+                    "lote": "124",
                     "panico": "N",
                     "formaAcesso": "TAG",
-                    "idAcesso": "ABC123",
-                    "seqVeiculo": 999
+                    "idAcesso": "0005624566",
+                    "seqVeiculo": 745
                   }
                 }
               },
@@ -242,8 +233,18 @@
                 "required": [
                   "dispositivo",
                   "pessoa",
+                  "classificacao",
+                  "classAutorizado",
+                  "autorizacaoLanc",
+                  "origem",
+                  "seqIdAcesso",
                   "sentido",
-                  "idAcesso"
+                  "quadra",
+                  "lote",
+                  "panico",
+                  "formaAcesso",
+                  "idAcesso",
+                  "seqVeiculo"
                 ],
                 "properties": {
                   "dispositivo": {
@@ -253,50 +254,52 @@
                     "type": "integer"
                   },
                   "classificacao": {
-                    "type": "integer",
-                    "description": "Opcional"
+                    "type": "integer"
                   },
                   "classAutorizado": {
                     "type": "string",
-                    "description": "Opcional"
+                    "enum": [
+                      "S",
+                      "N"
+                    ]
                   },
                   "autorizacaoLanc": {
-                    "type": "string",
-                    "description": "Opcional"
-                  },
-                  "origem": {
-                    "type": "string",
-                    "description": "Opcional"
-                  },
-                  "seqIdAcesso": {
-                    "type": "integer",
-                    "description": "Opcional"
-                  },
-                  "sentido": {
                     "type": "string"
                   },
-                  "quadra": {
+                  "origem": {
+                    "type": "string"
+                  },
+                  "seqIdAcesso": {
+                    "type": "integer"
+                  },
+                  "sentido": {
                     "type": "string",
-                    "description": "Opcional"
+                    "enum": [
+                      "E",
+                      "S"
+                    ]
+                  },
+                  "quadra": {
+                    "type": "string"
                   },
                   "lote": {
-                    "type": "integer",
-                    "description": "Opcional"
+                    "type": "string"
                   },
                   "panico": {
                     "type": "string",
-                    "description": "Opcional"
+                    "enum": [
+                      "S",
+                      "N"
+                    ]
                   },
                   "formaAcesso": {
-                    "type": "string",
-                    "description": "Opcional"
+                    "type": "string"
                   },
                   "idAcesso": {
                     "type": "string"
                   },
                   "seqVeiculo": {
-                    "type": "integer",
-                    "description": "Opcional"
+                    "type": "integer"
                   }
                 }
               }

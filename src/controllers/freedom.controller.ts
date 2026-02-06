@@ -250,13 +250,59 @@ export const registerNewAccess = async (req: Request, res: Response) => {
     seqVeiculo
   } = req.body;
 
-  if (!dispositivo || !pessoa || !sentido || !idAcesso) {
-    res.fail('Necessário dados obrigatórios: dispositivo, pessoa, sentido e idAcesso.', 400);
+  const missingFields: string[] = [];
+  const isMissing = (value: unknown): boolean => value === undefined || value === null || value === '';
+
+  if (isMissing(dispositivo)) missingFields.push('dispositivo');
+  if (isMissing(pessoa)) missingFields.push('pessoa');
+  if (isMissing(classificacao)) missingFields.push('classificacao');
+  if (isMissing(classAutorizado)) missingFields.push('classAutorizado');
+  if (isMissing(autorizacaoLanc)) missingFields.push('autorizacaoLanc');
+  if (isMissing(origem)) missingFields.push('origem');
+  if (isMissing(seqIdAcesso)) missingFields.push('seqIdAcesso');
+  if (isMissing(sentido)) missingFields.push('sentido');
+  if (isMissing(quadra)) missingFields.push('quadra');
+  if (isMissing(lote)) missingFields.push('lote');
+  if (isMissing(panico)) missingFields.push('panico');
+  if (isMissing(formaAcesso)) missingFields.push('formaAcesso');
+  if (isMissing(idAcesso)) missingFields.push('idAcesso');
+  if (isMissing(seqVeiculo)) missingFields.push('seqVeiculo');
+
+  if (missingFields.length > 0) {
+    res.fail(`Necessario dados obrigatorios: ${missingFields.join(', ')}.`, 400);
     return;
   }
 
-  if (!quadra || !lote) {
-    res.fail('Necessário dados obrigatórios: quadra e lote.', 400);
+  const invalidFields: string[] = [];
+  const isValidNumber = (value: unknown): boolean => Number.isFinite(Number(value));
+  const isValidText = (value: unknown): boolean => typeof value === 'string' && value.trim().length > 0;
+
+  if (!isValidNumber(dispositivo)) invalidFields.push('dispositivo');
+  if (!isValidNumber(pessoa)) invalidFields.push('pessoa');
+  if (!isValidNumber(classificacao)) invalidFields.push('classificacao');
+  if (!isValidNumber(seqIdAcesso)) invalidFields.push('seqIdAcesso');
+  if (!isValidNumber(seqVeiculo)) invalidFields.push('seqVeiculo');
+
+  if (!isValidText(classAutorizado)) invalidFields.push('classAutorizado');
+  if (!isValidText(autorizacaoLanc)) invalidFields.push('autorizacaoLanc');
+  if (!isValidText(origem)) invalidFields.push('origem');
+  if (!isValidText(quadra)) invalidFields.push('quadra');
+  if (!isValidText(lote)) invalidFields.push('lote');
+  if (!isValidText(panico)) invalidFields.push('panico');
+  if (!isValidText(formaAcesso)) invalidFields.push('formaAcesso');
+  if (!isValidText(idAcesso)) invalidFields.push('idAcesso');
+  if (!isValidText(sentido)) invalidFields.push('sentido');
+
+  const sentidoValue = String(sentido).trim().toUpperCase();
+  const panicoValue = String(panico).trim().toUpperCase();
+  const classAutorizadoValue = String(classAutorizado).trim().toUpperCase();
+
+  if (sentidoValue !== 'E' && sentidoValue !== 'S') invalidFields.push('sentido');
+  if (panicoValue !== 'S' && panicoValue !== 'N') invalidFields.push('panico');
+  if (classAutorizadoValue !== 'S' && classAutorizadoValue !== 'N') invalidFields.push('classAutorizado');
+
+  if (invalidFields.length > 0) {
+    res.fail(`Dados invalidos: ${[...new Set(invalidFields)].join(', ')}.`, 400);
     return;
   }
 
