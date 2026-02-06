@@ -251,7 +251,12 @@ export const registerNewAccess = async (req: Request, res: Response) => {
   } = req.body;
 
   if (!dispositivo || !pessoa || !sentido || !idAcesso) {
-    res.fail('Necessário dados obrigatórios', 400);
+    res.fail('Necessário dados obrigatórios: dispositivo, pessoa, sentido e idAcesso.', 400);
+    return;
+  }
+
+  if (!quadra || !lote) {
+    res.fail('Necessário dados obrigatórios: quadra e lote.', 400);
     return;
   }
 

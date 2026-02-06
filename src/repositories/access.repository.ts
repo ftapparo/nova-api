@@ -233,6 +233,13 @@ export const insertAccess = async (data: {
         });
       });
 
+    const quadraValue = (data.quadra ?? '').toString().trim();
+    const loteValue = (data.lote ?? '').toString().trim();
+
+    if (!quadraValue || !loteValue) {
+      throw new Error('Quadra e lote sao obrigatorios para registrar o acesso.');
+    }
+
     // Comentario: usa timezone configuravel para gravar DATAHORA no horario local esperado.
     const localISOTime = new Date().toLocaleString('sv-SE', { timeZone: APP_TIMEZONE });
 
@@ -271,8 +278,8 @@ export const insertAccess = async (data: {
       SELECT SEQUENCIA FROM UNIDADES
       WHERE QUADRA = ? AND LOTE = ?
     `, [
-      data.quadra.trim(),
-      data.lote.trim()
+      quadraValue,
+      loteValue
     ]);
 
     if (!unidadeResult || unidadeResult.length === 0) {
