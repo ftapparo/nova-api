@@ -78,6 +78,24 @@ const resolveAccessCacheType = (value: unknown): AccessCacheType | null => {
         : null;
 };
 
+const resolvePositiveInt = (value: unknown, fallback: number, min = 1, max = 100): number | null => {
+    if (value === undefined || value === null || value === '') {
+        return fallback;
+    }
+
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < min) {
+        return null;
+    }
+
+    const normalized = Math.floor(parsed);
+    if (max && normalized > max) {
+        return max;
+    }
+
+    return normalized;
+};
+
 /**
  * Aciona abertura do portão via serviço externo.
  * @param req Requisição HTTP (body/query repassados).
@@ -316,6 +334,18 @@ export const listAccessCache = async (req: Request, res: Response): Promise<void
         return;
     }
 
+    const page = resolvePositiveInt(req.query?.page, 1);
+    if (page === null) {
+        res.fail('Parâmetro page inválido.', 400);
+        return;
+    }
+
+    const pageSize = resolvePositiveInt(req.query?.pageSize, 20, 1, 200);
+    if (pageSize === null) {
+        res.fail('Parâmetro pageSize inválido.', 400);
+        return;
+    }
+
     try {
         const gate = await getGateByNumeroDispositivo(idValue);
 
@@ -331,7 +361,26 @@ export const listAccessCache = async (req: Request, res: Response): Promise<void
             timeout: resolveControlTimeout(),
         });
 
-        res.ok(response.data);
+        const payload = response.data?.data ?? response.data ?? {};
+        const items = Array.isArray(payload?.items) ? payload.items : [];
+        const stats = payload?.stats ?? null;
+        const type = typeof payload?.type === 'string' ? payload.type : cacheType;
+        const totalItems = items.length;
+        const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / pageSize);
+        const startIndex = (page - 1) * pageSize;
+        const pagedItems = startIndex >= totalItems ? [] : items.slice(startIndex, startIndex + pageSize);
+
+        res.ok({
+            type,
+            stats,
+            pagination: {
+                page,
+                pageSize,
+                totalItems,
+                totalPages,
+            },
+            items: pagedItems,
+        });
     } catch (error: unknown) {
         const mapped = mapAxiosError(error);
         console.error('[ControlController] Erro ao consultar cache de acessos:', mapped.details);
