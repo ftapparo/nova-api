@@ -177,6 +177,8 @@ const updateAccessControlStatusCache = async (): Promise<void> => {
  * @returns void.
  */
 export const startAccessControlService = async (): Promise<void> => {
+    await updateAccessControlStatusCache();
+
     setInterval(() => {
         void updateAccessControlStatusCache();
     }, ACCESS_CONTROL_STATUS_INTERVAL_MS);

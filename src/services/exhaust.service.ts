@@ -104,10 +104,26 @@ const sendCommand = async (host: string, cmnd: string): Promise<any> => {
     return response.data;
 };
 
+/**
+ * Envia comando ao módulo e retorna dados com statusCode.
+ * @param host IP/host do módulo.
+ * @param cmnd Comando Tasmota.
+ * @returns Resposta do módulo com statusCode.
+ */
+const sendCommandWithStatus = async (host: string, cmnd: string): Promise<{ data: any; statusCode: number }> => {
+    const url = buildUrl(host);
+    const config = { params: { cmnd }, timeout: EXHAUST_TIMEOUT_MS };
+    const response = await axios.get(url, config);
+    return { data: response.data, statusCode: response.status };
+};
+
 type ModuleStatusCache = {
     status: any;
     pulseTime: any;
     updatedAt: number;
+    host: string;
+    port: number;
+    statusCode: number | null;
     errorCode?: string | null;
     error?: string | null;
 };
@@ -175,14 +191,28 @@ const listModules = (): { moduleId: string; host: string }[] => {
  * @param status Status retornado.
  * @param pulseTime PulseTime retornado.
  */
-const updateModuleCache = (moduleId: string, status: any, pulseTime: any): void => {
+const updateModuleCache = (moduleId: string, status: any, pulseTime: any, host: string, statusCode: number | null): void => {
     modulesStatusCache.set(moduleId, {
         status,
         pulseTime,
         updatedAt: Date.now(),
+        host,
+        port: EXHAUST_PORT,
+        statusCode,
         errorCode: null,
         error: null,
     });
+};
+
+/**
+ * Extrai statusCode do erro HTTP (se houver).
+ * @param error Erro capturado.
+ * @returns StatusCode ou null.
+ */
+const getErrorStatusCode = (error: unknown): number | null => {
+    const axiosError = error as { response?: { status?: number } } | null;
+    const status = axiosError?.response?.status;
+    return typeof status === 'number' ? status : null;
 };
 
 /**
@@ -192,10 +222,15 @@ const updateModuleCache = (moduleId: string, status: any, pulseTime: any): void 
  * @param error Mensagem do erro.
  */
 const updateModuleCacheError = (moduleId: string, errorCode: string, error: unknown): void => {
+    const host = EXHAUST_HOSTS[moduleId] ?? null;
+    const statusCode = getErrorStatusCode(error);
     modulesStatusCache.set(moduleId, {
         status: null,
         pulseTime: null,
         updatedAt: Date.now(),
+        host: host ?? '',
+        port: EXHAUST_PORT,
+        statusCode,
         errorCode,
         error: error ? String(error) : null,
     });
@@ -244,12 +279,16 @@ const initializeModule = async (moduleId: string, host: string): Promise<void> =
 
     // 1. Consulta status inicial
     let status: any;
+    let statusCode: number | null = null;
     try {
-        status = await sendCommand(host, 'Status');
+        const statusResponse = await sendCommandWithStatus(host, 'Status');
+        status = statusResponse.data;
+        statusCode = statusResponse.statusCode;
         console.log('[ExhaustService] Status recebido', { moduleId });
     } catch (error) {
+        const errorStatusCode = getErrorStatusCode(error);
         updateModuleCacheError(moduleId, 'STATUS_READ_FAILED', error);
-        console.error('[ExhaustService] Falha ao ler Status', { moduleId, error });
+        console.error('[ExhaustService] Falha ao ler Status', { moduleId, statusCode: errorStatusCode, error });
         throw error;
     }
 
@@ -258,8 +297,9 @@ const initializeModule = async (moduleId: string, host: string): Promise<void> =
         await forceModuleOff(host);
         console.log('[ExhaustService] Relés desligados', { moduleId });
     } catch (error) {
+        const errorStatusCode = getErrorStatusCode(error);
         updateModuleCacheError(moduleId, 'POWER_OFF_FAILED', error);
-        console.error('[ExhaustService] Falha ao desligar relés', { moduleId, error });
+        console.error('[ExhaustService] Falha ao desligar relés', { moduleId, statusCode: errorStatusCode, error });
         throw error;
     }
 
@@ -272,8 +312,9 @@ const initializeModule = async (moduleId: string, host: string): Promise<void> =
             pulseTime: JSON.stringify(pulseTime),
         });
     } catch (error) {
+        const errorStatusCode = getErrorStatusCode(error);
         updateModuleCacheError(moduleId, 'PULSETIME_READ_FAILED', error);
-        console.error('[ExhaustService] Falha ao ler PulseTime', { moduleId, error });
+        console.error('[ExhaustService] Falha ao ler PulseTime', { moduleId, statusCode: errorStatusCode, error });
         throw error;
     }
 
@@ -281,8 +322,9 @@ const initializeModule = async (moduleId: string, host: string): Promise<void> =
         await ensurePulseTime(host, pulseTime);
         console.log('[ExhaustService] PulseTime validado', { moduleId });
     } catch (error) {
+        const errorStatusCode = getErrorStatusCode(error);
         updateModuleCacheError(moduleId, 'PULSETIME_CONFIG_FAILED', error);
-        console.error('[ExhaustService] Falha ao configurar PulseTime', { moduleId, error });
+        console.error('[ExhaustService] Falha ao configurar PulseTime', { moduleId, statusCode: errorStatusCode, error });
         throw error;
     }
 
@@ -295,8 +337,9 @@ const initializeModule = async (moduleId: string, host: string): Promise<void> =
             pulseTime: JSON.stringify(refreshedPulseTime),
         });
     } catch (error) {
+        const errorStatusCode = getErrorStatusCode(error);
         updateModuleCacheError(moduleId, 'PULSETIME_VERIFY_FAILED', error);
-        console.error('[ExhaustService] Falha ao verificar PulseTime', { moduleId, error });
+        console.error('[ExhaustService] Falha ao verificar PulseTime', { moduleId, statusCode: errorStatusCode, error });
         throw error;
     }
 
@@ -312,7 +355,7 @@ const initializeModule = async (moduleId: string, host: string): Promise<void> =
     }
 
     // 5. Atualiza cache de status
-    updateModuleCache(moduleId, status, refreshedPulseTime);
+    updateModuleCache(moduleId, status, refreshedPulseTime, host, statusCode);
     console.log('[ExhaustService] Módulo inicializado', { moduleId });
 };
 
@@ -323,10 +366,13 @@ const initializeModule = async (moduleId: string, host: string): Promise<void> =
  */
 const refreshModuleStatus = async (moduleId: string, host: string): Promise<void> => {
     try {
-        const [status, pulseTime] = await Promise.all([
-            sendCommand(host, 'Status'),
-            sendCommand(host, 'PulseTime'),
+        const [statusResponse, pulseTimeResponse] = await Promise.all([
+            sendCommandWithStatus(host, 'Status'),
+            sendCommandWithStatus(host, 'PulseTime'),
         ]);
+
+        const status = statusResponse.data;
+        const pulseTime = pulseTimeResponse.data;
 
         if (!status) {
             updateModuleCacheError(moduleId, 'STATUS_READ_FAILED', 'Status vazio');
@@ -337,6 +383,9 @@ const refreshModuleStatus = async (moduleId: string, host: string): Promise<void
             status,
             pulseTime,
             updatedAt: Date.now(),
+            host,
+            port: EXHAUST_PORT,
+            statusCode: statusResponse.statusCode,
             errorCode: null,
             error: null,
         });
