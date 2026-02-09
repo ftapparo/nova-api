@@ -1756,6 +1756,97 @@
         }
       }
     },
+    "/v2/api/control/gate/restart": {
+      "post": {
+        "tags": [
+          "Controle"
+        ],
+        "summary": "Reiniciar portão",
+        "description": "Encaminha a requisição de reinício para o serviço TAG.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "description": "NUMDISPOSITIVO do portão"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comando de reinício enviado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/api/control/status": {
+      "get": {
+        "tags": [
+          "Controle"
+        ],
+        "summary": "Status de portas e portões",
+        "description": "Retorna o cache do status de portas e portões.",
+        "responses": {
+          "200": {
+            "description": "Status retornado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v2/api/queries/tag/{tag}": {
       "get": {
         "tags": [

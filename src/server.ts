@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import { StartWebServer } from './api/web-server.api';
 import { closeConnection } from './services/firebird.service';
 import { startExhaustService } from './services/exhaust.service';
+import { startAccessControlService } from './services/access-control.service';
 
 // Carrega variáveis de ambiente do arquivo .env
 const dotenvResult = dotenv.config();
@@ -48,6 +49,10 @@ async function StartService(): Promise<void> {
         // Inicializa o serviço dos exaustores
         await startExhaustService();
         console.log('[Server] Serviço de exaustores inicializado.');
+
+        // Inicializa o serviço dos controle de acesso
+        await startAccessControlService();
+        console.log('[Server] Serviço de controle de acesso inicializado.');
 
         // Encerramento com Ctrl+C
         process.on('SIGINT', () => {

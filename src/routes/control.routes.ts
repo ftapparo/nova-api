@@ -1,7 +1,10 @@
 import express from 'express';
-import { listDoorsControl, listGatesControl, openDoorControl, openGateControl } from '../controllers/control.controller';
+import { listDoorsControl, listGatesControl, openDoorControl, openGateControl, restartGateControl, statusGatesAndDoorsControl } from '../controllers/control.controller';
 
 const router = express.Router();
+
+// Rota de status dos portões e portas
+router.get('/control/status', statusGatesAndDoorsControl);
 
 // Rota para abrir o portão veicular
 router.post('/control/gate/open', openGateControl);
@@ -14,5 +17,9 @@ router.get('/control/door/list', listDoorsControl);
 
 // Rota para listar portões disponíveis
 router.get('/control/gate/list', listGatesControl);
+
+// Reiniciar controle de portões (gateway para mesma rota em TAG)
+router.post('/control/gate/restart', restartGateControl);
+
 
 export default router;
