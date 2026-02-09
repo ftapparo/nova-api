@@ -133,18 +133,18 @@ WHERE fd."NOME" IS NOT NULL
  */
 export const listAvailableGates = async (): Promise<GateDevice[]> => {
     const query = `
-SELECT
-    d.SEQUENCIA,
-    d.NUMDISPOSITIVO,
-    d.IP,
-    d.PORTA,
-    d.CLASSIFICACOES,
-    d."NOME",
-    d.TIPODISPOSITIVO,
-    d.ATIVO
-FROM DISPACESSO d
-WHERE d.TIPODISPOSITIVO LIKE '%TAG%'
-`;
+        SELECT
+            d.SEQUENCIA,
+            d.NUMDISPOSITIVO,
+            d.IP,
+            d.PORTA,
+            d.CLASSIFICACOES,
+            d."NOME",
+            d.TIPODISPOSITIVO,
+            d.ATIVO
+        FROM DISPACESSO d
+        WHERE d.TIPODISPOSITIVO LIKE '%TAG%'
+        `;
     const result = await executeQuery(query, []);
 
     if (!Array.isArray(result)) {
