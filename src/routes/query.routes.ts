@@ -6,9 +6,13 @@ const router = Router();
 
 router.use(freedomValidate);
 
-// Rotas de consultas (CPF, placa e tag)
+// Rotas de consulta de CPF
 router.get('/queries/cpf/:cpf', queryCpf);
+
+// Rota de consulta de PLACA
 router.get('/queries/plate/:plate', queryPlate);
+
+// Rota de consulta de TAG
 router.get('/queries/tag/:tag', queryTag);
 
 export default router;

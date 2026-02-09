@@ -6,7 +6,7 @@ const router = Router();
 
 router.use(freedomValidate);
 
-// Rotas de controle de acesso
+// Valida permissão de acesso (TAG, ID, CPF ou PLACA)
 router.get('/access/verify', checkAccessPermission);
 
 // Rota para listar últimos acessos por dispositivo
@@ -15,10 +15,5 @@ router.get('/access/list', listAccess);
 // Rota para registrar novo acesso
 router.post('/access/register', registerNewAccess);
 
-// Rotas para liberar acesso
-router.post('/access/release/pedestrian', allowPedestrianAccess);
-
-// Rota para liberar acesso de veículo
-router.post('/access/release/vehicle', allowvehicleAccess);
 
 export default router;

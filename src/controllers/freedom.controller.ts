@@ -1,6 +1,188 @@
 import { Request, Response } from 'express';
 import { getAllVehicles, getOneVehicle, registerVehicle, registerVehicleAccess, registerVehiclePhoto, setLockVehicle, setLockVehicleByData, setUnlockVehicle } from '../repositories/vehicle.repository';
-import { insertAccess, listRecentAccessByDevice, openGatePedestrian, openGateVehicle, verifyAccessById } from '../repositories/access.repository';
+import { findPrimaryAccessCredentialByPerson, insertAccess, listRecentAccessByDevice, openGatePedestrian, openGateVehicle, verifyAccessById } from '../repositories/access.repository';
+import { findPersonByCpf, findVehicleByPlate } from '../repositories/query.repository';
+
+type SearchIdType = 'plate' | 'cpf' | 'tag' | 'shortAccessId' | 'normalizedAccessId';
+type VehicleLookupRow = Awaited<ReturnType<typeof findVehicleByPlate>>[number];
+type PersonCpfRow = Awaited<ReturnType<typeof findPersonByCpf>>[number];
+
+const LEGACY_PLATE_PATTERN = /^[A-Z]{3}[0-9]{4}$/;
+const MERCOSUL_PLATE_PATTERN = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
+const CPF_DIGITS_REGEX = /^[0-9]{11}$/;
+const TAG_DIGITS_REGEX = /^[0-9]{10}$/;
+const SHORT_ACCESS_ID_REGEX = /^[0-9]{1,8}$/;
+const NORMALIZED_ACCESS_ID_REGEX = /^898[0-9]{8}787$/;
+const INVALID_ID_MESSAGE = 'ID deve ser uma placa válida (AAA1234/AAA1A23), CPF válido, TAG com 10 dígitos, ID numérico com até 8 dígitos ou o ID já formatado (898********787).';
+
+class SearchIdResolutionError extends Error {
+  status: number;
+
+  constructor(message: string, status = 400) {
+    super(message);
+    this.name = 'SearchIdResolutionError';
+    this.status = status;
+  }
+}
+
+const sanitizeDigits = (value: string): string => value.replace(/\D/g, '');
+
+const isValidCpf = (cpf: string): boolean => {
+  if (!CPF_DIGITS_REGEX.test(cpf)) {
+    return false;
+  }
+
+  if (/^(\d)\1{10}$/.test(cpf)) {
+    return false;
+  }
+
+  const calcDigit = (base: string, factor: number): number => {
+    let total = 0;
+
+    for (let index = 0; index < base.length; index += 1) {
+      total += Number(base[index]) * (factor - index);
+    }
+
+    const remainder = (total * 10) % 11;
+    return remainder === 10 ? 0 : remainder;
+  };
+
+  const firstDigit = calcDigit(cpf.slice(0, 9), 10);
+  const secondDigit = calcDigit(cpf.slice(0, 10), 11);
+
+  return firstDigit === Number(cpf[9]) && secondDigit === Number(cpf[10]);
+};
+
+const normalizePlate = (value: string): string => value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+const isPlateFormat = (value: string): boolean =>
+  value.length === 7 && (LEGACY_PLATE_PATTERN.test(value) || MERCOSUL_PLATE_PATTERN.test(value));
+
+const buildTagCredential = (tagValue: string): string => {
+  const digits = sanitizeDigits(tagValue);
+  if (!TAG_DIGITS_REGEX.test(digits)) {
+    throw new SearchIdResolutionError('Tag inválida. Informe 10 dígitos.', 400);
+  }
+  return `Y${digits}`;
+};
+
+const buildAccessIdCredential = (idValue: string): string => {
+  const digits = sanitizeDigits(idValue);
+  if (!SHORT_ACCESS_ID_REGEX.test(digits)) {
+    throw new SearchIdResolutionError('ID numérico deve conter de 1 a 8 dígitos.', 400);
+  }
+
+  const prefix = '898';
+  const suffix = '787';
+  const bodyLength = 14 - prefix.length - suffix.length;
+  const padded = digits.padStart(bodyLength, '0');
+  return `${prefix}${padded}${suffix}`;
+};
+
+const resolveCredentialByCpf = async (cpfDigits: string): Promise<string> => {
+  const personRows: PersonCpfRow[] = await findPersonByCpf(cpfDigits);
+  const personRow = personRows[0];
+
+  if (!personRow?.P_SEQUENCIA) {
+    throw new SearchIdResolutionError('CPF não localizado na base.', 404);
+  }
+
+  const seqPessoa = Number(personRow.P_SEQUENCIA);
+  const credential = await findPrimaryAccessCredentialByPerson(seqPessoa);
+
+  if (!credential) {
+    throw new SearchIdResolutionError('Nenhum ID vinculado ao CPF informado.', 404);
+  }
+
+  const idValue = typeof credential.ID === 'string' ? credential.ID.trim() : null;
+  if (idValue) {
+    return idValue;
+  }
+
+  const tagValue = typeof credential.ID2 === 'string' ? credential.ID2.trim() : null;
+  if (tagValue) {
+    return buildTagCredential(tagValue);
+  }
+
+  throw new SearchIdResolutionError('Nenhum ID ou TAG vinculados ao CPF informado.', 404);
+};
+
+const resolveCredentialByPlate = async (plate: string): Promise<string> => {
+  const vehicleRows: VehicleLookupRow[] = await findVehicleByPlate(plate);
+
+  if (!Array.isArray(vehicleRows) || vehicleRows.length === 0) {
+    throw new SearchIdResolutionError('Placa não localizada.', 404);
+  }
+
+  const idRow = vehicleRows.find((row) => typeof row?.I_ID === 'string' && row.I_ID.trim().length > 0);
+  if (idRow?.I_ID) {
+    return String(idRow.I_ID).trim();
+  }
+
+  const tagValue = vehicleRows
+    .map((row) => (typeof row?.V_TAGVEICULO === 'string' && row.V_TAGVEICULO.trim().length > 0
+      ? row.V_TAGVEICULO
+      : row?.I_ID2))
+    .find((value) => typeof value === 'string' && value.trim().length > 0);
+
+  if (tagValue) {
+    return buildTagCredential(String(tagValue).trim());
+  }
+
+  throw new SearchIdResolutionError('Nenhum ID ou TAG vinculados à placa informada.', 404);
+};
+
+const detectSearchIdType = (rawValue: string): SearchIdType => {
+  const normalizedPlate = normalizePlate(rawValue);
+  const digits = sanitizeDigits(rawValue);
+
+  if (isPlateFormat(normalizedPlate)) {
+    return 'plate';
+  }
+
+  if (digits && isValidCpf(digits)) {
+    return 'cpf';
+  }
+
+  if (TAG_DIGITS_REGEX.test(digits)) {
+    return 'tag';
+  }
+
+  if (NORMALIZED_ACCESS_ID_REGEX.test(digits)) {
+    return 'normalizedAccessId';
+  }
+
+  if (SHORT_ACCESS_ID_REGEX.test(digits)) {
+    return 'shortAccessId';
+  }
+
+  throw new SearchIdResolutionError(INVALID_ID_MESSAGE, 400);
+};
+
+const resolveIdForAccess = async (rawId: string): Promise<string> => {
+  const trimmed = rawId?.toString().trim();
+  if (!trimmed) {
+    throw new SearchIdResolutionError('Informe o identificador para consulta.', 400);
+  }
+
+  const type = detectSearchIdType(trimmed.toUpperCase());
+  const digits = sanitizeDigits(trimmed);
+
+  switch (type) {
+    case 'plate':
+      return resolveCredentialByPlate(normalizePlate(trimmed));
+    case 'cpf':
+      return resolveCredentialByCpf(digits);
+    case 'tag':
+      return buildTagCredential(digits);
+    case 'normalizedAccessId':
+      return digits;
+    case 'shortAccessId':
+      return buildAccessIdCredential(digits);
+    default:
+      throw new SearchIdResolutionError(INVALID_ID_MESSAGE, 400);
+  }
+};
 
 /**
  * Lista todos os veículos.
@@ -195,7 +377,7 @@ export const unlockVehicle = async (req: Request, res: Response) => {
 };
 
 /**
- * Verifica permissão de acesso por ID.
+ * Valida permissão de acesso (TAG, ID, CPF ou PLACA)
  * @param req Requisição HTTP (query com id/dispositivo/sentido).
  * @param res Resposta HTTP.
  * @returns Promise<void>.
@@ -217,10 +399,21 @@ export const checkAccessPermission = async (req: Request, res: Response) => {
     return;
   }
 
+  const sentidoValue = String(sentido).trim().toUpperCase();
+  if (sentidoValue !== 'E' && sentidoValue !== 'S') {
+    res.fail('Sentido inválido. Informe "E" (entrada) ou "S" (saída).', 400);
+    return;
+  }
+
   try {
-    const result = await verifyAccessById(String(id), dispositivoNumber, fotoValue, String(sentido));
+    const normalizedId = await resolveIdForAccess(String(id));
+    const result = await verifyAccessById(normalizedId, dispositivoNumber, fotoValue, sentidoValue);
     res.ok(result);
   } catch (error: any) {
+    if (error instanceof SearchIdResolutionError) {
+      res.fail(error.message, error.status);
+      return;
+    }
     console.error('Erro ao verificar acesso:', error.message);
     res.fail('Erro ao verificar acesso', error.status || 500, error.message ?? error);
   }
