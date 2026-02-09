@@ -420,7 +420,151 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "type": "object"
+                      "type": "object",
+                      "properties": {
+                        "modules": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "type": "object"
+                              },
+                              "pulseTime": {
+                                "type": "object"
+                              },
+                              "updatedAt": {
+                                "type": "number",
+                                "format": "float"
+                              },
+                              "host": {
+                                "type": "string",
+                                "example": "192.168.0.10"
+                              },
+                              "port": {
+                                "type": "integer",
+                                "example": 80
+                              },
+                              "statusCode": {
+                                "type": "integer",
+                                "example": 200
+                              },
+                              "errorCode": {
+                                "type": "string",
+                                "nullable": true,
+                                "example": null
+                              },
+                              "error": {
+                                "type": "string",
+                                "nullable": true,
+                                "example": null
+                              }
+                            }
+                          }
+                        },
+                        "memory": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "example": "A1"
+                              },
+                              "tower": {
+                                "type": "string",
+                                "example": "A"
+                              },
+                              "final": {
+                                "type": "integer",
+                                "example": 1
+                              },
+                              "group": {
+                                "type": "string",
+                                "example": "14"
+                              },
+                              "relay": {
+                                "type": "integer",
+                                "example": 1
+                              },
+                              "moduleId": {
+                                "type": "string",
+                                "example": "A_14"
+                              },
+                              "expiresAt": {
+                                "type": "number",
+                                "format": "float",
+                                "nullable": true
+                              },
+                              "remainingMinutes": {
+                                "type": "integer",
+                                "nullable": true
+                              }
+                            }
+                          }
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "A1"
+                        },
+                        "tower": {
+                          "type": "string",
+                          "example": "A"
+                        },
+                        "final": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "group": {
+                          "type": "string",
+                          "example": "14"
+                        },
+                        "relay": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "moduleId": {
+                          "type": "string",
+                          "example": "A_14"
+                        },
+                        "moduleStatus": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "object"
+                            },
+                            "pulseTime": {
+                              "type": "object"
+                            },
+                            "updatedAt": {
+                              "type": "number",
+                              "format": "float"
+                            },
+                            "host": {
+                              "type": "string",
+                              "example": "192.168.0.10"
+                            },
+                            "port": {
+                              "type": "integer",
+                              "example": 80
+                            },
+                            "statusCode": {
+                              "type": "integer",
+                              "example": 200
+                            },
+                            "errorCode": {
+                              "type": "string",
+                              "nullable": true,
+                              "example": null
+                            },
+                            "error": {
+                              "type": "string",
+                              "nullable": true,
+                              "example": null
+                            }
+                          }
+                        }
+                      }
                     },
                     "message": {
                       "type": "string",
