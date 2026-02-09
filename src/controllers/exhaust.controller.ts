@@ -1,14 +1,14 @@
 import { Request, Response } from 'express';
-import { configureExaustorModule, getAllModulesStatus, getExaustorMemory, getExaustorProcessStatus, getExaustorStatus, turnOffExaustor, turnOnExaustor } from '../services/exaustor.service';
+import { configureExhaustModule, getAllModulesStatus, getExhaustMemory, getExhaustProcessStatus, getExhaustStatus, turnOffExhaust, turnOnExhaust } from '../services/exhaust.service';
 
-type ExaustorPayload = {
+type ExhaustPayload = {
     bloco?: string;
     apartamento?: string | number;
     tempo?: string | number;
     id?: string;
 };
 
-type ExaustorConfigPayload = {
+type ExhaustConfigPayload = {
     modulo?: string | number;
     comando?: string;
 };
@@ -31,10 +31,10 @@ const parseMinutes = (value: unknown): number | undefined => {
 };
 
 /**
- * Extrai o ID do exaustor a partir do body.
+ * Extrai o ID do exhaust a partir do body.
  * @param payload Body da requisição.
  */
-const resolveExaustorId = (payload: ExaustorPayload): string | null => {
+const resolveExhaustId = (payload: ExhaustPayload): string | null => {
     if (payload.id) {
         return String(payload.id).trim();
     }
@@ -58,9 +58,9 @@ const resolveExaustorId = (payload: ExaustorPayload): string | null => {
 
 /**
  * Remove propriedades não serializáveis do estado em memória.
- * @param memory Estado do exaustor.
+ * @param memory Estado do exhaust.
  */
-const serializeMemory = (memory: ReturnType<typeof getExaustorMemory>) => {
+const serializeMemory = (memory: ReturnType<typeof getExhaustMemory>) => {
     if (!memory) return null;
 
     return {
@@ -75,13 +75,13 @@ const serializeMemory = (memory: ReturnType<typeof getExaustorMemory>) => {
 };
 
 /**
- * Liga um exaustor.
+ * Liga um exhaust.
  * @param req Requisição HTTP.
  * @param res Resposta HTTP.
  */
-export const turnOnExaustorController = async (req: Request, res: Response) => {
-    const payload = req.body as ExaustorPayload;
-    const id = resolveExaustorId(payload);
+export const turnOnExhaustController = async (req: Request, res: Response) => {
+    const payload = req.body as ExhaustPayload;
+    const id = resolveExhaustId(payload);
     const minutes = parseMinutes(payload.tempo);
 
     if (!id) {
@@ -95,8 +95,8 @@ export const turnOnExaustorController = async (req: Request, res: Response) => {
     }
 
     try {
-        const result = await turnOnExaustor(id, minutes);
-        const memory = serializeMemory(getExaustorMemory(id));
+        const result = await turnOnExhaust(id, minutes);
+        const memory = serializeMemory(getExhaustMemory(id));
         res.ok({
             id,
             status: 'on',
@@ -105,19 +105,19 @@ export const turnOnExaustorController = async (req: Request, res: Response) => {
             memory,
         });
     } catch (error: any) {
-        console.error('Erro ao ligar exaustor:', error.message || error);
-        res.fail('Erro ao ligar exaustor', error.status || 500, error.message ?? error);
+        console.error('Erro ao ligar exhaust:', error.message || error);
+        res.fail('Erro ao ligar exhaust', error.status || 500, error.message ?? error);
     }
 };
 
 /**
- * Desliga um exaustor.
+ * Desliga um exhaust.
  * @param req Requisição HTTP.
  * @param res Resposta HTTP.
  */
-export const turnOffExaustorController = async (req: Request, res: Response) => {
-    const payload = req.body as ExaustorPayload;
-    const id = resolveExaustorId(payload);
+export const turnOffExhaustController = async (req: Request, res: Response) => {
+    const payload = req.body as ExhaustPayload;
+    const id = resolveExhaustId(payload);
 
     if (!id) {
         res.fail('Parâmetros obrigatórios: bloco e apartamento.', 400);
@@ -125,15 +125,15 @@ export const turnOffExaustorController = async (req: Request, res: Response) => 
     }
 
     try {
-        const result = await turnOffExaustor(id);
+        const result = await turnOffExhaust(id);
         res.ok({
             id,
             status: 'off',
             result,
         });
     } catch (error: any) {
-        console.error('Erro ao desligar exaustor:', error.message || error);
-        res.fail('Erro ao desligar exaustor', error.status || 500, error.message ?? error);
+        console.error('Erro ao desligar exhaust:', error.message || error);
+        res.fail('Erro ao desligar exhaust', error.status || 500, error.message ?? error);
     }
 };
 
@@ -142,14 +142,14 @@ export const turnOffExaustorController = async (req: Request, res: Response) => 
  * @param req Requisição HTTP.
  * @param res Resposta HTTP.
  */
-export const getExaustorStatusController = async (req: Request, res: Response) => {
+export const getExhaustStatusController = async (req: Request, res: Response) => {
     try {
         const paramId = typeof req.params.id === 'string' ? req.params.id : undefined;
         const queryId = typeof req.query.id === 'string' ? req.query.id : undefined;
         const id = paramId || queryId;
 
         if (id) {
-            const result = await getExaustorStatus(id);
+            const result = await getExhaustStatus(id);
             res.ok(result);
             return;
         }
@@ -157,8 +157,8 @@ export const getExaustorStatusController = async (req: Request, res: Response) =
         const result = await getAllModulesStatus();
         res.ok(result);
     } catch (error: any) {
-        console.error('Erro ao consultar status do exaustor:', error.message || error);
-        res.fail('Erro ao consultar status do exaustor', error.status || 500, error.message ?? error);
+        console.error('Erro ao consultar status do exhaust:', error.message || error);
+        res.fail('Erro ao consultar status do exhaust', error.status || 500, error.message ?? error);
     }
 };
 
@@ -167,9 +167,9 @@ export const getExaustorStatusController = async (req: Request, res: Response) =
  * @param req Requisição HTTP.
  * @param res Resposta HTTP.
  */
-export const getExaustorProcessStatusController = (_req: Request, res: Response) => {
+export const getExhaustProcessStatusController = (_req: Request, res: Response) => {
     try {
-        const result = getExaustorProcessStatus();
+        const result = getExhaustProcessStatus();
         res.ok(result);
     } catch (error: any) {
         console.error('Erro ao consultar status do processo:', error.message || error);
@@ -182,8 +182,8 @@ export const getExaustorProcessStatusController = (_req: Request, res: Response)
  * @param req Requisição HTTP.
  * @param res Resposta HTTP.
  */
-export const configureExaustorController = async (req: Request, res: Response) => {
-    const payload = req.body as ExaustorConfigPayload;
+export const configureExhaustController = async (req: Request, res: Response) => {
+    const payload = req.body as ExhaustConfigPayload;
     const modulo = payload.modulo !== undefined && payload.modulo !== null ? String(payload.modulo).trim() : '';
     const comando = payload.comando ? String(payload.comando).trim() : '';
 
@@ -193,7 +193,7 @@ export const configureExaustorController = async (req: Request, res: Response) =
     }
 
     try {
-        const result = await configureExaustorModule(modulo, comando);
+        const result = await configureExhaustModule(modulo, comando);
         res.ok(result);
     } catch (error: any) {
         console.error('Erro ao configurar módulo:', error.message || error);

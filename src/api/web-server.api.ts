@@ -5,7 +5,7 @@ import swaggerDocument from '../swagger.json';
 import healthRoutes from '../routes/health.routes';
 import accessRoutes from '../routes/access.routes';
 import vehicleRoutes from '../routes/vehicle.routes';
-import exaustorRoutes from '../routes/exaustor.routes';
+import exhaustRoutes from '../routes/exhaust.routes';
 import queryRoutes from '../routes/query.routes';
 import controlRoutes from '../routes/control.routes';
 import { responseHandler } from '../middleware/response-handler';
@@ -42,13 +42,16 @@ export async function StartWebServer(): Promise<void> {
     /**
      * Registro das rotas principais da API.
      * - /v2/api/health: Healthcheck
-     * - /v2/api/access: Rotas de controle de acesso
-     * - /v2/api/vehicles: Rotas de controle de veículos
+     * - /v2/api/access: Controle de acesso (verificação de identidade, logs de acesso)
+     * - /v2/api/vehicle: Controle de veículos (entrada/saída)
+     * - /v2/api/exhausts: Controle de exaustores
+     * - /v2/api/query: Consultas diversas
+     * - /v2/api/control: Controles diversos (portas, portões)
      */
     app.use('/v2/api', healthRoutes);
     app.use('/v2/api', accessRoutes);
     app.use('/v2/api', vehicleRoutes);
-    app.use('/v2/api', exaustorRoutes);
+    app.use('/v2/api', exhaustRoutes);
     app.use('/v2/api', queryRoutes);
     app.use('/v2/api', controlRoutes);
 
