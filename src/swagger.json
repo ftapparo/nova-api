@@ -1955,6 +1955,80 @@
         }
       }
     },
+    "/v2/api/control/gate/access/list": {
+      "get": {
+        "tags": [
+          "Controle"
+        ],
+        "summary": "Listar últimos acessos do cache da TAG",
+        "description": "Retorna a listagem dos últimos acessos do cache de TAG a partir do portão informado.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "id",
+            "required": true,
+            "description": "NUMDISPOSITIVO do portão (ex: 9)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "description": "Tipo de cache (positive, negative, all, whitelist, blacklist)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de acessos retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "example": "all"
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "stats": {
+                          "type": "object"
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erro ao consultar cache de acessos"
+          }
+        }
+      }
+    },
     "/v2/api/control/status": {
       "get": {
         "tags": [

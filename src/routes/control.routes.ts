@@ -1,5 +1,5 @@
 import express from 'express';
-import { listDoorsControl, listGatesControl, openDoorControl, openGateControl, restartGateControl, statusGatesAndDoorsControl } from '../controllers/control.controller';
+import { listDoorsControl, listGatesControl, openDoorControl, openGateControl, restartGateControl, statusGatesAndDoorsControl, listAccessCache } from '../controllers/control.controller';
 
 const router = express.Router();
 
@@ -20,6 +20,9 @@ router.get('/control/gate/list', listGatesControl);
 
 // Reiniciar controle de portões (gateway para mesma rota em TAG)
 router.post('/control/gate/restart', restartGateControl);
+
+// Rota para listar últimos acessos do cache da TAG (portões)
+router.get('/control/gate/access/list', listAccessCache);
 
 
 export default router;

@@ -7,10 +7,13 @@ const CONTROL_BASE_URL = process.env.CONTROL_BASE_URL?.trim();
 const CONTROL_TIMEOUT_MS = Number(process.env.CONTROL_TIMEOUT_MS || '5000');
 const TAG_CONTROL_HOST = process.env.TAG_CONTROL_HOST?.trim() || '192.168.0.252';
 const TAG_CONTROL_BASE_PORT = Number(process.env.TAG_CONTROL_BASE_PORT || '4000');
+const ACCESS_CACHE_ALLOWED_TYPES = ['all', 'positive', 'negative', 'whitelist', 'blacklist'] as const;
+type AccessCacheType = typeof ACCESS_CACHE_ALLOWED_TYPES[number];
 
 if (!CONTROL_BASE_URL) {
     console.error('[ControlController] CONTROL_BASE_URL não configurada.');
 }
+
 
 const resolveControlTimeout = (): number => {
     if (Number.isNaN(CONTROL_TIMEOUT_MS) || CONTROL_TIMEOUT_MS <= 0) {
@@ -62,6 +65,17 @@ const resolveIdNumber = (value: unknown): number | null => {
     }
 
     return parsed;
+};
+
+const resolveAccessCacheType = (value: unknown): AccessCacheType | null => {
+    if (value === undefined || value === null || value === '') {
+        return 'all';
+    }
+
+    const normalized = String(value).trim().toLowerCase();
+    return (ACCESS_CACHE_ALLOWED_TYPES as readonly string[]).includes(normalized)
+        ? normalized as AccessCacheType
+        : null;
 };
 
 /**
@@ -275,5 +289,52 @@ export const statusGatesAndDoorsControl = async (_req: Request, res: Response): 
     } catch (error: unknown) {
         console.error('[ControlController] Erro ao consultar status de portões e portas:', error);
         res.fail('Erro ao consultar status de portões e portas.', 500, error instanceof Error ? error.message : error);
+    }
+};
+
+/**
+ * Lista os últimos acessos do cache da TAG.
+ * Chama a rota de listagem do cache do serviço TAG específico do portão.
+ * @route GET /control/access/cache
+ */
+export const listAccessCache = async (req: Request, res: Response): Promise<void> => {
+    const idValue = resolveIdNumber(req.query?.id);
+
+    if (idValue === null) {
+        res.fail('Parâmetro id é obrigatório.', 400);
+        return;
+    }
+
+    if (Number.isNaN(idValue)) {
+        res.fail('Parâmetro id inválido.', 400);
+        return;
+    }
+
+    const cacheType = resolveAccessCacheType(req.query?.type);
+    if (!cacheType) {
+        res.fail('Tipo de cache inválido. Use positive, negative, all, whitelist ou blacklist.', 400);
+        return;
+    }
+
+    try {
+        const gate = await getGateByNumeroDispositivo(idValue);
+
+        if (!gate) {
+            res.fail('Portão não encontrado ou inativo.', 404);
+            return;
+        }
+
+        const baseUrl = buildGateBaseUrl(gate.numeroDispositivo);
+        const cacheUrl = `${baseUrl.url}/v2/api/cache`;
+        const response = await axios.get(cacheUrl, {
+            params: { type: cacheType },
+            timeout: resolveControlTimeout(),
+        });
+
+        res.ok(response.data);
+    } catch (error: unknown) {
+        const mapped = mapAxiosError(error);
+        console.error('[ControlController] Erro ao consultar cache de acessos:', mapped.details);
+        res.fail('Erro ao consultar cache de acessos.', mapped.status, mapped.message);
     }
 };
