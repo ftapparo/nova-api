@@ -1074,7 +1074,7 @@
         }
       }
     },
-    "/v2/api/exaustors/on": {
+    "/v2/api/exhausts/on": {
       "post": {
         "tags": [
           "Exaustores"
@@ -1129,7 +1129,7 @@
         },
         "responses": {
           "200": {
-            "description": "Exaustor ligado com sucesso",
+            "description": "Exhaust ligado com sucesso",
             "content": {
               "application/json": {
                 "schema": {
@@ -1162,7 +1162,7 @@
         }
       }
     },
-    "/v2/api/exaustors/off": {
+    "/v2/api/exhausts/off": {
       "post": {
         "tags": [
           "Exaustores"
@@ -1199,7 +1199,7 @@
         },
         "responses": {
           "200": {
-            "description": "Exaustor desligado com sucesso",
+            "description": "Exhaust desligado com sucesso",
             "content": {
               "application/json": {
                 "schema": {
@@ -1232,19 +1232,19 @@
         }
       }
     },
-    "/v2/api/exaustors/status": {
+    "/v2/api/exhausts/status": {
       "get": {
         "tags": [
           "Exaustores"
         ],
         "summary": "Status geral dos módulos",
-        "description": "Retorna o status de todos os módulos e a memória de acionamentos. Se informar id, retorna apenas o exaustor.",
+        "description": "Retorna o status de todos os módulos e a memória de acionamentos. Se informar id, retorna apenas o exhaust.",
         "parameters": [
           {
             "in": "query",
             "name": "id",
             "required": false,
-            "description": "ID do exaustor (ex: A1, B-6, C_3)",
+            "description": "ID do exhaust (ex: A1, B-6, C_3)",
             "schema": {
               "type": "string"
             }
@@ -1285,7 +1285,7 @@
         }
       }
     },
-    "/v2/api/exaustors/process/status": {
+    "/v2/api/exhausts/process/status": {
       "get": {
         "tags": [
           "Exaustores"
@@ -1324,7 +1324,7 @@
         }
       }
     },
-    "/v2/api/exaustors/config": {
+    "/v2/api/exhausts/config": {
       "post": {
         "tags": [
           "Exaustores"
