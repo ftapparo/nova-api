@@ -219,6 +219,7 @@ export const listRecentAccessByDevice = async (dispositivo: number, limit = 10):
       c.LOTEDEST AS APARTAMENTO,
       c.DATAHORA,
       c.DISPOSITIVO,
+      c.SENTIDO,
       p2.DESCRICAO,
       c.IDACESSO,
       c.SEQVEICULO AS VEICULO
