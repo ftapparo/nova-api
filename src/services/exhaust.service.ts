@@ -651,6 +651,7 @@ export const getExhaustStatus = async (id: string): Promise<any> => {
  * @returns Status por módulo e memória serializada.
  */
 export const getAllModulesStatus = async (): Promise<{ modules: Record<string, any>; memory: ReturnType<typeof buildMemorySnapshot> }> => {
+    await refreshAllModulesStatus();
     const modulesStatus = Array.from(modulesStatusCache.entries()).reduce<Record<string, any>>((acc, [moduleId, data]) => {
         acc[moduleId] = data;
         return acc;
