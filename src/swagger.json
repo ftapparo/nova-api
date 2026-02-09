@@ -196,6 +196,110 @@
         }
       }
     },
+    "/v2/api/access/list": {
+      "get": {
+        "tags": [
+          "Acessos"
+        ],
+        "summary": "Listar últimos acessos do dispositivo",
+        "description": "Retorna os últimos acessos registrados para o dispositivo informado (limite padrão 10).",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "device",
+            "required": true,
+            "description": "Número do dispositivo (ex: 9)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "description": "Quantidade de registros (máx. 50, padrão 10)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista retornada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "NOME": {
+                            "type": "string",
+                            "example": "JOAO DA SILVA"
+                          },
+                          "TORRE": {
+                            "type": "string",
+                            "example": "A"
+                          },
+                          "APARTAMENTO": {
+                            "type": "string",
+                            "example": "101"
+                          },
+                          "DATAHORA": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "DISPOSITIVO": {
+                            "type": "integer",
+                            "example": 9
+                          },
+                          "DESCRICAO": {
+                            "type": "string",
+                            "example": "MORADOR"
+                          },
+                          "IDACESSO": {
+                            "type": "string",
+                            "example": "0001234567"
+                          },
+                          "VEICULO": {
+                            "type": "integer",
+                            "nullable": true,
+                            "example": 745
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    },
+                    "errors": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Parâmetros inválidos"
+          },
+          "500": {
+            "description": "Erro ao listar acessos"
+          }
+        }
+      }
+    },
     "/v2/api/access/register": {
       "post": {
         "tags": [
@@ -1802,7 +1906,7 @@
         }
       }
     },
-    "/v2/api/control/gate/list": {
+    "/v2/api/control/gate/cache/list": {
       "get": {
         "tags": [
           "Controle"
@@ -1955,7 +2059,7 @@
         }
       }
     },
-    "/v2/api/control/gate/access/list": {
+    "/v2/api/control/gate/cache/list": {
       "get": {
         "tags": [
           "Controle"
