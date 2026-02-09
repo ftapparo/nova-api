@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { getAllVehicles, getOneVehicle, registerVehicle, registerVehicleAccess, registerVehiclePhoto, setLockVehicle, setLockVehicleByData, setUnlockVehicle } from '../repositories/vehicle.repository';
-import { insertAccess, openGatePedestrian, openGateVehicle, verifyAccessById } from '../repositories/access.repository';
+import { insertAccess, listRecentAccessByDevice, openGatePedestrian, openGateVehicle, verifyAccessById } from '../repositories/access.repository';
 
 /**
  * Lista todos os veículos.
@@ -223,6 +223,45 @@ export const checkAccessPermission = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Erro ao verificar acesso:', error.message);
     res.fail('Erro ao verificar acesso', error.status || 500, error.message ?? error);
+  }
+};
+
+/**
+ * Lista os últimos acessos realizados por um dispositivo.
+ * @param req Requisição HTTP (query.device / query.dispositivo, query.limit opcional).
+ * @param res Resposta HTTP.
+ */
+export const listAccess = async (req: Request, res: Response) => {
+  const deviceParam = req.query.device ?? req.query.dispositivo;
+  const limitParam = req.query.limit ?? req.query.qtd;
+
+  if (deviceParam === undefined || deviceParam === null || deviceParam === '') {
+    res.fail('Parâmetro device é obrigatório.', 400);
+    return;
+  }
+
+  const deviceNumber = Number(deviceParam);
+  if (!Number.isFinite(deviceNumber) || deviceNumber <= 0) {
+    res.fail('Parâmetro device inválido.', 400);
+    return;
+  }
+
+  let limit = 10;
+  if (limitParam !== undefined && limitParam !== null && limitParam !== '') {
+    const parsedLimit = Number(limitParam);
+    if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) {
+      res.fail('Parâmetro limit inválido.', 400);
+      return;
+    }
+    limit = Math.min(Math.floor(parsedLimit), 50);
+  }
+
+  try {
+    const result = await listRecentAccessByDevice(deviceNumber, limit);
+    res.ok(result);
+  } catch (error: any) {
+    console.error('Erro ao listar acessos:', error?.message || error);
+    res.fail('Erro ao listar acessos', error?.status || 500, error?.message ?? error);
   }
 };
 

@@ -204,6 +204,36 @@ export const verifyAccessById = async (
   return result;
 };
 
+/**
+ * Lista os últimos acessos registrados para um dispositivo específico.
+ * @param dispositivo Número do dispositivo.
+ * @param limit Quantidade máxima de registros (padrão 10).
+ */
+export const listRecentAccessByDevice = async (dispositivo: number, limit = 10): Promise<any[]> => {
+  const safeLimit = Math.min(Math.max(limit, 1), 50);
+
+  const query = `
+    SELECT FIRST ${safeLimit}
+      p."NOME" AS NOME,
+      c.QUADRADEST AS TORRE,
+      c.LOTEDEST AS APARTAMENTO,
+      c.DATAHORA,
+      c.DISPOSITIVO,
+      p2.DESCRICAO,
+      c.IDACESSO,
+      c.SEQVEICULO AS VEICULO
+    FROM CIRCULACAODISP c
+    INNER JOIN PESSOAS p
+      ON p.SEQUENCIA = c."PESSOA"
+    INNER JOIN PESSOASCLASSIFICACAO p2
+      ON p2.SEQUENCIA = c.CLASSIFICACAO
+    WHERE c.DISPOSITIVO = ?
+    ORDER BY c.SEQUENCIA DESC;
+  `;
+
+  return executeQuery(query, [dispositivo]);
+};
+
 // Função para inserir acesso
 export const insertAccess = async (data: {
   dispositivo: number;

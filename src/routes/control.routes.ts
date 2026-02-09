@@ -22,7 +22,7 @@ router.get('/control/gate/list', listGatesControl);
 router.post('/control/gate/restart', restartGateControl);
 
 // Rota para listar últimos acessos do cache da TAG (portões)
-router.get('/control/gate/access/list', listAccessCache);
+router.get('/control/gate/cache/list', listAccessCache);
 
 
 export default router;
