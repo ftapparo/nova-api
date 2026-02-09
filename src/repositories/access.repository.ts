@@ -204,37 +204,6 @@ export const verifyAccessById = async (
   return result;
 };
 
-type AccessCredentialRecord = {
-  ID: string | null;
-  ID2: string | null;
-};
-
-/**
- * Recupera o ID/ID2 mais recente associado a uma pessoa.
- * @param seqPessoa Sequência da pessoa (SEQPESSOA).
- */
-export const findPrimaryAccessCredentialByPerson = async (seqPessoa: number): Promise<AccessCredentialRecord | null> => {
-  const query = `
-    SELECT FIRST 1
-      ID,
-      ID2
-    FROM IDACESSO
-    WHERE SEQPESSOA = ?
-    ORDER BY SEQUENCIA DESC;
-  `;
-
-  const result = await executeQuery(query, [seqPessoa]);
-  if (!Array.isArray(result) || result.length === 0) {
-    return null;
-  }
-
-  const row = result[0] as { ID?: string | null; ID2?: string | null };
-  return {
-    ID: row?.ID ?? null,
-    ID2: row?.ID2 ?? null,
-  };
-};
-
 /**
  * Lista os últimos acessos registrados para um dispositivo específico.
  * @param dispositivo Número do dispositivo.

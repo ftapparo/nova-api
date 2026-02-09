@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { getAllVehicles, getOneVehicle, registerVehicle, registerVehicleAccess, registerVehiclePhoto, setLockVehicle, setLockVehicleByData, setUnlockVehicle } from '../repositories/vehicle.repository';
-import { findPrimaryAccessCredentialByPerson, insertAccess, listRecentAccessByDevice, openGatePedestrian, openGateVehicle, verifyAccessById } from '../repositories/access.repository';
+import { insertAccess, listRecentAccessByDevice, openGatePedestrian, openGateVehicle, verifyAccessById } from '../repositories/access.repository';
 import { findPersonByCpf, findVehicleByPlate } from '../repositories/query.repository';
 
 type SearchIdType = 'plate' | 'cpf' | 'tag' | 'shortAccessId' | 'normalizedAccessId';
@@ -88,23 +88,11 @@ const resolveCredentialByCpf = async (cpfDigits: string): Promise<string> => {
   }
 
   const seqPessoa = Number(personRow.P_SEQUENCIA);
-  const credential = await findPrimaryAccessCredentialByPerson(seqPessoa);
-
-  if (!credential) {
-    throw new SearchIdResolutionError('Nenhum ID vinculado ao CPF informado.', 404);
+  if (!Number.isFinite(seqPessoa) || seqPessoa <= 0) {
+    throw new SearchIdResolutionError('Sequência da pessoa inválida para geração do ID.', 400);
   }
 
-  const idValue = typeof credential.ID === 'string' ? credential.ID.trim() : null;
-  if (idValue) {
-    return idValue;
-  }
-
-  const tagValue = typeof credential.ID2 === 'string' ? credential.ID2.trim() : null;
-  if (tagValue) {
-    return buildTagCredential(tagValue);
-  }
-
-  throw new SearchIdResolutionError('Nenhum ID ou TAG vinculados ao CPF informado.', 404);
+  return buildAccessIdCredential(String(seqPessoa));
 };
 
 const resolveCredentialByPlate = async (plate: string): Promise<string> => {
