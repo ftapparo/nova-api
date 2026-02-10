@@ -28,7 +28,7 @@
     },
     {
       "name": "Controle",
-      "description": "Operacoes de abertura e listagem de portas e portoes."
+      "description": "Operações de abertura e listagem de portas e portões."
     }
   ],
   "paths": {

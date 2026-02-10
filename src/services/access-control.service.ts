@@ -173,7 +173,7 @@ const updateAccessControlStatusCache = async (): Promise<void> => {
 };
 
 /**
- * Inicia o job de monitoramento de portoes e portas a cada 1 minuto.
+ * Inicia o job de monitoramento de portões e portas a cada 1 minuto.
  * @returns void.
  */
 export const startAccessControlService = async (): Promise<void> => {
@@ -183,11 +183,11 @@ export const startAccessControlService = async (): Promise<void> => {
         void updateAccessControlStatusCache();
     }, ACCESS_CONTROL_STATUS_INTERVAL_MS);
 
-    console.log('[AccessControlService] Monitoramento de portoes e portas iniciado.');
+    console.log('[AccessControlService] Monitoramento de portões e portas iniciado.');
 };
 
 /**
- * Retorna o cache atual de status de portoes e portas.
+ * Retorna o cache atual de status de portões e portas.
  * @returns Cache atual.
  */
 export const getAccessControlStatusCache = (): AccessControlStatusCache => {

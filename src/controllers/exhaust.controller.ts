@@ -188,7 +188,7 @@ export const configureExhaustController = async (req: Request, res: Response) =>
     const comando = payload.comando ? String(payload.comando).trim() : '';
 
     if (!modulo || !comando) {
-        res.fail('Parâmetros obrigatórios: modulo e comando.', 400);
+        res.fail('Parâmetros obrigatórios: módulo e comando.', 400);
         return;
     }
 
