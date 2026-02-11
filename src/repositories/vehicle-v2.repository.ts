@@ -1,7 +1,7 @@
 import Firebird from 'node-firebird';
 import { executeQuery, executeTransaction } from '../services/firebird.service';
 
-type VehicleRow = {
+export type VehicleRow = {
     SEQUENCIA: number;
     PLACA: string;
     MARCA: string | null;
@@ -12,7 +12,7 @@ type VehicleRow = {
     TAGVEICULO: string | null;
 };
 
-type AccessRow = {
+export type AccessRow = {
     SEQUENCIA: number;
     SEQPESSOA: number | null;
     ID: string | null;
@@ -343,6 +343,101 @@ export const linkVehicleTag = async (input: {
             status: currentTag && currentTag !== tag ? 'swapped' : 'linked',
             vehicleSeq,
             tag,
+        };
+    });
+};
+
+export const deleteTagByVehicleSeq = async (vehicleSeq: number): Promise<{ vehicleSeq: number; tagRemoved: boolean }> => {
+    return executeTransaction(async (tx) => {
+        const vehicle = firstRow<VehicleRow>(await txQuery<VehicleRow>(tx, `
+            SELECT
+                v.SEQUENCIA,
+                v.PLACA,
+                v.MARCA,
+                v.MODELO,
+                v.COR,
+                v.SEQUNIDADE,
+                v.PROPRIETARIO,
+                v.TAGVEICULO
+            FROM VEICULOS v
+            WHERE v.SEQUENCIA = ?
+        `, [vehicleSeq]));
+
+        if (!vehicle) {
+            throw Object.assign(new Error('Veiculo nao encontrado.'), { status: 404 });
+        }
+
+        const accessRows = asRows<{ SEQUENCIA: number }>(await txQuery<{ SEQUENCIA: number }>(tx, `
+            SELECT i.SEQUENCIA
+            FROM IDACESSO i
+            WHERE i.VEICULO = ?
+        `, [vehicleSeq]));
+
+        for (const row of accessRows) {
+            // eslint-disable-next-line no-await-in-loop
+            await txQuery(tx, `DELETE FROM IDACESSO WHERE SEQUENCIA = ?`, [row.SEQUENCIA]);
+        }
+
+        await txQuery(tx, `
+            UPDATE VEICULOS
+            SET TAGVEICULO = NULL
+            WHERE SEQUENCIA = ?
+        `, [vehicleSeq]);
+
+        return {
+            vehicleSeq,
+            tagRemoved: accessRows.length > 0 || Boolean(vehicle.TAGVEICULO),
+        };
+    });
+};
+
+export const unlinkOwnerByVehicleSeq = async (vehicleSeq: number): Promise<{
+    vehicleSeq: number;
+    ownerUnlinked: boolean;
+    tagRemoved: boolean;
+}> => {
+    return executeTransaction(async (tx) => {
+        const vehicle = firstRow<VehicleRow>(await txQuery<VehicleRow>(tx, `
+            SELECT
+                v.SEQUENCIA,
+                v.PLACA,
+                v.MARCA,
+                v.MODELO,
+                v.COR,
+                v.SEQUNIDADE,
+                v.PROPRIETARIO,
+                v.TAGVEICULO
+            FROM VEICULOS v
+            WHERE v.SEQUENCIA = ?
+        `, [vehicleSeq]));
+
+        if (!vehicle) {
+            throw Object.assign(new Error('Veiculo nao encontrado.'), { status: 404 });
+        }
+
+        const accessRows = asRows<{ SEQUENCIA: number }>(await txQuery<{ SEQUENCIA: number }>(tx, `
+            SELECT i.SEQUENCIA
+            FROM IDACESSO i
+            WHERE i.VEICULO = ?
+        `, [vehicleSeq]));
+
+        for (const row of accessRows) {
+            // eslint-disable-next-line no-await-in-loop
+            await txQuery(tx, `DELETE FROM IDACESSO WHERE SEQUENCIA = ?`, [row.SEQUENCIA]);
+        }
+
+        await txQuery(tx, `
+            UPDATE VEICULOS
+            SET
+                TAGVEICULO = NULL,
+                PROPRIETARIO = 0
+            WHERE SEQUENCIA = ?
+        `, [vehicleSeq]);
+
+        return {
+            vehicleSeq,
+            ownerUnlinked: true,
+            tagRemoved: accessRows.length > 0 || Boolean(vehicle.TAGVEICULO),
         };
     });
 };

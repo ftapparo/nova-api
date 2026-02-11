@@ -2,12 +2,15 @@ import { Request, Response } from 'express';
 import { verifyAccessById } from '../repositories/access.repository';
 import { findPersonByCpf } from '../repositories/query.repository';
 import {
+    deleteTagByVehicleSeq,
     getVehicleByPlate,
     linkVehicleTag,
     listAccessByVehicle,
     listVehiclesByOwner,
+    unlinkOwnerByVehicleSeq,
     upsertVehicleByPlate,
 } from '../repositories/vehicle-v2.repository';
+import { lookupVehicleExternalSources } from '../services/vehicle-lookup.service';
 
 const PLATE_PATTERN = /^[A-Z0-9]{7}$/;
 const CPF_DIGITS_REGEX = /^[0-9]{11}$/;
@@ -234,5 +237,54 @@ export const linkVehicleTagController = async (req: Request, res: Response): Pro
     } catch (error: any) {
         console.error('[VehicleV2] Erro ao vincular tag:', error?.message ?? error);
         res.fail('Erro ao vincular tag.', error?.status || 500, error?.message ?? error);
+    }
+};
+
+export const lookupPlateController = async (req: Request, res: Response): Promise<void> => {
+    const plate = normalizePlate(String(req.body?.plate ?? '').trim());
+
+    if (!PLATE_PATTERN.test(plate)) {
+        res.fail('Placa invalida.', 400);
+        return;
+    }
+
+    try {
+        const result = await lookupVehicleExternalSources(plate);
+        res.ok(result);
+    } catch (error: any) {
+        console.error('[VehicleV2] Erro no lookup externo de placa:', error?.message ?? error);
+        res.fail('Erro ao consultar fontes externas da placa.', error?.status || 500, error?.message ?? error);
+    }
+};
+
+export const removeVehicleTagController = async (req: Request, res: Response): Promise<void> => {
+    const vehicleSeq = Number(req.params.vehicleSeq);
+    if (!Number.isFinite(vehicleSeq) || vehicleSeq <= 0) {
+        res.fail('Parametro vehicleSeq invalido.', 400);
+        return;
+    }
+
+    try {
+        const result = await deleteTagByVehicleSeq(vehicleSeq);
+        res.ok(result);
+    } catch (error: any) {
+        console.error('[VehicleV2] Erro ao excluir tag do veiculo:', error?.message ?? error);
+        res.fail('Erro ao excluir tag do veiculo.', error?.status || 500, error?.message ?? error);
+    }
+};
+
+export const unlinkVehicleOwnerController = async (req: Request, res: Response): Promise<void> => {
+    const vehicleSeq = Number(req.params.vehicleSeq);
+    if (!Number.isFinite(vehicleSeq) || vehicleSeq <= 0) {
+        res.fail('Parametro vehicleSeq invalido.', 400);
+        return;
+    }
+
+    try {
+        const result = await unlinkOwnerByVehicleSeq(vehicleSeq);
+        res.ok(result);
+    } catch (error: any) {
+        console.error('[VehicleV2] Erro ao desvincular proprietario do veiculo:', error?.message ?? error);
+        res.fail('Erro ao desvincular proprietario do veiculo.', error?.status || 500, error?.message ?? error);
     }
 };
