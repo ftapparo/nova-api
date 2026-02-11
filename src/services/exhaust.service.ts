@@ -128,6 +128,12 @@ type ModuleStatusCache = {
     error?: string | null;
 };
 
+const createServiceError = (message: string, status: number): Error & { status: number } => {
+    const error = new Error(message) as Error & { status: number };
+    error.status = status;
+    return error;
+};
+
 /**
  * Cache de status dos módulos.
  */
@@ -599,6 +605,16 @@ export const turnOnExhaust = async (id: string, minutes?: number): Promise<any> 
     const normalizedId = normalizeApartmentId(id);
     const { tower, final, relay, group, moduleId } = parseApartment(normalizedId);
     const host = resolveModuleHost(moduleId);
+    const cachedModuleStatus = modulesStatusCache.get(moduleId);
+
+    if (!cachedModuleStatus) {
+        throw createServiceError(`Status do módulo ${moduleId} não encontrado em cache.`, 503);
+    }
+
+    const isOnline = cachedModuleStatus.statusCode === 200 && !cachedModuleStatus.error;
+    if (!isOnline) {
+        throw createServiceError(`Módulo ${moduleId} está offline.`, 503);
+    }
 
     console.log('[Exhaust] Ligando exaustor', {
         id: normalizedId,
