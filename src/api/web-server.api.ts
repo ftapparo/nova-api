@@ -5,6 +5,7 @@ import swaggerDocument from '../swagger.json';
 import healthRoutes from '../routes/health.routes';
 import accessRoutes from '../routes/access.routes';
 import vehicleRoutes from '../routes/vehicle.routes';
+import vehicleV2Routes from '../routes/vehicle-v2.routes';
 import exhaustRoutes from '../routes/exhaust.routes';
 import queryRoutes from '../routes/query.routes';
 import controlRoutes from '../routes/control.routes';
@@ -51,6 +52,7 @@ export async function StartWebServer(): Promise<void> {
     app.use('/v2/api', healthRoutes);
     app.use('/v2/api', accessRoutes);
     app.use('/v2/api', vehicleRoutes);
+    app.use('/v2/api', vehicleV2Routes);
     app.use('/v2/api', exhaustRoutes);
     app.use('/v2/api', queryRoutes);
     app.use('/v2/api', controlRoutes);
