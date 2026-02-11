@@ -12,7 +12,7 @@ services:
     env_file:
       - .env
     volumes:
-      - /mnt/windows/nova-api/logs:/app/logs
+      - C:/Servidor/docker/logs/api:/app/logs
     networks:
       - nova-network
     healthcheck:
