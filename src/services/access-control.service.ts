@@ -32,7 +32,7 @@ export type AccessControlStatusCache = {
 };
 
 const CONTROL_TIMEOUT_MS = Number(process.env.CONTROL_TIMEOUT_MS || '5000');
-const TAG_CONTROL_HOST = process.env.TAG_CONTROL_HOST?.trim() || '192.168.0.252';
+const TAG_CONTROL_HOST = process.env.TAG_CONTROL_HOST?.trim() || '192.168.0.250';
 const TAG_CONTROL_BASE_PORT = Number(process.env.TAG_CONTROL_BASE_PORT || '4000');
 const ACCESS_CONTROL_STATUS_INTERVAL_MS = 60_000;
 

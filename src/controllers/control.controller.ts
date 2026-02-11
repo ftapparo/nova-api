@@ -5,7 +5,7 @@ import { getDoorById, getGateByNumeroDispositivo, listAvailableDoors, listAvaila
 
 const CONTROL_BASE_URL = process.env.CONTROL_BASE_URL?.trim();
 const CONTROL_TIMEOUT_MS = Number(process.env.CONTROL_TIMEOUT_MS || '5000');
-const TAG_CONTROL_HOST = process.env.TAG_CONTROL_HOST?.trim() || '192.168.0.252';
+const TAG_CONTROL_HOST = process.env.TAG_CONTROL_HOST?.trim() || '192.168.0.250';
 const TAG_CONTROL_BASE_PORT = Number(process.env.TAG_CONTROL_BASE_PORT || '4000');
 const ACCESS_CACHE_ALLOWED_TYPES = ['all', 'positive', 'negative', 'whitelist', 'blacklist'] as const;
 type AccessCacheType = typeof ACCESS_CACHE_ALLOWED_TYPES[number];
