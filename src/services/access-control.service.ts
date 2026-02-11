@@ -5,6 +5,7 @@ export type GateStatus = {
     id: number;
     nome: string;
     numeroDispositivo: number;
+    sentido: string;
     ip: string;
     porta: number;
     healthcheckUrl: string;
@@ -119,6 +120,7 @@ const updateAccessControlStatusCache = async (): Promise<void> => {
                 id: gate.sequencia,
                 nome: gate.nome,
                 numeroDispositivo: gate.numeroDispositivo,
+                sentido: gate.sentido,
                 ip: gate.ip,
                 porta: gate.porta,
                 healthcheckUrl: url,

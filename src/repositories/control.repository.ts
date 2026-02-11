@@ -21,6 +21,7 @@ export type GateDevice = {
     classificacoes: string;
     nome: string;
     tipoDispositivo: string;
+    sentido: string;
     ativo: string;
 };
 
@@ -61,6 +62,7 @@ const mapGateRow = (row: any): GateDevice => {
         classificacoes: normalizeString(row?.CLASSIFICACOES),
         nome: normalizeString(row?.NOME),
         tipoDispositivo: normalizeString(row?.TIPODISPOSITIVO),
+        sentido: normalizeString(row?.SENTIDO).toUpperCase(),
         ativo: normalizeString(row?.ATIVO),
     };
 };
@@ -141,6 +143,7 @@ export const listAvailableGates = async (): Promise<GateDevice[]> => {
             d.CLASSIFICACOES,
             d."NOME",
             d.TIPODISPOSITIVO,
+            d.ACESSO AS SENTIDO,
             d.ATIVO
         FROM DISPACESSO d
         WHERE d.TIPODISPOSITIVO LIKE '%TAG%'
@@ -169,6 +172,7 @@ SELECT
     d.CLASSIFICACOES,
     d."NOME",
     d.TIPODISPOSITIVO,
+    d.ACESSO AS SENTIDO,
     d.ATIVO
 FROM DISPACESSO d
 WHERE d.TIPODISPOSITIVO LIKE '%TAG%'
