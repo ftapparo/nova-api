@@ -29,6 +29,10 @@
         {
             "name": "Controle",
             "description": "Operações de abertura e listagem de portas e portões."
+        },
+        {
+            "name": "User Settings",
+            "description": "Gerenciamento de configurações de usuário."
         }
     ],
     "paths": {
@@ -2399,6 +2403,196 @@
                         "required": true
                     }
                 ]
+            }
+        },
+        "/v2/api/user-settings/{user}": {
+            "get": {
+                "tags": [
+                    "User Settings"
+                ],
+                "summary": "Obter configurações do usuário",
+                "description": "Retorna as configurações do usuário especificado.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "user",
+                        "required": true,
+                        "description": "Identificador do usuário",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Configurações obtidas com sucesso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "user": {
+                                                    "type": "string",
+                                                    "example": "USER123"
+                                                },
+                                                "exists": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "updatedAt": {
+                                                    "type": "number",
+                                                    "example": 1640995200000
+                                                },
+                                                "items": {
+                                                    "type": "object",
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "example": {
+                                                        "theme": "dark",
+                                                        "language": "pt-BR"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "example": null
+                                        },
+                                        "errors": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "example": null
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Parâmetro inválido"
+                    },
+                    "500": {
+                        "description": "Erro interno do servidor"
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "User Settings"
+                ],
+                "summary": "Atualizar configurações do usuário",
+                "description": "Atualiza ou cria as configurações do usuário especificado.",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "user",
+                        "required": true,
+                        "description": "Identificador do usuário",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "items": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "string"
+                                        },
+                                        "description": "Objeto com as configurações do usuário"
+                                    },
+                                    "updatedAt": {
+                                        "type": "number",
+                                        "description": "Timestamp da atualização (opcional, será definido automaticamente se não fornecido)"
+                                    }
+                                },
+                                "required": [
+                                    "items"
+                                ]
+                            },
+                            "examples": {
+                                "exemplo": {
+                                    "summary": "Exemplo de atualização",
+                                    "value": {
+                                        "items": {
+                                            "theme": "light",
+                                            "notifications": "enabled"
+                                        },
+                                        "updatedAt": 1640995200000
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Configurações atualizadas com sucesso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "user": {
+                                                    "type": "string",
+                                                    "example": "USER123"
+                                                },
+                                                "exists": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "updatedAt": {
+                                                    "type": "number",
+                                                    "example": 1640995200000
+                                                },
+                                                "items": {
+                                                    "type": "object",
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    },
+                                                    "example": {
+                                                        "theme": "light",
+                                                        "notifications": "enabled"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "example": null
+                                        },
+                                        "errors": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "example": null
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Parâmetro inválido"
+                    },
+                    "500": {
+                        "description": "Erro interno do servidor"
+                    }
+                }
             }
         }
     }
