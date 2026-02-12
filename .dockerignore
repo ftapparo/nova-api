@@ -3,7 +3,3 @@
 # Logs do PM2
 logs/
 *.log
-
-# Arquivos de ambiente
-!.env
-!.env.example
