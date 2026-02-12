@@ -9,6 +9,7 @@ import vehicleV2Routes from '../routes/vehicle-v2.routes';
 import exhaustRoutes from '../routes/exhaust.routes';
 import queryRoutes from '../routes/query.routes';
 import controlRoutes from '../routes/control.routes';
+import userSettingsRoutes from '../routes/user-settings.routes';
 import { responseHandler } from '../middleware/response-handler';
 
 export async function StartWebServer(): Promise<void> {
@@ -56,6 +57,7 @@ export async function StartWebServer(): Promise<void> {
     app.use('/v2/api', exhaustRoutes);
     app.use('/v2/api', queryRoutes);
     app.use('/v2/api', controlRoutes);
+    app.use('/v2/api', userSettingsRoutes);
 
     /**
      * Rota para servir a documentação Swagger UI.
