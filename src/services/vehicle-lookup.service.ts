@@ -10,7 +10,6 @@ type LookupData = {
 
 type ProviderName = 'API1' | 'API2' | 'API3';
 type Mechanism = 'http' | 'scraping' | 'paid';
-type ScrapingTarget = 'keplaca' | 'placafipe';
 
 export type VehicleLookupSourceResult = {
     name: string;
@@ -42,7 +41,6 @@ type ProviderConfig = {
 };
 
 const DEFAULT_TIMEOUT_MS = Number(process.env.VEHICLE_LOOKUP_TIMEOUT_MS || '5000');
-const DEFAULT_WDAPI_URL_TEMPLATE = 'https://wdapi2.com.br/consulta/{plate}/{token}';
 const DEFAULT_BROWSER_TIMEOUT_MS = 15000;
 
 const parseBooleanEnv = (value: string | undefined, defaultValue: boolean): boolean => {
@@ -110,6 +108,21 @@ const resolvePuppeteerExecutablePath = (configuredPath?: string): string | undef
     return undefined;
 };
 
+const sanitizeScrapingErrorMessage = (error: unknown): string => {
+    const rawMessage = String((error as { message?: unknown })?.message ?? '');
+    const normalized = rawMessage.toLowerCase();
+
+    if (
+        normalized.includes('could not find chrome')
+        || normalized.includes('failed to launch the browser process')
+        || normalized.includes('failed to launch browser')
+    ) {
+        return 'Scraping indisponivel: Chrome/Chromium nao encontrado no ambiente.';
+    }
+
+    return rawMessage || 'Erro ao consultar scraping.';
+};
+
 const normalizeText = (value: unknown): string | null => {
     const text = String(value ?? '').trim();
     return text ? text.toUpperCase() : null;
@@ -122,6 +135,21 @@ const resolveProviderUrl = (template: string, plate: string): string => {
 
     const separator = template.includes('?') ? '&' : '?';
     return `${template}${separator}plate=${encodeURIComponent(plate)}`;
+};
+
+const resolveApi3HttpTemplate = (template: string, token: string | null): { ok: true; template: string } | { ok: false; message: string } => {
+    if (!template.includes('{token}')) {
+        return { ok: true, template };
+    }
+
+    if (!token) {
+        return { ok: false, message: 'API3 HTTP configurada com {token}, mas VEHICLE_LOOKUP_WDAPI_TOKEN nao foi informado.' };
+    }
+
+    return {
+        ok: true,
+        template: template.split('{token}').join(encodeURIComponent(token)),
+    };
 };
 
 const pickField = (payload: any, keys: string[]): string | null => {
@@ -222,6 +250,9 @@ const requestByAbsoluteUrl = async (
 const launchBrowser = async (): Promise<{ browser: Browser; page: Page }> => {
     const config = getRuntimeConfig();
     const executablePath = resolvePuppeteerExecutablePath(config.puppeteerExecutablePath);
+    if (!executablePath) {
+        throw new Error('Scraping indisponivel: Chrome/Chromium nao encontrado no ambiente.');
+    }
 
     const browser = await puppeteer.launch({
         headless: config.puppeteerHeadless,
@@ -263,28 +294,27 @@ const scrapeTableBySelectors = async (
 
 const requestScrapingProvider = async (
     source: ProviderName,
-    target: ScrapingTarget,
+    urlTemplate: string | null,
+    selectors: { brand: string; model: string; color: string },
     plate: string,
     timeoutMs: number
 ): Promise<VehicleLookupSourceResult> => {
     const startedAt = Date.now();
     let browser: Browser | null = null;
 
-    const url = target === 'keplaca'
-        ? `https://www.keplaca.com/placa?placa-fipe=${encodeURIComponent(plate)}`
-        : `https://placafipe.com/placa/${encodeURIComponent(plate)}`;
-
-    const selectors = target === 'keplaca'
-        ? {
-            brand: 'table.fipeTablePriceDetail tr:nth-child(1) td:nth-child(2)',
-            model: 'table.fipeTablePriceDetail tr:nth-child(2) td:nth-child(2)',
-            color: 'table.fipeTablePriceDetail tr:nth-child(6) td:nth-child(2)',
-        }
-        : {
-            brand: 'table.fipeTablePriceDetail tr:nth-child(1) td:nth-child(2)',
-            model: 'table.fipeTablePriceDetail tr:nth-child(3) td:nth-child(2)',
-            color: 'table.fipeTablePriceDetail tr:nth-child(7) td:nth-child(2)',
+    if (!urlTemplate) {
+        const message = `${source} scraping URL nao configurada.`;
+        logAttempt({ source, mechanism: 'scraping', success: false, durationMs: 0, message });
+        return {
+            name: source,
+            success: false,
+            durationMs: 0,
+            message,
+            data: null,
         };
+    }
+
+    const url = resolveProviderUrl(urlTemplate, plate);
 
     try {
         const launched = await launchBrowser();
@@ -312,9 +342,7 @@ const requestScrapingProvider = async (
         return buildSourceResult(source, durationMs, message, data);
     } catch (error: any) {
         const durationMs = Date.now() - startedAt;
-        const message = String(error?.message ?? '').includes('Could not find Chrome')
-            ? 'Scraping indisponivel: Chrome/Chromium nao encontrado no ambiente.'
-            : (error?.message ?? 'Erro ao consultar scraping.');
+        const message = sanitizeScrapingErrorMessage(error);
         logAttempt({ source, mechanism: 'scraping', success: false, durationMs, message });
         return buildSourceResult(source, durationMs, message, null);
     } finally {
@@ -325,7 +353,7 @@ const requestScrapingProvider = async (
 };
 
 const resolveWdApiUrl = (plate: string, config: LookupRuntimeConfig): string | null => {
-    const template = config.wdApiUrlTemplate || (config.wdApiToken ? DEFAULT_WDAPI_URL_TEMPLATE : null);
+    const template = config.wdApiUrlTemplate;
     if (!template) return null;
 
     if (template.includes('{token}') && !config.wdApiToken) {
@@ -358,18 +386,21 @@ const requestWdApiProvider = async (
 ): Promise<VehicleLookupSourceResult> => {
     const url = resolveWdApiUrl(plate, config);
     if (!url) {
+        const message = config.wdApiToken
+            ? 'WDAPI habilitada, mas URL/template nao configurada corretamente.'
+            : 'WDAPI habilitada, mas VEHICLE_LOOKUP_WDAPI_TOKEN nao configurado.';
         logAttempt({
             source,
             mechanism: 'paid',
             success: false,
             durationMs: 0,
-            message: 'WDAPI nao configurada.',
+            message,
         });
         return {
             name: source,
             success: false,
             durationMs: 0,
-            message: 'WDAPI nao configurada.',
+            message,
             data: null,
         };
     }
@@ -416,22 +447,49 @@ const runSource = async (
 ): Promise<VehicleLookupSourceResult> => {
     const sourceStartedAt = Date.now();
     const attempts: VehicleLookupSourceResult[] = [];
+    const shouldTryWdApiFallback = provider.name === 'API3' && config.wdApiEnabled;
+    const sourceUrlTemplate = provider.url;
 
     if (provider.url) {
-        attempts.push(await requestByUrlTemplate(provider.name, 'http', provider.url, plate, timeoutMs));
+        if (provider.name === 'API3') {
+            const resolvedApi3 = resolveApi3HttpTemplate(provider.url, config.wdApiToken);
+            if (!resolvedApi3.ok) {
+                logAttempt({
+                    source: provider.name,
+                    mechanism: 'http',
+                    success: false,
+                    durationMs: 0,
+                    message: resolvedApi3.message,
+                });
+                attempts.push({
+                    name: provider.name,
+                    success: false,
+                    durationMs: 0,
+                    message: resolvedApi3.message,
+                    data: null,
+                });
+            } else {
+                attempts.push(await requestByUrlTemplate(provider.name, 'http', resolvedApi3.template, plate, timeoutMs));
+            }
+        } else {
+            attempts.push(await requestByUrlTemplate(provider.name, 'http', provider.url, plate, timeoutMs));
+        }
     } else {
+        const missingUrlMessage = provider.name === 'API3' && !shouldTryWdApiFallback
+            ? 'API3 sem URL HTTP configurada e WDAPI desabilitada.'
+            : 'Provider URL nao configurada.';
         logAttempt({
             source: provider.name,
             mechanism: 'http',
             success: false,
             durationMs: 0,
-            message: 'Provider URL nao configurada.',
+            message: missingUrlMessage,
         });
         attempts.push({
             name: provider.name,
             success: false,
             durationMs: 0,
-            message: 'Provider URL nao configurada.',
+            message: missingUrlMessage,
             data: null,
         });
     }
@@ -446,14 +504,34 @@ const runSource = async (
     }
 
     if (provider.name === 'API1' && config.scrapingApi1Enabled) {
-        attempts.push(await requestScrapingProvider(provider.name, 'keplaca', plate, timeoutMs));
+        attempts.push(await requestScrapingProvider(
+            provider.name,
+            sourceUrlTemplate,
+            {
+                brand: 'table.fipeTablePriceDetail tr:nth-child(1) td:nth-child(2)',
+                model: 'table.fipeTablePriceDetail tr:nth-child(2) td:nth-child(2)',
+                color: 'table.fipeTablePriceDetail tr:nth-child(6) td:nth-child(2)',
+            },
+            plate,
+            timeoutMs
+        ));
     }
 
     if (provider.name === 'API2' && config.scrapingApi2Enabled) {
-        attempts.push(await requestScrapingProvider(provider.name, 'placafipe', plate, timeoutMs));
+        attempts.push(await requestScrapingProvider(
+            provider.name,
+            sourceUrlTemplate,
+            {
+                brand: 'table.fipeTablePriceDetail tr:nth-child(1) td:nth-child(2)',
+                model: 'table.fipeTablePriceDetail tr:nth-child(3) td:nth-child(2)',
+                color: 'table.fipeTablePriceDetail tr:nth-child(7) td:nth-child(2)',
+            },
+            plate,
+            timeoutMs
+        ));
     }
 
-    if (provider.name === 'API3' && config.wdApiEnabled) {
+    if (provider.name === 'API3' && shouldTryWdApiFallback) {
         attempts.push(await requestWdApiProvider(provider.name, plate, config, timeoutMs));
     }
 
