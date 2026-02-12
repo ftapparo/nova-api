@@ -36,7 +36,7 @@ RUN apk add --no-cache \
 COPY --from=builder /app/dist ./dist
 COPY .env ./.env
 
-RUN mkdir -p logs
+RUN mkdir -p logs storage/user-settings
 
 EXPOSE 4000
 
