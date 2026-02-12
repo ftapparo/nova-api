@@ -29,6 +29,7 @@
     "express": "^4.21.1",
     "mqtt": "^5.10.3",
     "node-firebird": "^1.1.9",
+    "puppeteer": "^24.26.0",
     "typescript": "^5.8.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
