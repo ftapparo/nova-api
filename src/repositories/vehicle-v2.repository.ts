@@ -98,8 +98,28 @@ export const getVehicleByPlate = async (plate: string): Promise<VehicleRow | nul
             v.TAGVEICULO,
             p.NOME AS OWNERNOME,
             p.CPF AS OWNERCPF,
-            u.QUADRA AS UNIDADEQUADRA,
-            u.LOTE AS UNIDADELOTE
+            COALESCE(
+                u.QUADRA,
+                (
+                    SELECT FIRST 1 ux.QUADRA
+                    FROM PESSOASVINC pvx
+                    LEFT JOIN UNIDADES ux
+                           ON ux.SEQUENCIA = pvx.SEQUNIDADE
+                    WHERE pvx.SEQPESSOA = v.PROPRIETARIO
+                    ORDER BY pvx.SEQUENCIA DESC
+                )
+            ) AS UNIDADEQUADRA,
+            COALESCE(
+                u.LOTE,
+                (
+                    SELECT FIRST 1 ux.LOTE
+                    FROM PESSOASVINC pvx
+                    LEFT JOIN UNIDADES ux
+                           ON ux.SEQUENCIA = pvx.SEQUNIDADE
+                    WHERE pvx.SEQPESSOA = v.PROPRIETARIO
+                    ORDER BY pvx.SEQUENCIA DESC
+                )
+            ) AS UNIDADELOTE
         FROM VEICULOS v
         LEFT JOIN PESSOAS p
                ON p.SEQUENCIA = v.PROPRIETARIO
@@ -158,8 +178,28 @@ export const upsertVehicleByPlate = async (input: {
                 v.TAGVEICULO,
                 p.NOME AS OWNERNOME,
                 p.CPF AS OWNERCPF,
-                u.QUADRA AS UNIDADEQUADRA,
-                u.LOTE AS UNIDADELOTE
+                COALESCE(
+                    u.QUADRA,
+                    (
+                        SELECT FIRST 1 ux.QUADRA
+                        FROM PESSOASVINC pvx
+                        LEFT JOIN UNIDADES ux
+                               ON ux.SEQUENCIA = pvx.SEQUNIDADE
+                        WHERE pvx.SEQPESSOA = v.PROPRIETARIO
+                        ORDER BY pvx.SEQUENCIA DESC
+                    )
+                ) AS UNIDADEQUADRA,
+                COALESCE(
+                    u.LOTE,
+                    (
+                        SELECT FIRST 1 ux.LOTE
+                        FROM PESSOASVINC pvx
+                        LEFT JOIN UNIDADES ux
+                               ON ux.SEQUENCIA = pvx.SEQUNIDADE
+                        WHERE pvx.SEQPESSOA = v.PROPRIETARIO
+                        ORDER BY pvx.SEQUENCIA DESC
+                    )
+                ) AS UNIDADELOTE
             FROM VEICULOS v
             LEFT JOIN PESSOAS p
                    ON p.SEQUENCIA = v.PROPRIETARIO
