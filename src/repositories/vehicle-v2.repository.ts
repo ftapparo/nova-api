@@ -430,7 +430,8 @@ export const unlinkOwnerByVehicleSeq = async (vehicleSeq: number): Promise<{
             UPDATE VEICULOS
             SET
                 TAGVEICULO = NULL,
-                PROPRIETARIO = 0
+                PROPRIETARIO = 0,
+                SEQUNIDADE = 0
             WHERE SEQUENCIA = ?
         `, [vehicleSeq]);
 

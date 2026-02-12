@@ -8,7 +8,7 @@ type LookupData = {
     color: string | null;
 };
 
-type ProviderName = 'API1' | 'API2' | 'API3';
+export type ProviderName = 'API1' | 'API2' | 'API3';
 type Mechanism = 'http' | 'scraping' | 'paid';
 
 export type VehicleLookupSourceResult = {
@@ -547,12 +547,23 @@ const runSource = async (
     };
 };
 
-export const lookupVehicleExternalSources = async (plate: string): Promise<VehicleLookupResult> => {
+export const lookupVehicleExternalSources = async (
+    plate: string,
+    selectedProviders?: ProviderName[]
+): Promise<VehicleLookupResult> => {
     const sources: VehicleLookupSourceResult[] = [];
     const config = getRuntimeConfig();
     const timeoutMs = config.timeoutMs;
+    const providerSet = selectedProviders?.length ? new Set(selectedProviders) : null;
+    const providersToQuery = providerSet
+        ? config.providers.filter((provider) => providerSet.has(provider.name))
+        : config.providers;
 
-    for (const provider of config.providers) {
+    if (!providersToQuery.length) {
+        throw Object.assign(new Error('Nenhum provider valido informado para consulta.'), { status: 400 });
+    }
+
+    for (const provider of providersToQuery) {
         // Priority is provider order.
         // eslint-disable-next-line no-await-in-loop
         const sourceResult = await runSource(provider, config, plate, timeoutMs);

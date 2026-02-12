@@ -10,7 +10,7 @@ import {
     unlinkOwnerByVehicleSeq,
     upsertVehicleByPlate,
 } from '../repositories/vehicle-v2.repository';
-import { lookupVehicleExternalSources } from '../services/vehicle-lookup.service';
+import { lookupVehicleExternalSources, type ProviderName } from '../services/vehicle-lookup.service';
 
 const PLATE_PATTERN = /^[A-Z0-9]{7}$/;
 const CPF_DIGITS_REGEX = /^[0-9]{11}$/;
@@ -242,14 +242,22 @@ export const linkVehicleTagController = async (req: Request, res: Response): Pro
 
 export const lookupPlateController = async (req: Request, res: Response): Promise<void> => {
     const plate = normalizePlate(String(req.body?.plate ?? '').trim());
+    const rawProvider = String(req.body?.provider ?? '').trim().toUpperCase();
+    const provider = rawProvider ? (rawProvider as ProviderName) : null;
+    const allowedProviders: ProviderName[] = ['API1', 'API2', 'API3'];
 
     if (!PLATE_PATTERN.test(plate)) {
         res.fail('Placa invalida.', 400);
         return;
     }
 
+    if (provider && !allowedProviders.includes(provider)) {
+        res.fail('Provider invalido. Use API1, API2 ou API3.', 400);
+        return;
+    }
+
     try {
-        const result = await lookupVehicleExternalSources(plate);
+        const result = await lookupVehicleExternalSources(plate, provider ? [provider] : undefined);
         res.ok(result);
     } catch (error: any) {
         console.error('[VehicleV2] Erro no lookup externo de placa:', error?.message ?? error);
