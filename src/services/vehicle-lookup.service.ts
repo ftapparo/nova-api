@@ -1,4 +1,5 @@
 import axios from 'axios';
+import fs from 'fs';
 import puppeteer, { Browser, Page } from 'puppeteer';
 
 type LookupData = {
@@ -64,6 +65,14 @@ type LookupRuntimeConfig = {
     wdApiToken: string | null;
 };
 
+const CHROMIUM_EXECUTABLE_CANDIDATES = [
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/snap/bin/chromium',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome',
+];
+
 const getRuntimeConfig = (): LookupRuntimeConfig => {
     const timeoutCandidate = Number(process.env.VEHICLE_LOOKUP_TIMEOUT_MS || String(DEFAULT_TIMEOUT_MS));
     const timeoutMs = Number.isFinite(timeoutCandidate) && timeoutCandidate > 0 ? timeoutCandidate : 5000;
@@ -85,6 +94,20 @@ const getRuntimeConfig = (): LookupRuntimeConfig => {
         wdApiUrlTemplate: process.env.VEHICLE_LOOKUP_WDAPI_URL_TEMPLATE?.trim() || null,
         wdApiToken: process.env.VEHICLE_LOOKUP_WDAPI_TOKEN?.trim() || null,
     };
+};
+
+const resolvePuppeteerExecutablePath = (configuredPath?: string): string | undefined => {
+    if (configuredPath && fs.existsSync(configuredPath)) {
+        return configuredPath;
+    }
+
+    for (const candidate of CHROMIUM_EXECUTABLE_CANDIDATES) {
+        if (fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+
+    return undefined;
 };
 
 const normalizeText = (value: unknown): string | null => {
@@ -198,9 +221,11 @@ const requestByAbsoluteUrl = async (
 
 const launchBrowser = async (): Promise<{ browser: Browser; page: Page }> => {
     const config = getRuntimeConfig();
+    const executablePath = resolvePuppeteerExecutablePath(config.puppeteerExecutablePath);
+
     const browser = await puppeteer.launch({
         headless: config.puppeteerHeadless,
-        executablePath: config.puppeteerExecutablePath,
+        executablePath,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -287,7 +312,9 @@ const requestScrapingProvider = async (
         return buildSourceResult(source, durationMs, message, data);
     } catch (error: any) {
         const durationMs = Date.now() - startedAt;
-        const message = error?.message ?? 'Erro ao consultar scraping.';
+        const message = String(error?.message ?? '').includes('Could not find Chrome')
+            ? 'Scraping indisponivel: Chrome/Chromium nao encontrado no ambiente.'
+            : (error?.message ?? 'Erro ao consultar scraping.');
         logAttempt({ source, mechanism: 'scraping', success: false, durationMs, message });
         return buildSourceResult(source, durationMs, message, null);
     } finally {
