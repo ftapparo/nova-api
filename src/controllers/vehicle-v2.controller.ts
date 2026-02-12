@@ -257,6 +257,50 @@ export const lookupPlateController = async (req: Request, res: Response): Promis
     }
 
     try {
+        const localVehicle = await getVehicleByPlate(plate);
+        if (localVehicle) {
+            const currentOwnerSeq = Number(localVehicle.PROPRIETARIO ?? 0);
+            const currentUnitSeq = Number(localVehicle.SEQUNIDADE ?? 0);
+            const isLinkedToAny = currentOwnerSeq > 0 || currentUnitSeq > 0;
+
+            if (isLinkedToAny) {
+                const ownerName = String(localVehicle.OWNERNOME ?? '').trim() || `SEQ ${currentOwnerSeq}`;
+                const ownerCpf = String(localVehicle.OWNERCPF ?? '').trim() || 'nao informado';
+                const unit = String(localVehicle.UNIDADELOTE ?? '').trim() || String(currentUnitSeq || 'nao informada');
+                const block = String(localVehicle.UNIDADEQUADRA ?? '').trim() || 'nao informado';
+                res.fail(`Veiculo ja vinculado a ${ownerName}, CPF ${ownerCpf}, unidade ${unit}, bloco ${block}.`, 409);
+                return;
+            }
+
+            const hasAnyData = Boolean(localVehicle.MARCA || localVehicle.MODELO || localVehicle.COR);
+            res.ok({
+                plate,
+                sources: [{
+                    name: 'LOCAL',
+                    success: true,
+                    durationMs: 0,
+                    message: 'Veiculo encontrado na base local.',
+                    data: {
+                        brand: localVehicle.MARCA ?? null,
+                        model: localVehicle.MODELO ?? null,
+                        color: localVehicle.COR ?? null,
+                    },
+                }],
+                consolidated: {
+                    brand: localVehicle.MARCA ?? null,
+                    model: localVehicle.MODELO ?? null,
+                    color: localVehicle.COR ?? null,
+                    sourceUsedByField: {
+                        brand: localVehicle.MARCA ? 'LOCAL' : null,
+                        model: localVehicle.MODELO ? 'LOCAL' : null,
+                        color: localVehicle.COR ? 'LOCAL' : null,
+                    },
+                },
+                overallSuccess: hasAnyData,
+            });
+            return;
+        }
+
         const result = await lookupVehicleExternalSources(plate, provider ? [provider] : undefined);
         res.ok(result);
     } catch (error: any) {

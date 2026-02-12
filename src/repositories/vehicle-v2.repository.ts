@@ -10,6 +10,10 @@ export type VehicleRow = {
     SEQUNIDADE: number | null;
     PROPRIETARIO: number | null;
     TAGVEICULO: string | null;
+    OWNERNOME?: string | null;
+    OWNERCPF?: string | null;
+    UNIDADEQUADRA?: string | null;
+    UNIDADELOTE?: string | null;
 };
 
 export type AccessRow = {
@@ -91,8 +95,16 @@ export const getVehicleByPlate = async (plate: string): Promise<VehicleRow | nul
             v.COR,
             v.SEQUNIDADE,
             v.PROPRIETARIO,
-            v.TAGVEICULO
+            v.TAGVEICULO,
+            p.NOME AS OWNERNOME,
+            p.CPF AS OWNERCPF,
+            u.QUADRA AS UNIDADEQUADRA,
+            u.LOTE AS UNIDADELOTE
         FROM VEICULOS v
+        LEFT JOIN PESSOAS p
+               ON p.SEQUENCIA = v.PROPRIETARIO
+        LEFT JOIN UNIDADES u
+               ON u.SEQUENCIA = v.SEQUNIDADE
         WHERE v.PLACA = ?
     `;
 
@@ -131,6 +143,7 @@ export const upsertVehicleByPlate = async (input: {
     unitSeq: number | null;
 }): Promise<{ created: boolean; vehicle: VehicleRow }> => {
     const { plate, brand, model, color, ownerSeq, unitSeq } = input;
+    const normalizedUnitSeq = unitSeq ?? 0;
 
     return executeTransaction(async (tx) => {
         const selectSql = `
@@ -142,8 +155,16 @@ export const upsertVehicleByPlate = async (input: {
                 v.COR,
                 v.SEQUNIDADE,
                 v.PROPRIETARIO,
-                v.TAGVEICULO
+                v.TAGVEICULO,
+                p.NOME AS OWNERNOME,
+                p.CPF AS OWNERCPF,
+                u.QUADRA AS UNIDADEQUADRA,
+                u.LOTE AS UNIDADELOTE
             FROM VEICULOS v
+            LEFT JOIN PESSOAS p
+                   ON p.SEQUENCIA = v.PROPRIETARIO
+            LEFT JOIN UNIDADES u
+                   ON u.SEQUENCIA = v.SEQUNIDADE
             WHERE v.PLACA = ?
         `;
 
@@ -160,7 +181,23 @@ export const upsertVehicleByPlate = async (input: {
 
         const existing = firstRow<VehicleRow>(await txQuery<VehicleRow>(tx, selectSql, [plate]));
         if (existing) {
-            await txQuery(tx, updateSql, [brand, model, color, ownerSeq, unitSeq, plate]);
+            const currentOwnerSeq = Number(existing.PROPRIETARIO ?? 0);
+            const currentUnitSeq = Number(existing.SEQUNIDADE ?? 0);
+            const isLinkedToAny = currentOwnerSeq > 0 || currentUnitSeq > 0;
+            const isDifferentBinding = currentOwnerSeq !== ownerSeq || currentUnitSeq !== normalizedUnitSeq;
+
+            if (isLinkedToAny && isDifferentBinding) {
+                const ownerName = String(existing.OWNERNOME ?? '').trim() || `SEQ ${currentOwnerSeq}`;
+                const ownerCpf = String(existing.OWNERCPF ?? '').trim() || 'nao informado';
+                const unit = String(existing.UNIDADELOTE ?? '').trim() || String(currentUnitSeq || 'nao informada');
+                const block = String(existing.UNIDADEQUADRA ?? '').trim() || 'nao informado';
+                throw Object.assign(
+                    new Error(`Veiculo ja vinculado a ${ownerName}, CPF ${ownerCpf}, unidade ${unit}, bloco ${block}.`),
+                    { status: 409 },
+                );
+            }
+
+            await txQuery(tx, updateSql, [brand, model, color, ownerSeq, normalizedUnitSeq, plate]);
             const updated = firstRow<VehicleRow>(await txQuery<VehicleRow>(tx, selectSql, [plate]));
             if (!updated) {
                 throw new Error('Falha ao carregar veiculo atualizado.');
@@ -179,13 +216,32 @@ export const upsertVehicleByPlate = async (input: {
         `;
 
         try {
-            await txQuery<{ SEQUENCIA: number }>(tx, insertSql, [plate, brand, model, color, ownerSeq, unitSeq]);
+            await txQuery<{ SEQUENCIA: number }>(tx, insertSql, [plate, brand, model, color, ownerSeq, normalizedUnitSeq]);
         } catch (error) {
             if (!isUniqueViolation(error)) {
                 throw error;
             }
 
-            await txQuery(tx, updateSql, [brand, model, color, ownerSeq, unitSeq, plate]);
+            const concurrent = firstRow<VehicleRow>(await txQuery<VehicleRow>(tx, selectSql, [plate]));
+            if (concurrent) {
+                const currentOwnerSeq = Number(concurrent.PROPRIETARIO ?? 0);
+                const currentUnitSeq = Number(concurrent.SEQUNIDADE ?? 0);
+                const isLinkedToAny = currentOwnerSeq > 0 || currentUnitSeq > 0;
+                const isDifferentBinding = currentOwnerSeq !== ownerSeq || currentUnitSeq !== normalizedUnitSeq;
+
+                if (isLinkedToAny && isDifferentBinding) {
+                    const ownerName = String(concurrent.OWNERNOME ?? '').trim() || `SEQ ${currentOwnerSeq}`;
+                    const ownerCpf = String(concurrent.OWNERCPF ?? '').trim() || 'nao informado';
+                    const unit = String(concurrent.UNIDADELOTE ?? '').trim() || String(currentUnitSeq || 'nao informada');
+                    const block = String(concurrent.UNIDADEQUADRA ?? '').trim() || 'nao informado';
+                    throw Object.assign(
+                        new Error(`Veiculo ja vinculado a ${ownerName}, CPF ${ownerCpf}, unidade ${unit}, bloco ${block}.`),
+                        { status: 409 },
+                    );
+                }
+            }
+
+            await txQuery(tx, updateSql, [brand, model, color, ownerSeq, normalizedUnitSeq, plate]);
             const merged = firstRow<VehicleRow>(await txQuery<VehicleRow>(tx, selectSql, [plate]));
             if (!merged) {
                 throw new Error('Falha ao carregar veiculo apos conflito de placa.');
