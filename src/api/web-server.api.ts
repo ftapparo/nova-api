@@ -13,6 +13,7 @@ import userSettingsRoutes from '../routes/user-settings.routes';
 import { responseHandler } from '../middleware/response-handler';
 import { commandAuditMiddleware } from '../middleware/command-audit';
 import commandLogRoutes from '../routes/command-log.routes';
+import { requestContextMiddleware } from '../middleware/request-context';
 
 export async function StartWebServer(): Promise<void> {
     const app = express();
@@ -37,6 +38,7 @@ export async function StartWebServer(): Promise<void> {
      * Middleware para parsear JSON nas requisições.
      */
     app.use(express.json());
+    app.use(requestContextMiddleware);
     app.use(commandAuditMiddleware);
 
     /**

@@ -4,6 +4,7 @@ import path from 'path';
 export type CommandLogEntry = {
     id: string;
     timestamp: string;
+    requestId: string | null;
     method: string;
     path: string;
     command: string;

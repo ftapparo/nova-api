@@ -56,9 +56,25 @@
                                     "$ref": "#/components/schemas/ApiResponseHealth"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/healthcheck": {
@@ -77,9 +93,25 @@
                                     "$ref": "#/components/schemas/ApiResponseHealth"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/access/verify": {
@@ -90,6 +122,12 @@
                 "summary": "Verificar permissão de acesso",
                 "description": "Verifica se uma pessoa ou veículo possui permissão para acessar o condomínio.",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "query",
                         "name": "id",
@@ -134,6 +172,14 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
                 }
@@ -147,6 +193,12 @@
                 "summary": "Listar últimos acessos do dispositivo",
                 "description": "Retorna os últimos acessos registrados para o dispositivo informado (limite padrão 10).",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "query",
                         "name": "device",
@@ -178,6 +230,14 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
+                            }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
                             }
                         }
                     },
@@ -309,9 +369,25 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/vehicles": {
@@ -330,9 +406,25 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             },
             "post": {
                 "tags": [
@@ -415,9 +507,25 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/vehicles/{id}": {
@@ -428,6 +536,12 @@
                 "summary": "Obter veículo",
                 "description": "Retorna os dados de um veículo específico pelo ID.",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "path",
                         "name": "id",
@@ -447,6 +561,14 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
                 }
@@ -460,6 +582,12 @@
                 "summary": "Atualizar imagem do veículo",
                 "description": "Atualiza a imagem do veículo. Requer pelo menos uma das imagens.",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "path",
                         "name": "id",
@@ -498,6 +626,14 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
                 }
@@ -511,6 +647,12 @@
                 "summary": "Atualizar acesso do veículo",
                 "description": "Atualiza as informações de acesso do veículo.",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "path",
                         "name": "id",
@@ -600,6 +742,14 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
                 }
@@ -613,6 +763,12 @@
                 "summary": "Bloquear veículo",
                 "description": "Bloqueia o acesso do veículo no sistema.",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "path",
                         "name": "id",
@@ -632,6 +788,14 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
                 }
@@ -645,6 +809,12 @@
                 "summary": "Desbloquear veículo",
                 "description": "Desbloqueia o acesso do veículo no sistema.",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "path",
                         "name": "id",
@@ -664,6 +834,14 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
                 }
@@ -677,6 +855,12 @@
                 "summary": "Purgar veículos por período",
                 "description": "Bloqueia o acesso de veículos com base no período determinado.",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "query",
                         "name": "period",
@@ -717,6 +901,14 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
+                            }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
                             }
                         }
                     }
@@ -785,6 +977,14 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     },
                     "400": {
@@ -793,7 +993,15 @@
                     "500": {
                         "$ref": "#/components/responses/InternalServerError"
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/exhausts/off": {
@@ -840,6 +1048,14 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     },
                     "400": {
@@ -848,7 +1064,15 @@
                     "500": {
                         "$ref": "#/components/responses/InternalServerError"
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/exhausts/status": {
@@ -859,6 +1083,12 @@
                 "summary": "Status geral dos módulos",
                 "description": "Retorna o status de todos os módulos e a memória de acionamentos. Se informar id, retorna apenas o exhaust.",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "query",
                         "name": "id",
@@ -877,6 +1107,14 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
+                            }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
                             }
                         }
                     },
@@ -898,6 +1136,12 @@
                 "description": "Retorna o status de um exaustor específico pelo ID informado na rota.",
                 "parameters": [
                     {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
+                    {
                         "in": "path",
                         "name": "id",
                         "required": true,
@@ -915,6 +1159,14 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
+                            }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
                             }
                         }
                     },
@@ -943,12 +1195,28 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     },
                     "500": {
                         "$ref": "#/components/responses/InternalServerError"
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/exhausts/config": {
@@ -995,6 +1263,14 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     },
                     "400": {
@@ -1003,7 +1279,15 @@
                     "500": {
                         "$ref": "#/components/responses/InternalServerError"
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/queries/cpf/{cpf}": {
@@ -1014,6 +1298,12 @@
                 "summary": "Consultar CPF",
                 "description": "Valida o CPF e consulta sua existência no banco.",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "path",
                         "name": "cpf",
@@ -1032,6 +1322,14 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
+                            }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
                             }
                         }
                     },
@@ -1056,6 +1354,12 @@
                 "description": "Consulta veículo pela placa.",
                 "parameters": [
                     {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
+                    {
                         "in": "path",
                         "name": "plate",
                         "required": true,
@@ -1073,6 +1377,14 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
+                            }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
                             }
                         }
                     },
@@ -1101,9 +1413,25 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/control/door/open": {
@@ -1141,9 +1469,25 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/control/gate/list": {
@@ -1162,12 +1506,28 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     },
                     "500": {
                         "$ref": "#/components/responses/InternalServerError"
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/control/gate/cache/list": {
@@ -1178,6 +1538,12 @@
                 "summary": "Listar últimos acessos do cache da TAG",
                 "description": "Retorna a listagem dos últimos acessos do cache de TAG a partir do portão informado.",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "query",
                         "name": "id",
@@ -1229,6 +1595,14 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     },
                     "500": {
@@ -1276,9 +1650,25 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/control/gate/restart": {
@@ -1316,9 +1706,25 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/control/status": {
@@ -1337,9 +1743,25 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     }
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/commands/logs": {
@@ -1350,6 +1772,12 @@
                 "summary": "Listar historico de comandos",
                 "description": "Retorna os ultimos comandos executados na API.",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "query",
                         "name": "limit",
@@ -1372,6 +1800,14 @@
                                     "$ref": "#/components/schemas/ApiResponseCommandLogs"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     },
                     "500": {
@@ -1388,6 +1824,12 @@
                 "summary": "Consultar tag",
                 "description": "Consulta veículo pela tag (10 dígitos).",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "path",
                         "name": "tag",
@@ -1406,6 +1848,14 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
+                            }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
                             }
                         }
                     },
@@ -1427,7 +1877,15 @@
                 "description": "Retorna os veículos vinculados ao proprietário informado.",
                 "responses": {
                     "200": {
-                        "description": "Lista de veículos retornada com sucesso"
+                        "description": "Lista de veículos retornada com sucesso",
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
+                        }
                     },
                     "400": {
                         "$ref": "#/components/responses/BadRequest"
@@ -1437,6 +1895,12 @@
                     }
                 },
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "name": "personSeq",
                         "in": "path",
@@ -1457,7 +1921,15 @@
                 "description": "Retorna dados do veículo e tag de acesso vinculada.",
                 "responses": {
                     "200": {
-                        "description": "Consulta realizada com sucesso"
+                        "description": "Consulta realizada com sucesso",
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
+                        }
                     },
                     "400": {
                         "$ref": "#/components/responses/BadRequest"
@@ -1467,6 +1939,12 @@
                     }
                 },
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "name": "plate",
                         "in": "path",
@@ -1598,6 +2076,14 @@
                                     }
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     },
                     "400": {
@@ -1625,7 +2111,15 @@
                         }
                     },
                     "required": true
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/vehicles/upsert-by-plate": {
@@ -1637,7 +2131,15 @@
                 "description": "Cria um veículo novo ou atualiza os dados existentes com base na placa informada.",
                 "responses": {
                     "200": {
-                        "description": "Veículo salvo com sucesso"
+                        "description": "Veículo salvo com sucesso",
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
+                        }
                     },
                     "400": {
                         "$ref": "#/components/responses/BadRequest"
@@ -1689,7 +2191,15 @@
                         }
                     },
                     "required": true
-                }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    }
+                ]
             }
         },
         "/v2/api/vehicles/{vehicleSeq}/tag": {
@@ -1701,7 +2211,15 @@
                 "summary": "Vincular ou trocar tag do veículo",
                 "responses": {
                     "200": {
-                        "description": "Tag vinculada/trocada com sucesso"
+                        "description": "Tag vinculada/trocada com sucesso",
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
+                        }
                     },
                     "400": {
                         "$ref": "#/components/responses/BadRequest"
@@ -1714,6 +2232,12 @@
                     }
                 },
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "name": "vehicleSeq",
                         "in": "path",
@@ -1761,7 +2285,15 @@
                 "description": "Remove registro de IDACESSO do veículo e limpa TAGVEICULO.",
                 "responses": {
                     "200": {
-                        "description": "Tag removida com sucesso"
+                        "description": "Tag removida com sucesso",
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
+                        }
                     },
                     "400": {
                         "$ref": "#/components/responses/BadRequest"
@@ -1771,6 +2303,12 @@
                     }
                 },
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "name": "vehicleSeq",
                         "in": "path",
@@ -1791,7 +2329,15 @@
                 "description": "Remove tag automaticamente e define PROPRIETARIO=0.",
                 "responses": {
                     "200": {
-                        "description": "Veículo desvinculado com sucesso"
+                        "description": "Veículo desvinculado com sucesso",
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
+                        }
                     },
                     "400": {
                         "$ref": "#/components/responses/BadRequest"
@@ -1801,6 +2347,12 @@
                     }
                 },
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "name": "vehicleSeq",
                         "in": "path",
@@ -1821,6 +2373,12 @@
                 "description": "Retorna as configurações do usuário especificado.",
                 "parameters": [
                     {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
+                    {
                         "in": "path",
                         "name": "user",
                         "required": true,
@@ -1839,6 +2397,14 @@
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
+                            }
                         }
                     },
                     "400": {
@@ -1856,6 +2422,12 @@
                 "summary": "Atualizar configurações do usuário",
                 "description": "Atualiza ou cria as configurações do usuário especificado.",
                 "parameters": [
+                    {
+                        "$ref": "#/components/parameters/ActorHeaderParam"
+                    },
+                    {
+                        "$ref": "#/components/parameters/RequestIdHeaderParam"
+                    },
                     {
                         "in": "path",
                         "name": "user",
@@ -1912,6 +2484,14 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/ApiResponse"
                                 }
+                            }
+                        },
+                        "headers": {
+                            "x-request-id": {
+                                "$ref": "#/components/headers/RequestIdHeader"
+                            },
+                            "x-actor": {
+                                "$ref": "#/components/headers/ActorHeader"
                             }
                         }
                     },
@@ -1990,22 +2570,7 @@
                         "example": "Erro ao processar requisicao."
                     },
                     "errors": {
-                        "nullable": true,
-                        "oneOf": [
-                            {
-                                "type": "string"
-                            },
-                            {
-                                "type": "object"
-                            },
-                            {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            }
-                        ],
-                        "example": null
+                        "$ref": "#/components/schemas/ErrorMeta"
                     }
                 }
             },
@@ -2075,6 +2640,11 @@
                         "type": "string",
                         "nullable": true,
                         "example": "192.168.0.10"
+                    },
+                    "requestId": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": "f25f63b8-2b89-4fc0-8a2e-7b2e8c7d6f53"
                     }
                 }
             },
@@ -2114,6 +2684,34 @@
                         "example": null
                     }
                 }
+            },
+            "ErrorMeta": {
+                "type": "object",
+                "properties": {
+                    "traceId": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": "f25f63b8-2b89-4fc0-8a2e-7b2e8c7d6f53"
+                    },
+                    "details": {
+                        "nullable": true,
+                        "oneOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "object",
+                                "additionalProperties": true
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        ]
+                    }
+                }
             }
         },
         "responses": {
@@ -2125,6 +2723,14 @@
                             "$ref": "#/components/schemas/ApiErrorResponse"
                         }
                     }
+                },
+                "headers": {
+                    "x-request-id": {
+                        "$ref": "#/components/headers/RequestIdHeader"
+                    },
+                    "x-actor": {
+                        "$ref": "#/components/headers/ActorHeader"
+                    }
                 }
             },
             "Unauthorized": {
@@ -2134,6 +2740,14 @@
                         "schema": {
                             "$ref": "#/components/schemas/ApiErrorResponse"
                         }
+                    }
+                },
+                "headers": {
+                    "x-request-id": {
+                        "$ref": "#/components/headers/RequestIdHeader"
+                    },
+                    "x-actor": {
+                        "$ref": "#/components/headers/ActorHeader"
                     }
                 }
             },
@@ -2145,6 +2759,14 @@
                             "$ref": "#/components/schemas/ApiErrorResponse"
                         }
                     }
+                },
+                "headers": {
+                    "x-request-id": {
+                        "$ref": "#/components/headers/RequestIdHeader"
+                    },
+                    "x-actor": {
+                        "$ref": "#/components/headers/ActorHeader"
+                    }
                 }
             },
             "NotFound": {
@@ -2154,6 +2776,14 @@
                         "schema": {
                             "$ref": "#/components/schemas/ApiErrorResponse"
                         }
+                    }
+                },
+                "headers": {
+                    "x-request-id": {
+                        "$ref": "#/components/headers/RequestIdHeader"
+                    },
+                    "x-actor": {
+                        "$ref": "#/components/headers/ActorHeader"
                     }
                 }
             },
@@ -2165,6 +2795,14 @@
                             "$ref": "#/components/schemas/ApiErrorResponse"
                         }
                     }
+                },
+                "headers": {
+                    "x-request-id": {
+                        "$ref": "#/components/headers/RequestIdHeader"
+                    },
+                    "x-actor": {
+                        "$ref": "#/components/headers/ActorHeader"
+                    }
                 }
             },
             "UnprocessableEntity": {
@@ -2174,6 +2812,14 @@
                         "schema": {
                             "$ref": "#/components/schemas/ApiErrorResponse"
                         }
+                    }
+                },
+                "headers": {
+                    "x-request-id": {
+                        "$ref": "#/components/headers/RequestIdHeader"
+                    },
+                    "x-actor": {
+                        "$ref": "#/components/headers/ActorHeader"
                     }
                 }
             },
@@ -2185,6 +2831,14 @@
                             "$ref": "#/components/schemas/ApiErrorResponse"
                         }
                     }
+                },
+                "headers": {
+                    "x-request-id": {
+                        "$ref": "#/components/headers/RequestIdHeader"
+                    },
+                    "x-actor": {
+                        "$ref": "#/components/headers/ActorHeader"
+                    }
                 }
             },
             "InternalServerError": {
@@ -2194,6 +2848,14 @@
                         "schema": {
                             "$ref": "#/components/schemas/ApiErrorResponse"
                         }
+                    }
+                },
+                "headers": {
+                    "x-request-id": {
+                        "$ref": "#/components/headers/RequestIdHeader"
+                    },
+                    "x-actor": {
+                        "$ref": "#/components/headers/ActorHeader"
                     }
                 }
             },
@@ -2205,6 +2867,14 @@
                             "$ref": "#/components/schemas/ApiErrorResponse"
                         }
                     }
+                },
+                "headers": {
+                    "x-request-id": {
+                        "$ref": "#/components/headers/RequestIdHeader"
+                    },
+                    "x-actor": {
+                        "$ref": "#/components/headers/ActorHeader"
+                    }
                 }
             },
             "ServiceUnavailable": {
@@ -2214,6 +2884,14 @@
                         "schema": {
                             "$ref": "#/components/schemas/ApiErrorResponse"
                         }
+                    }
+                },
+                "headers": {
+                    "x-request-id": {
+                        "$ref": "#/components/headers/RequestIdHeader"
+                    },
+                    "x-actor": {
+                        "$ref": "#/components/headers/ActorHeader"
                     }
                 }
             },
@@ -2225,6 +2903,52 @@
                             "$ref": "#/components/schemas/ApiErrorResponse"
                         }
                     }
+                },
+                "headers": {
+                    "x-request-id": {
+                        "$ref": "#/components/headers/RequestIdHeader"
+                    },
+                    "x-actor": {
+                        "$ref": "#/components/headers/ActorHeader"
+                    }
+                }
+            }
+        },
+        "headers": {
+            "RequestIdHeader": {
+                "description": "Identificador unico da requisicao para rastreabilidade.",
+                "schema": {
+                    "type": "string",
+                    "example": "f25f63b8-2b89-4fc0-8a2e-7b2e8c7d6f53"
+                }
+            },
+            "ActorHeader": {
+                "description": "Ator identificado para a requisicao (header x-user/x-operator/x-username ou fallback).",
+                "schema": {
+                    "type": "string",
+                    "example": "PORTARIA"
+                }
+            }
+        },
+        "parameters": {
+            "RequestIdHeaderParam": {
+                "name": "x-request-id",
+                "in": "header",
+                "required": false,
+                "description": "Identificador unico da requisicao (enviado pelo cliente ou gerado pelo servidor).",
+                "schema": {
+                    "type": "string",
+                    "example": "f25f63b8-2b89-4fc0-8a2e-7b2e8c7d6f53"
+                }
+            },
+            "ActorHeaderParam": {
+                "name": "x-user",
+                "in": "header",
+                "required": false,
+                "description": "Identificacao do ator da operacao (ex.: PORTARIA).",
+                "schema": {
+                    "type": "string",
+                    "example": "PORTARIA"
                 }
             }
         }
