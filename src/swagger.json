@@ -53,32 +53,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "status": {
-                                                    "type": "string",
-                                                    "example": "API Funcionando!"
-                                                },
-                                                "environment": {
-                                                    "type": "string",
-                                                    "example": "development"
-                                                }
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponseHealth"
                                 }
                             }
                         }
@@ -99,32 +74,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "status": {
-                                                    "type": "string",
-                                                    "example": "API Funcionando!"
-                                                },
-                                                "environment": {
-                                                    "type": "string",
-                                                    "example": "development"
-                                                }
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponseHealth"
                                 }
                             }
                         }
@@ -181,23 +131,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "string",
-                                            "example": "IDENT:..."
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -242,77 +176,16 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "NOME": {
-                                                        "type": "string",
-                                                        "example": "JOAO DA SILVA"
-                                                    },
-                                                    "TORRE": {
-                                                        "type": "string",
-                                                        "example": "A"
-                                                    },
-                                                    "APARTAMENTO": {
-                                                        "type": "string",
-                                                        "example": "101"
-                                                    },
-                                                    "DATAHORA": {
-                                                        "type": "string",
-                                                        "format": "date-time"
-                                                    },
-                                                    "DISPOSITIVO": {
-                                                        "type": "integer",
-                                                        "example": 9
-                                                    },
-                                                    "SENTIDO": {
-                                                        "type": "string",
-                                                        "enum": [
-                                                            "E",
-                                                            "S"
-                                                        ],
-                                                        "example": "E"
-                                                    },
-                                                    "DESCRICAO": {
-                                                        "type": "string",
-                                                        "example": "MORADOR"
-                                                    },
-                                                    "IDACESSO": {
-                                                        "type": "string",
-                                                        "example": "0001234567"
-                                                    },
-                                                    "VEICULO": {
-                                                        "type": "integer",
-                                                        "nullable": true,
-                                                        "example": 745
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Parâmetros inválidos"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro ao listar acessos"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -433,23 +306,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "string",
-                                            "example": "IDENT:..."
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -470,23 +327,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -571,22 +412,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -618,22 +444,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -684,22 +495,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -801,22 +597,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -848,22 +629,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -895,22 +661,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -964,22 +715,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -1046,31 +782,16 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Parâmetros inválidos"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro ao ligar exaustor"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -1116,31 +837,16 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Parâmetros inválidos"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro ao desligar exaustor"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -1169,31 +875,16 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Parâmetros inválidos"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro ao consultar status"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -1222,31 +913,16 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Parâmetros inválidos"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro ao consultar status"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -1264,28 +940,13 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "500": {
-                        "description": "Erro ao consultar status do processo"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -1331,31 +992,16 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Parâmetros inválidos"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro ao configurar módulo"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -1384,67 +1030,19 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "cpf": {
-                                                    "type": "string",
-                                                    "example": "12345678909"
-                                                },
-                                                "isValid": {
-                                                    "type": "boolean",
-                                                    "example": true
-                                                },
-                                                "exists": {
-                                                    "type": "boolean",
-                                                    "example": true
-                                                },
-                                                "person": {
-                                                    "type": "object",
-                                                    "nullable": true,
-                                                    "description": "Dados da pessoa. O campo foto (quando presente) vem em base64."
-                                                },
-                                                "links": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "properties": {
-                                                            "pessoaVinculo": {
-                                                                "type": "object"
-                                                            },
-                                                            "unidade": {
-                                                                "type": "object"
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "CPF inválido"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "422": {
-                        "description": "Coluna de CPF não encontrada"
+                        "$ref": "#/components/responses/UnprocessableEntity"
                     },
                     "500": {
-                        "description": "Erro ao consultar CPF"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -1473,59 +1071,16 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "plate": {
-                                                    "type": "string",
-                                                    "example": "ABC1234"
-                                                },
-                                                "exists": {
-                                                    "type": "boolean",
-                                                    "example": true
-                                                },
-                                                "vehicle": {
-                                                    "type": "object",
-                                                    "nullable": true
-                                                },
-                                                "unit": {
-                                                    "type": "object",
-                                                    "nullable": true
-                                                },
-                                                "owner": {
-                                                    "type": "object",
-                                                    "nullable": true
-                                                },
-                                                "accesses": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object"
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Placa inválida"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro ao consultar placa"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -1543,25 +1098,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -1601,22 +1138,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -1637,31 +1159,13 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "type": "object"
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "500": {
-                        "description": "Erro ao listar portões"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -1722,64 +1226,13 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "type": {
-                                                    "type": "string",
-                                                    "example": "all"
-                                                },
-                                                "items": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object"
-                                                    }
-                                                },
-                                                "stats": {
-                                                    "type": "object"
-                                                },
-                                                "pagination": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "page": {
-                                                            "type": "integer",
-                                                            "example": 1
-                                                        },
-                                                        "pageSize": {
-                                                            "type": "integer",
-                                                            "example": 20
-                                                        },
-                                                        "totalItems": {
-                                                            "type": "integer",
-                                                            "example": 120
-                                                        },
-                                                        "totalPages": {
-                                                            "type": "integer",
-                                                            "example": 6
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "500": {
-                        "description": "Erro ao consultar cache de acessos"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -1820,22 +1273,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -1875,22 +1313,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -1911,22 +1334,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -1961,79 +1369,13 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "total": {
-                                                    "type": "integer",
-                                                    "example": 20
-                                                },
-                                                "limit": {
-                                                    "type": "integer",
-                                                    "example": 20
-                                                },
-                                                "logs": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object",
-                                                        "properties": {
-                                                            "id": {
-                                                                "type": "string",
-                                                                "example": "1739910800000-ab12cd34"
-                                                            },
-                                                            "timestamp": {
-                                                                "type": "string",
-                                                                "format": "date-time"
-                                                            },
-                                                            "method": {
-                                                                "type": "string",
-                                                                "example": "POST"
-                                                            },
-                                                            "path": {
-                                                                "type": "string",
-                                                                "example": "/v2/api/control/door/open"
-                                                            },
-                                                            "command": {
-                                                                "type": "string",
-                                                                "example": "POST /v2/api/control/door/open"
-                                                            },
-                                                            "status": {
-                                                                "type": "integer",
-                                                                "example": 200
-                                                            },
-                                                            "actor": {
-                                                                "type": "string",
-                                                                "example": "PORTARIA"
-                                                            },
-                                                            "ip": {
-                                                                "type": "string",
-                                                                "nullable": true,
-                                                                "example": "192.168.0.10"
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponseCommandLogs"
                                 }
                             }
                         }
                     },
                     "500": {
-                        "description": "Erro ao consultar historico de comandos"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -2062,59 +1404,16 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "tag": {
-                                                    "type": "string",
-                                                    "example": "1234567890"
-                                                },
-                                                "exists": {
-                                                    "type": "boolean",
-                                                    "example": true
-                                                },
-                                                "vehicle": {
-                                                    "type": "object",
-                                                    "nullable": true
-                                                },
-                                                "unit": {
-                                                    "type": "object",
-                                                    "nullable": true
-                                                },
-                                                "owner": {
-                                                    "type": "object",
-                                                    "nullable": true
-                                                },
-                                                "accesses": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "object"
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Tag inválida"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro ao consultar tag"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             }
@@ -2131,10 +1430,10 @@
                         "description": "Lista de veículos retornada com sucesso"
                     },
                     "400": {
-                        "description": "Parâmetro inválido"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro ao listar veículos"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 },
                 "parameters": [
@@ -2161,10 +1460,10 @@
                         "description": "Consulta realizada com sucesso"
                     },
                     "400": {
-                        "description": "Placa inválida"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro ao consultar placa"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 },
                 "parameters": [
@@ -2302,10 +1601,10 @@
                         }
                     },
                     "400": {
-                        "description": "Placa inválida"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro ao consultar fontes externas"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 },
                 "requestBody": {
@@ -2341,10 +1640,10 @@
                         "description": "Veículo salvo com sucesso"
                     },
                     "400": {
-                        "description": "Dados inválidos"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro ao salvar veículo"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 },
                 "requestBody": {
@@ -2405,13 +1704,13 @@
                         "description": "Tag vinculada/trocada com sucesso"
                     },
                     "400": {
-                        "description": "Dados inválidos"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "403": {
-                        "description": "CPF sem permissão"
+                        "$ref": "#/components/responses/Forbidden"
                     },
                     "409": {
-                        "description": "Conflito de tag ou confirmação necessária"
+                        "$ref": "#/components/responses/Conflict"
                     }
                 },
                 "parameters": [
@@ -2465,10 +1764,10 @@
                         "description": "Tag removida com sucesso"
                     },
                     "400": {
-                        "description": "Parâmetro inválido"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "404": {
-                        "description": "Veículo não encontrado"
+                        "$ref": "#/components/responses/NotFound"
                     }
                 },
                 "parameters": [
@@ -2495,10 +1794,10 @@
                         "description": "Veículo desvinculado com sucesso"
                     },
                     "400": {
-                        "description": "Parâmetro inválido"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "404": {
-                        "description": "Veículo não encontrado"
+                        "$ref": "#/components/responses/NotFound"
                     }
                 },
                 "parameters": [
@@ -2537,55 +1836,16 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "user": {
-                                                    "type": "string",
-                                                    "example": "USER123"
-                                                },
-                                                "exists": {
-                                                    "type": "boolean",
-                                                    "example": true
-                                                },
-                                                "updatedAt": {
-                                                    "type": "number",
-                                                    "example": 1640995200000
-                                                },
-                                                "items": {
-                                                    "type": "object",
-                                                    "additionalProperties": {
-                                                        "type": "string"
-                                                    },
-                                                    "example": {
-                                                        "theme": "dark",
-                                                        "language": "pt-BR"
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Parâmetro inválido"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro interno do servidor"
+                        "$ref": "#/components/responses/InternalServerError"
                     }
                 }
             },
@@ -2650,55 +1910,320 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "user": {
-                                                    "type": "string",
-                                                    "example": "USER123"
-                                                },
-                                                "exists": {
-                                                    "type": "boolean",
-                                                    "example": true
-                                                },
-                                                "updatedAt": {
-                                                    "type": "number",
-                                                    "example": 1640995200000
-                                                },
-                                                "items": {
-                                                    "type": "object",
-                                                    "additionalProperties": {
-                                                        "type": "string"
-                                                    },
-                                                    "example": {
-                                                        "theme": "light",
-                                                        "notifications": "enabled"
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        },
-                                        "errors": {
-                                            "type": "string",
-                                            "nullable": true,
-                                            "example": null
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Parâmetro inválido"
+                        "$ref": "#/components/responses/BadRequest"
                     },
                     "500": {
-                        "description": "Erro interno do servidor"
+                        "$ref": "#/components/responses/InternalServerError"
+                    }
+                }
+            }
+        }
+    },
+    "servers": [
+        {
+            "url": "/"
+        }
+    ],
+    "components": {
+        "schemas": {
+            "ApiResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "object",
+                        "additionalProperties": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": null
+                    },
+                    "errors": {
+                        "nullable": true,
+                        "oneOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        ],
+                        "example": null
+                    }
+                }
+            },
+            "ApiErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "nullable": true,
+                        "oneOf": [
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "object"
+                                }
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ],
+                        "example": null
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Erro ao processar requisicao."
+                    },
+                    "errors": {
+                        "nullable": true,
+                        "oneOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        ],
+                        "example": null
+                    }
+                }
+            },
+            "HealthData": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "example": "API Funcionando!"
+                    },
+                    "environment": {
+                        "type": "string",
+                        "example": "development"
+                    }
+                }
+            },
+            "ApiResponseHealth": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/HealthData"
+                    },
+                    "message": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": null
+                    },
+                    "errors": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": null
+                    }
+                }
+            },
+            "CommandLogItem": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "1739910800000-ab12cd34"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "method": {
+                        "type": "string",
+                        "example": "POST"
+                    },
+                    "path": {
+                        "type": "string",
+                        "example": "/v2/api/control/door/open"
+                    },
+                    "command": {
+                        "type": "string",
+                        "example": "POST /v2/api/control/door/open"
+                    },
+                    "status": {
+                        "type": "integer",
+                        "example": 200
+                    },
+                    "actor": {
+                        "type": "string",
+                        "example": "PORTARIA"
+                    },
+                    "ip": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": "192.168.0.10"
+                    }
+                }
+            },
+            "CommandLogsData": {
+                "type": "object",
+                "properties": {
+                    "total": {
+                        "type": "integer",
+                        "example": 20
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "example": 20
+                    },
+                    "logs": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CommandLogItem"
+                        }
+                    }
+                }
+            },
+            "ApiResponseCommandLogs": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/CommandLogsData"
+                    },
+                    "message": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": null
+                    },
+                    "errors": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": null
+                    }
+                }
+            }
+        },
+        "responses": {
+            "BadRequest": {
+                "description": "Requisicao invalida",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "Unauthorized": {
+                "description": "Nao autorizado",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "Forbidden": {
+                "description": "Acesso negado",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "NotFound": {
+                "description": "Recurso nao encontrado",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "Conflict": {
+                "description": "Conflito de estado",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "UnprocessableEntity": {
+                "description": "Entidade nao processavel",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "TooManyRequests": {
+                "description": "Muitas requisicoes",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "InternalServerError": {
+                "description": "Erro interno do servidor",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "BadGateway": {
+                "description": "Falha de gateway",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "ServiceUnavailable": {
+                "description": "Servico indisponivel",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ApiErrorResponse"
+                        }
+                    }
+                }
+            },
+            "GatewayTimeout": {
+                "description": "Tempo de resposta excedido",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/ApiErrorResponse"
+                        }
                     }
                 }
             }
