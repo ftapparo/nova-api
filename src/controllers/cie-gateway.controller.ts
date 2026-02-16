@@ -127,6 +127,12 @@ export const cieCommandSilenceGateway = async (req: Request, res: Response): Pro
 export const cieCommandReleaseGateway = async (req: Request, res: Response): Promise<void> =>
     proxyCieRequest(req, res, 'POST', '/cie/commands/release');
 
+export const cieCommandReleaseBipGateway = async (req: Request, res: Response): Promise<void> =>
+    proxyCieRequest(req, res, 'POST', '/cie/commands/release-bip');
+
+export const cieCommandReleaseSirenGateway = async (req: Request, res: Response): Promise<void> =>
+    proxyCieRequest(req, res, 'POST', '/cie/commands/release-siren');
+
 export const cieCommandBrigadeSirenGateway = async (req: Request, res: Response): Promise<void> =>
     proxyCieRequest(req, res, 'POST', '/cie/commands/brigade-siren');
 

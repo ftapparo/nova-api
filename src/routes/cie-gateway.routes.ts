@@ -8,6 +8,8 @@ import {
     cieCommandDelaySirenGateway,
     cieCommandOutputGateway,
     cieCommandReleaseGateway,
+    cieCommandReleaseBipGateway,
+    cieCommandReleaseSirenGateway,
     cieCommandRestartGateway,
     cieCommandSilenceBipGateway,
     cieCommandSilenceGateway,
@@ -34,10 +36,11 @@ router.post('/cie/commands/restart', cieCommandRestartGateway);
 
 router.post('/cie/commands/silence', cieCommandSilenceGateway);
 router.post('/cie/commands/release', cieCommandReleaseGateway);
+router.post('/cie/commands/release-bip', cieCommandReleaseBipGateway);
+router.post('/cie/commands/release-siren', cieCommandReleaseSirenGateway);
 router.post('/cie/commands/brigade-siren', cieCommandBrigadeSirenGateway);
 router.post('/cie/commands/delay-siren', cieCommandDelaySirenGateway);
 router.post('/cie/commands/block', cieCommandBlockGateway);
 router.post('/cie/commands/output', cieCommandOutputGateway);
 
 export default router;
-
