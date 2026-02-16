@@ -31,6 +31,10 @@
             "description": "Operações de abertura e listagem de portas e portões."
         },
         {
+            "name": "Comandos",
+            "description": "Historico de comandos executados na API."
+        },
+        {
             "name": "User Settings",
             "description": "Gerenciamento de configurações de usuário."
         }
@@ -1926,6 +1930,110 @@
                                 }
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/v2/api/commands/logs": {
+            "get": {
+                "tags": [
+                    "Comandos"
+                ],
+                "summary": "Listar historico de comandos",
+                "description": "Retorna os ultimos comandos executados na API.",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "required": false,
+                        "description": "Quantidade maxima de itens (padrao 20, maximo 200)",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 200,
+                            "default": 20
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Historico retornado com sucesso",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 20
+                                                },
+                                                "limit": {
+                                                    "type": "integer",
+                                                    "example": 20
+                                                },
+                                                "logs": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id": {
+                                                                "type": "string",
+                                                                "example": "1739910800000-ab12cd34"
+                                                            },
+                                                            "timestamp": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            },
+                                                            "method": {
+                                                                "type": "string",
+                                                                "example": "POST"
+                                                            },
+                                                            "path": {
+                                                                "type": "string",
+                                                                "example": "/v2/api/control/door/open"
+                                                            },
+                                                            "command": {
+                                                                "type": "string",
+                                                                "example": "POST /v2/api/control/door/open"
+                                                            },
+                                                            "status": {
+                                                                "type": "integer",
+                                                                "example": 200
+                                                            },
+                                                            "actor": {
+                                                                "type": "string",
+                                                                "example": "PORTARIA"
+                                                            },
+                                                            "ip": {
+                                                                "type": "string",
+                                                                "nullable": true,
+                                                                "example": "192.168.0.10"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "example": null
+                                        },
+                                        "errors": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "example": null
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Erro ao consultar historico de comandos"
                     }
                 }
             }

@@ -11,6 +11,8 @@ import queryRoutes from '../routes/query.routes';
 import controlRoutes from '../routes/control.routes';
 import userSettingsRoutes from '../routes/user-settings.routes';
 import { responseHandler } from '../middleware/response-handler';
+import { commandAuditMiddleware } from '../middleware/command-audit';
+import commandLogRoutes from '../routes/command-log.routes';
 
 export async function StartWebServer(): Promise<void> {
     const app = express();
@@ -35,6 +37,7 @@ export async function StartWebServer(): Promise<void> {
      * Middleware para parsear JSON nas requisições.
      */
     app.use(express.json());
+    app.use(commandAuditMiddleware);
 
     /**
      * Middleware para padronizar respostas da API.
@@ -58,6 +61,7 @@ export async function StartWebServer(): Promise<void> {
     app.use('/v2/api', queryRoutes);
     app.use('/v2/api', controlRoutes);
     app.use('/v2/api', userSettingsRoutes);
+    app.use('/v2/api', commandLogRoutes);
 
     /**
      * Rota para servir a documentação Swagger UI.

@@ -15,6 +15,7 @@ services:
     volumes:
       - C:/Servidor/docker/logs/api:/app/logs
       - C:/Servidor/docker/data/nova-api/user-settings:/app/storage/user-settings
+      - C:/Servidor/docker/data/nova-api/exhaust:/app/storage/exhaust
     networks:
       - nova-network
     healthcheck:
