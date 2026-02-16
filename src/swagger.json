@@ -67,11 +67,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/healthcheck": {
@@ -101,11 +97,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/access/verify": {
@@ -116,9 +108,6 @@
         "summary": "Verificar permissão de acesso",
         "description": "Verifica se uma pessoa ou veículo possui permissão para acessar o condomínio.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "query",
             "name": "id",
@@ -184,9 +173,6 @@
         "summary": "Listar últimos acessos do dispositivo",
         "description": "Retorna os últimos acessos registrados para o dispositivo informado (limite padrão 10).",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "query",
             "name": "device",
@@ -368,11 +354,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/vehicles": {
@@ -402,11 +384,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       },
       "post": {
         "tags": [
@@ -500,11 +478,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/vehicles/{id}": {
@@ -515,9 +489,6 @@
         "summary": "Obter veículo",
         "description": "Retorna os dados de um veículo específico pelo ID.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "path",
             "name": "id",
@@ -558,9 +529,6 @@
         "summary": "Atualizar imagem do veículo",
         "description": "Atualiza a imagem do veículo. Requer pelo menos uma das imagens.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "path",
             "name": "id",
@@ -620,9 +588,6 @@
         "summary": "Atualizar acesso do veículo",
         "description": "Atualiza as informações de acesso do veículo.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "path",
             "name": "id",
@@ -734,9 +699,6 @@
         "description": "Bloqueia o acesso do veículo no sistema.",
         "parameters": [
           {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
-          {
             "in": "path",
             "name": "id",
             "required": true,
@@ -777,9 +739,6 @@
         "description": "Desbloqueia o acesso do veículo no sistema.",
         "parameters": [
           {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
-          {
             "in": "path",
             "name": "id",
             "required": true,
@@ -819,9 +778,6 @@
         "summary": "Purgar veículos por período",
         "description": "Bloqueia o acesso de veículos com base no período determinado.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "query",
             "name": "period",
@@ -955,11 +911,7 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/exhausts/off": {
@@ -1023,11 +975,7 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/exhausts/status": {
@@ -1038,9 +986,6 @@
         "summary": "Status geral dos módulos",
         "description": "Retorna o status de todos os módulos e a memória de acionamentos. Se informar id, retorna apenas o exhaust.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "query",
             "name": "id",
@@ -1087,9 +1032,6 @@
         "summary": "Status de um exaustor por ID",
         "description": "Retorna o status de um exaustor específico pelo ID informado na rota.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "path",
             "name": "id",
@@ -1158,11 +1100,7 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/exhausts/config": {
@@ -1226,11 +1164,7 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/queries/cpf/{cpf}": {
@@ -1241,9 +1175,6 @@
         "summary": "Consultar CPF",
         "description": "Valida o CPF e consulta sua existência no banco.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "path",
             "name": "cpf",
@@ -1293,9 +1224,6 @@
         "summary": "Consultar placa",
         "description": "Consulta veículo pela placa.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "path",
             "name": "plate",
@@ -1361,11 +1289,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/control/door/open": {
@@ -1414,11 +1338,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/control/gate/list": {
@@ -1451,11 +1371,7 @@
             "$ref": "#/components/responses/InternalServerError"
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/control/gate/cache/list": {
@@ -1466,9 +1382,6 @@
         "summary": "Listar últimos acessos do cache da TAG",
         "description": "Retorna a listagem dos últimos acessos do cache de TAG a partir do portão informado.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "query",
             "name": "id",
@@ -1586,11 +1499,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/control/gate/restart": {
@@ -1639,11 +1548,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/control/status": {
@@ -1673,11 +1578,7 @@
             }
           }
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/commands/logs": {
@@ -1688,9 +1589,6 @@
         "summary": "Listar historico de comandos",
         "description": "Retorna os ultimos comandos executados na API.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "query",
             "name": "limit",
@@ -1737,9 +1635,6 @@
         "summary": "Consultar tag",
         "description": "Consulta veículo pela tag (10 dígitos).",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "path",
             "name": "tag",
@@ -1806,9 +1701,6 @@
         },
         "parameters": [
           {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
-          {
             "name": "personSeq",
             "in": "path",
             "schema": {
@@ -1846,9 +1738,6 @@
           }
         },
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "name": "plate",
             "in": "path",
@@ -2016,11 +1905,7 @@
           },
           "required": true
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/vehicles/upsert-by-plate": {
@@ -2093,11 +1978,7 @@
           },
           "required": true
         },
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          }
-        ]
+        "parameters": []
       }
     },
     "/v2/api/vehicles/{vehicleSeq}/tag": {
@@ -2130,9 +2011,6 @@
           }
         },
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "name": "vehicleSeq",
             "in": "path",
@@ -2199,9 +2077,6 @@
         },
         "parameters": [
           {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
-          {
             "name": "vehicleSeq",
             "in": "path",
             "schema": {
@@ -2240,9 +2115,6 @@
         },
         "parameters": [
           {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
-          {
             "name": "vehicleSeq",
             "in": "path",
             "schema": {
@@ -2261,9 +2133,6 @@
         "summary": "Obter configurações do usuário",
         "description": "Retorna as configurações do usuário especificado.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "path",
             "name": "user",
@@ -2308,9 +2177,6 @@
         "summary": "Atualizar configurações do usuário",
         "description": "Atualiza ou cria as configurações do usuário especificado.",
         "parameters": [
-          {
-            "$ref": "#/components/parameters/ActorHeaderParam"
-          },
           {
             "in": "path",
             "name": "user",
@@ -2811,29 +2677,6 @@
           "type": "string",
           "example": "PORTARIA"
         }
-      }
-    },
-    "parameters": {
-      "RequestIdHeaderParam": {
-        "name": "x-request-id",
-        "in": "header",
-        "required": false,
-        "description": "Identificador unico da requisicao (enviado pelo cliente ou gerado pelo servidor).",
-        "schema": {
-          "type": "string",
-          "example": "f25f63b8-2b89-4fc0-8a2e-7b2e8c7d6f53"
-        }
-      },
-      "ActorHeaderParam": {
-        "name": "x-user",
-        "in": "header",
-        "required": false,
-        "description": "Identificacao do ator da operacao (ex.: PORTARIA).",
-        "schema": {
-          "type": "string",
-          "example": "PORTARIA"
-        },
-        "example": "SWAGGER"
       }
     }
   }
