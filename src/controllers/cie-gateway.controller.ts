@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 
 const CIE_GATEWAY_BASE_URL = (process.env.CIE_GATEWAY_BASE_URL || 'http://192.168.0.250:4021/v1/api').trim().replace(/\/+$/, '');
 const CIE_GATEWAY_TIMEOUT_MS = Number(process.env.CIE_GATEWAY_TIMEOUT_MS || '5000');
+const CIE_GATEWAY_LOGS_TIMEOUT_MS = Number(process.env.CIE_GATEWAY_LOGS_TIMEOUT_MS || '15000');
 
 const resolveTimeout = (): number => {
     if (!Number.isFinite(CIE_GATEWAY_TIMEOUT_MS) || CIE_GATEWAY_TIMEOUT_MS <= 0) {
@@ -10,6 +11,14 @@ const resolveTimeout = (): number => {
     }
 
     return CIE_GATEWAY_TIMEOUT_MS;
+};
+
+const resolveLogsTimeout = (): number => {
+    if (!Number.isFinite(CIE_GATEWAY_LOGS_TIMEOUT_MS) || CIE_GATEWAY_LOGS_TIMEOUT_MS <= 0) {
+        return Math.max(resolveTimeout(), 15000);
+    }
+
+    return CIE_GATEWAY_LOGS_TIMEOUT_MS;
 };
 
 const mapAxiosError = (error: unknown) => {
@@ -43,7 +52,7 @@ const proxyCieRequest = async (
     res: Response,
     method: Method,
     path: string,
-    options?: { body?: unknown; params?: Record<string, unknown> }
+    options?: { body?: unknown; params?: Record<string, unknown>; timeoutMs?: number }
 ): Promise<void> => {
     try {
         const url = `${CIE_GATEWAY_BASE_URL}${path}`;
@@ -52,7 +61,7 @@ const proxyCieRequest = async (
             url,
             params: options?.params,
             data: options?.body,
-            timeout: resolveTimeout(),
+            timeout: options?.timeoutMs ?? resolveTimeout(),
             headers: {
                 'x-user': req.actor || req.headers['x-user'] || 'API',
                 'x-request-id': req.requestId || req.headers['x-request-id'],
@@ -91,6 +100,7 @@ export const cieLogsGateway = async (req: Request, res: Response): Promise<void>
             limit: req.query.limit,
             cursor: req.query.cursor,
         },
+        timeoutMs: resolveLogsTimeout(),
     });
 
 export const cieBlockCountersGateway = async (req: Request, res: Response): Promise<void> =>
