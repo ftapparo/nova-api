@@ -28,6 +28,16 @@ const mapAxiosError = (error: unknown) => {
     return { status, message, details: axiosError.response?.data ?? axiosError.message };
 };
 
+const extractMessage = (payload: unknown, fallback: string): string => {
+    if (!payload) return fallback;
+    if (typeof payload === 'string' && payload.trim()) return payload;
+    if (typeof payload === 'object' && payload !== null) {
+        const maybeMessage = (payload as { message?: unknown }).message;
+        if (typeof maybeMessage === 'string' && maybeMessage.trim()) return maybeMessage;
+    }
+    return fallback;
+};
+
 const proxyCieRequest = async (
     req: Request,
     res: Response,
@@ -57,7 +67,11 @@ const proxyCieRequest = async (
     } catch (error: unknown) {
         const mapped = mapAxiosError(error);
         console.error('[CieGatewayController] Erro no proxy CIE:', { path, method, details: mapped.details });
-        res.fail(`Erro ao chamar rota CIE: ${path}`, mapped.status, mapped.message);
+        const upstreamMessage = extractMessage(mapped.message, `Erro ao chamar rota CIE: ${path}`);
+        res.fail(upstreamMessage, mapped.status, {
+            route: path,
+            upstream: mapped.message,
+        });
     }
 };
 
@@ -114,4 +128,3 @@ export const cieCommandBlockGateway = async (req: Request, res: Response): Promi
 
 export const cieCommandOutputGateway = async (req: Request, res: Response): Promise<void> =>
     proxyCieRequest(req, res, 'POST', '/cie/commands/output', { body: req.body });
-
