@@ -15,6 +15,17 @@ import { commandAuditMiddleware } from '../middleware/command-audit';
 import commandLogRoutes from '../routes/command-log.routes';
 import { requestContextMiddleware } from '../middleware/request-context';
 
+const swaggerUiOptions = {
+    swaggerOptions: {
+        requestInterceptor: (request: any) => {
+            request.headers = request.headers || {};
+            request.headers['x-user'] = 'SWAGGER';
+            request.headers['x-request-id'] = `swagger-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            return request;
+        }
+    }
+};
+
 export async function StartWebServer(): Promise<void> {
     const app = express();
     const port = process.env.PORT || 3000;
@@ -68,7 +79,7 @@ export async function StartWebServer(): Promise<void> {
     /**
      * Rota para servir a documentação Swagger UI.
      */
-    app.use('/v2/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+    app.use('/v2/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerUiOptions));
 
     /**
      * Endpoint para servir o arquivo swagger.json (OpenAPI spec).
