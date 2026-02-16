@@ -10,6 +10,7 @@ import exhaustRoutes from '../routes/exhaust.routes';
 import queryRoutes from '../routes/query.routes';
 import controlRoutes from '../routes/control.routes';
 import userSettingsRoutes from '../routes/user-settings.routes';
+import cieGatewayRoutes from '../routes/cie-gateway.routes';
 import { responseHandler } from '../middleware/response-handler';
 import { commandAuditMiddleware } from '../middleware/command-audit';
 import commandLogRoutes from '../routes/command-log.routes';
@@ -75,6 +76,7 @@ export async function StartWebServer(): Promise<void> {
     app.use('/v2/api', controlRoutes);
     app.use('/v2/api', userSettingsRoutes);
     app.use('/v2/api', commandLogRoutes);
+    app.use('/v2/api', cieGatewayRoutes);
 
     /**
      * Rota para servir a documentação Swagger UI.
