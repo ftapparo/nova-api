@@ -37,6 +37,10 @@
     {
       "name": "User Settings",
       "description": "Gerenciamento de configurações de usuário."
+    },
+    {
+      "name": "CIE",
+      "description": "Gateway para monitoramento e comandos da central de incendio CIE2500."
     }
   ],
   "paths": {
@@ -2252,6 +2256,1604 @@
           }
         }
       }
+    },
+    "/v2/api/cie/panel": {
+      "get": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Resumo consolidado do painel da central",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/status": {
+      "get": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Snapshot de status da central",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/alarms/active": {
+      "get": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Alarmes ativos da central",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/logs": {
+      "get": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Lista de logs da central",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "alarme",
+                "falha",
+                "supervisao",
+                "operacao",
+                "bloqueio"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/api/cie/counters/blocks": {
+      "get": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Contadores de bloqueio da central",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/counters/outputs": {
+      "get": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Contadores de saida da central",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/commands/silence-bip": {
+      "post": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Silenciar bip interno",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/commands/release-bip": {
+      "post": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Reativar bip interno",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/commands/silence-siren": {
+      "post": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Silenciar sirene",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/commands/release-siren": {
+      "post": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Reativar sirene",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/commands/alarm-general": {
+      "post": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Acionar alarme geral",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/commands/restart": {
+      "post": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Reiniciar central",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/commands/silence": {
+      "post": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Comando de silenciamento",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/commands/release": {
+      "post": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Comando de liberacao",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/commands/brigade-siren": {
+      "post": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Acionar sirene de brigada",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/commands/delay-siren": {
+      "post": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Adiar sirene",
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/commands/block": {
+      "post": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Bloquear ou desbloquear item",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tipoBloqueio",
+                  "laco",
+                  "numero",
+                  "bloquear"
+                ],
+                "properties": {
+                  "tipoBloqueio": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "laco": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "numero": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "bloquear": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/v2/api/cie/commands/output": {
+      "post": {
+        "tags": [
+          "CIE"
+        ],
+        "summary": "Ativar ou desativar saida",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "laco",
+                  "numero",
+                  "ativo"
+                ],
+                "properties": {
+                  "laco": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "numero": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "ativo": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "400": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "409": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          },
+          "502": {
+            "description": "Falha no gateway CIE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/RequestIdHeader"
+              },
+              "x-actor": {
+                "$ref": "#/components/headers/ActorHeader"
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
     }
   },
   "servers": [
@@ -2459,6 +4061,95 @@
                 }
               }
             ]
+          }
+        }
+      },
+      "CieDeviceClassification": {
+        "type": "object",
+        "properties": {
+          "typeCode": {
+            "type": "integer",
+            "nullable": true
+          },
+          "subtypeCode": {
+            "type": "integer",
+            "nullable": true
+          },
+          "typeLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtypeLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "resolvedLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "codes",
+              "name",
+              "none"
+            ]
+          }
+        }
+      },
+      "CieLogItem": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "zone": {
+            "type": "integer",
+            "nullable": true
+          },
+          "address": {
+            "type": "integer",
+            "nullable": true
+          },
+          "loop": {
+            "type": "integer",
+            "nullable": true
+          },
+          "deviceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "zoneName": {
+            "type": "string",
+            "nullable": true
+          },
+          "deviceClassification": {
+            "$ref": "#/components/schemas/CieDeviceClassification",
+            "nullable": true
+          },
+          "eventType": {
+            "type": "integer",
+            "nullable": true
+          },
+          "blocked": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "raw": {
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "integer"
           }
         }
       }
