@@ -71,6 +71,11 @@ const serializeMemory = (memory: ReturnType<typeof getExhaustMemory>) => {
         relay: memory.relay,
         moduleId: memory.moduleId,
         expiresAt: memory.expiresAt,
+        processStatus: memory.processStatus,
+        pendingCommand: memory.pendingCommand,
+        lastError: memory.lastError,
+        retryCount: memory.retryCount,
+        updatedAt: memory.updatedAt,
     };
 };
 

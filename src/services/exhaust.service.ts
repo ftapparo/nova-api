@@ -1,4 +1,7 @@
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+import logger from '../utils/logger';
 
 /**
  * Torres disponíveis.
@@ -8,6 +11,8 @@ type Tower = 'A' | 'B' | 'C';
  * Grupos de finais (1-4 ou 5-8).
  */
 type Group = '14' | '58';
+type ExhaustCommand = 'ligar' | 'desligar';
+type ExhaustProcessStatus = 'iniciando' | 'executado' | 'erro';
 
 /**
  * Mapeamento de módulos para seus respectivos hosts.
@@ -40,6 +45,8 @@ const EXHAUST_REARM_DELAY_MS = 2000;
  * Intervalo de varredura para desligar expirados (ms).
  */
 const EXHAUST_SWEEP_INTERVAL_MS = Number(process.env.EXHAUST_SWEEP_INTERVAL_MS || 60000);
+const EXHAUST_MEMORY_DIR = path.resolve(process.env.EXHAUST_MEMORY_DIR || path.join(process.cwd(), 'storage', 'exhaust'));
+const EXHAUST_MEMORY_FILE = path.resolve(process.env.EXHAUST_MEMORY_FILE || path.join(EXHAUST_MEMORY_DIR, 'memory.json'));
 
 const EXPECTED_PULSE_TIME = 5;
 const EXPECTED_RELAY_COUNT = 4;
@@ -55,6 +62,11 @@ type ExhaustState = {
     relay: number;
     moduleId: string;
     expiresAt: number | null;
+    processStatus: ExhaustProcessStatus;
+    pendingCommand: ExhaustCommand;
+    lastError: string | null;
+    updatedAt: number;
+    retryCount: number;
 };
 
 /**
@@ -62,11 +74,102 @@ type ExhaustState = {
  */
 const exhaustStates = new Map<string, ExhaustState>();
 
+type ExhaustMemoryFile = {
+    version: number;
+    updatedAt: string;
+    states: ExhaustState[];
+};
+
 /**
  * Normaliza o ID do apartamento.
  * @param id Identificador do exhaust.
  */
 const normalizeApartmentId = (id: string) => id.trim().toUpperCase().replace(/\s+/g, '').replace(/-/g, '_');
+
+const ensureExhaustStorage = (): void => {
+    fs.mkdirSync(EXHAUST_MEMORY_DIR, { recursive: true });
+};
+
+const serializeExhaustMemory = (): ExhaustMemoryFile => ({
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    states: Array.from(exhaustStates.values()),
+});
+
+const persistExhaustMemory = (): void => {
+    try {
+        ensureExhaustStorage();
+        const payload = JSON.stringify(serializeExhaustMemory(), null, 2);
+        const tempPath = `${EXHAUST_MEMORY_FILE}.tmp`;
+        fs.writeFileSync(tempPath, payload, { encoding: 'utf8' });
+        fs.renameSync(tempPath, EXHAUST_MEMORY_FILE);
+    } catch (error) {
+        logger.error(`[ExhaustService] Erro ao persistir memoria: ${String(error)}`);
+    }
+};
+
+const toExhaustState = (state: Partial<ExhaustState>): ExhaustState | null => {
+    if (
+        typeof state.id !== 'string'
+        || typeof state.tower !== 'string'
+        || typeof state.final !== 'number'
+        || typeof state.group !== 'string'
+        || typeof state.relay !== 'number'
+        || typeof state.moduleId !== 'string'
+    ) {
+        return null;
+    }
+
+    const processStatus: ExhaustProcessStatus = state.processStatus === 'iniciando'
+        || state.processStatus === 'executado'
+        || state.processStatus === 'erro'
+        ? state.processStatus
+        : 'executado';
+    const pendingCommand: ExhaustCommand = state.pendingCommand === 'desligar' ? 'desligar' : 'ligar';
+
+    return {
+        id: normalizeApartmentId(state.id),
+        tower: state.tower as Tower,
+        final: state.final,
+        group: state.group as Group,
+        relay: state.relay,
+        moduleId: state.moduleId,
+        expiresAt: typeof state.expiresAt === 'number' ? state.expiresAt : null,
+        processStatus,
+        pendingCommand,
+        lastError: typeof state.lastError === 'string' ? state.lastError : null,
+        updatedAt: typeof state.updatedAt === 'number' ? state.updatedAt : Date.now(),
+        retryCount: typeof state.retryCount === 'number' ? state.retryCount : 0,
+    };
+};
+
+const loadExhaustMemory = (): void => {
+    try {
+        ensureExhaustStorage();
+        if (!fs.existsSync(EXHAUST_MEMORY_FILE)) {
+            return;
+        }
+
+        const raw = fs.readFileSync(EXHAUST_MEMORY_FILE, 'utf8').trim();
+        if (!raw) {
+            return;
+        }
+
+        const parsed = JSON.parse(raw) as ExhaustMemoryFile;
+        const states = Array.isArray(parsed?.states) ? parsed.states : [];
+        exhaustStates.clear();
+
+        for (const item of states) {
+            const hydrated = toExhaustState(item);
+            if (!hydrated) continue;
+            exhaustStates.set(hydrated.id, hydrated);
+        }
+
+        logger.info(`[ExhaustService] Memoria recuperada do arquivo (${exhaustStates.size} itens)`);
+    } catch (error) {
+        logger.error(`[ExhaustService] Erro ao carregar memoria: ${String(error)}`);
+    }
+};
 
 /**
  * Resolve o host do módulo.
@@ -460,14 +563,14 @@ const setExpiry = (state: ExhaustState, minutes: number): void => {
 const processExpiredExhausts = async (): Promise<void> => {
     const now = Date.now();
     const expiredIds = Array.from(exhaustStates.values())
-        .filter((state) => state.expiresAt !== null && state.expiresAt <= now)
+        .filter((state) => state.expiresAt !== null && state.expiresAt <= now && state.processStatus === 'executado')
         .map((state) => state.id);
 
     for (const id of expiredIds) {
         try {
             await turnOffExhaust(id);
         } catch (error) {
-            console.error('[Exhaust] Falha ao desligar expirado:', error);
+            logger.error(`[Exhaust] Falha ao desligar expirado ${id}: ${String(error)}`);
         }
     }
 };
@@ -481,7 +584,8 @@ let exhaustServiceInitialized = false;
  */
 export async function startExhaustService(): Promise<void> {
     if (exhaustServiceLoop) return;
-    console.log('[ExhaustService] Inicializando serviço de exaustores');
+    loadExhaustMemory();
+    logger.info('[ExhaustService] Inicializando servico de exaustores');
 
     const run = async () => {
         if (exhaustServiceRunning) return;
@@ -493,7 +597,7 @@ export async function startExhaustService(): Promise<void> {
                     try {
                         await initializeModule(moduleId, host);
                     } catch (error: any) {
-                        console.error('[ExhaustService] Falha ao inicializar módulo', { moduleId, error });
+                        logger.error(`[ExhaustService] Falha ao inicializar modulo ${moduleId}: ${String(error)}`);
                     }
                 }
                 exhaustServiceInitialized = true;
@@ -504,7 +608,7 @@ export async function startExhaustService(): Promise<void> {
                         try {
                             await initializeModule(moduleId, host);
                         } catch (error: any) {
-                            console.error('[ExhaustService] Falha ao reinicializar módulo', { moduleId, error });
+                            logger.error(`[ExhaustService] Falha ao reinicializar modulo ${moduleId}: ${String(error)}`);
                         }
                         continue;
                     }
@@ -512,8 +616,9 @@ export async function startExhaustService(): Promise<void> {
                     await refreshModuleStatus(moduleId, host);
                 }
             }
+            await retryErroredCommands();
             await processExpiredExhausts();
-            console.log('[ExhaustService] Execução do ciclo concluída');
+            logger.debug('[ExhaustService] Execucao do ciclo concluida');
         } finally {
             exhaustServiceRunning = false;
         }
@@ -521,7 +626,7 @@ export async function startExhaustService(): Promise<void> {
 
     await run();
     exhaustServiceLoop = setInterval(run, EXHAUST_SWEEP_INTERVAL_MS);
-    console.log('[ExhaustService] Serviço iniciado com sucesso');
+    logger.info('[ExhaustService] Servico iniciado com sucesso');
 }
 
 /**
@@ -536,7 +641,9 @@ const setState = (state: ExhaustState, minutes?: number): void => {
         state.expiresAt = null;
     }
 
+    state.updatedAt = Date.now();
     exhaustStates.set(state.id, state);
+    persistExhaustMemory();
 };
 
 /**
@@ -546,6 +653,26 @@ const setState = (state: ExhaustState, minutes?: number): void => {
 const clearState = (id: string): void => {
     const normalizedId = normalizeApartmentId(id);
     exhaustStates.delete(normalizedId);
+    persistExhaustMemory();
+};
+
+const updateStateProcess = (id: string, processStatus: ExhaustProcessStatus, pendingCommand: ExhaustCommand, error?: unknown): void => {
+    const normalizedId = normalizeApartmentId(id);
+    const current = exhaustStates.get(normalizedId);
+    if (!current) return;
+
+    current.processStatus = processStatus;
+    current.pendingCommand = pendingCommand;
+    current.updatedAt = Date.now();
+    if (processStatus === 'erro') {
+        current.retryCount += 1;
+        current.lastError = error ? String(error) : 'Erro desconhecido';
+    } else {
+        current.lastError = null;
+    }
+
+    exhaustStates.set(normalizedId, current);
+    persistExhaustMemory();
 };
 
 /**
@@ -573,6 +700,11 @@ const buildMemorySnapshot = () => {
         relay: state.relay,
         moduleId: state.moduleId,
         expiresAt: state.expiresAt,
+        processStatus: state.processStatus,
+        pendingCommand: state.pendingCommand,
+        lastError: state.lastError,
+        retryCount: state.retryCount,
+        updatedAt: new Date(state.updatedAt).toISOString(),
         remainingMinutes: getRemainingMinutes(state),
     }));
 };
@@ -616,16 +748,7 @@ export const turnOnExhaust = async (id: string, minutes?: number): Promise<any> 
         throw createServiceError(`Módulo ${moduleId} está offline.`, 503);
     }
 
-    console.log('[Exhaust] Ligando exaustor', {
-        id: normalizedId,
-        tower,
-        final,
-        relay,
-        group,
-        moduleId,
-        minutes: minutes ?? null,
-    });
-    const result = await setRelay(host, relay);
+    logger.info(`[Exhaust] Ligando exaustor ${normalizedId}`);
 
     setState({
         id: normalizedId,
@@ -635,38 +758,26 @@ export const turnOnExhaust = async (id: string, minutes?: number): Promise<any> 
         group,
         moduleId,
         expiresAt: null,
+        processStatus: 'iniciando',
+        pendingCommand: 'ligar',
+        lastError: null,
+        updatedAt: Date.now(),
+        retryCount: 0,
     }, minutes);
 
-    return result;
+    try {
+        const result = await setRelay(host, relay);
+        updateStateProcess(normalizedId, 'executado', 'ligar');
+        return result;
+    } catch (error) {
+        updateStateProcess(normalizedId, 'erro', 'ligar', error);
+        throw error;
+    }
 };
 
-/**
- * Desliga um exaustor via módulo PWR e religa os demais do grupo.
- * @param id Identificador do exaustor.
- * @returns Resultado do desligamento e reativações.
- */
-export const turnOffExhaust = async (id: string): Promise<any> => {
-    const normalizedId = normalizeApartmentId(id);
-    const { tower, relay, group } = parseApartment(normalizedId);
-    const pwrModuleId = `PWR_${group}`;
-    const pwrHost = resolveModuleHost(pwrModuleId);
-    const pwrRelay = getPwrRelayForTower(tower);
-
-    console.log('[Exhaust] Desligando exaustor', {
-        id: normalizedId,
-        tower,
-        relay,
-        group,
-        pwrModuleId,
-        pwrRelay,
-    });
-    const offResult = await setRelay(pwrHost, pwrRelay);
-
-    clearState(normalizedId);
-
+const restoreGroupStates = async (tower: Tower, group: Group): Promise<Record<string, any>> => {
     const statesToRestore = Array.from(exhaustStates.values())
-        .filter((state) => state.tower === tower && state.group === group);
-
+        .filter((state) => state.tower === tower && state.group === group && state.processStatus === 'executado');
     const restoreResults: Record<string, any> = {};
 
     let needsDelay = false;
@@ -679,13 +790,93 @@ export const turnOffExhaust = async (id: string): Promise<any> => {
             }
             restoreResults[state.id] = await setRelay(moduleHost, state.relay);
             setExpiry(state, remaining);
+            state.updatedAt = Date.now();
+            exhaustStates.set(state.id, state);
+            persistExhaustMemory();
             needsDelay = true;
         } else {
             restoreResults[state.id] = { skipped: true, remainingMinutes: remaining };
         }
     }
 
+    return restoreResults;
+};
+
+const executeTurnOff = async (normalizedId: string): Promise<any> => {
+    const { tower, group } = parseApartment(normalizedId);
+    const pwrModuleId = `PWR_${group}`;
+    const pwrHost = resolveModuleHost(pwrModuleId);
+    const pwrRelay = getPwrRelayForTower(tower);
+
+    logger.info(`[Exhaust] Desligando exaustor ${normalizedId}`);
+    const offResult = await setRelay(pwrHost, pwrRelay);
+    const restoreResults = await restoreGroupStates(tower, group);
+
     return { offResult, restoreResults };
+};
+
+/**
+ * Desliga um exaustor via módulo PWR e religa os demais do grupo.
+ * @param id Identificador do exaustor.
+ * @returns Resultado do desligamento e reativações.
+ */
+export const turnOffExhaust = async (id: string): Promise<any> => {
+    const normalizedId = normalizeApartmentId(id);
+    const metadata = parseApartment(normalizedId);
+    const existing = exhaustStates.get(normalizedId);
+
+    if (!existing) {
+        setState({
+            id: normalizedId,
+            tower: metadata.tower,
+            final: metadata.final,
+            relay: metadata.relay,
+            group: metadata.group,
+            moduleId: metadata.moduleId,
+            expiresAt: null,
+            processStatus: 'iniciando',
+            pendingCommand: 'desligar',
+            lastError: null,
+            updatedAt: Date.now(),
+            retryCount: 0,
+        });
+    } else {
+        updateStateProcess(normalizedId, 'iniciando', 'desligar');
+    }
+
+    try {
+        const result = await executeTurnOff(normalizedId);
+        clearState(normalizedId);
+        return result;
+    } catch (error) {
+        updateStateProcess(normalizedId, 'erro', 'desligar', error);
+        throw error;
+    }
+};
+
+const retryErroredCommands = async (): Promise<void> => {
+    const statesWithError = Array.from(exhaustStates.values()).filter((state) => state.processStatus === 'erro');
+
+    for (const state of statesWithError) {
+        try {
+            if (state.pendingCommand === 'ligar') {
+                updateStateProcess(state.id, 'iniciando', 'ligar');
+                const moduleHost = resolveModuleHost(state.moduleId);
+                await setRelay(moduleHost, state.relay);
+                updateStateProcess(state.id, 'executado', 'ligar');
+                logger.info(`[ExhaustService] Retry de ligar executado com sucesso (${state.id})`);
+                continue;
+            }
+
+            updateStateProcess(state.id, 'iniciando', 'desligar');
+            await executeTurnOff(state.id);
+            clearState(state.id);
+            logger.info(`[ExhaustService] Retry de desligar executado com sucesso (${state.id})`);
+        } catch (error) {
+            updateStateProcess(state.id, 'erro', state.pendingCommand, error);
+            logger.error(`[ExhaustService] Retry falhou para ${state.id}: ${String(error)}`);
+        }
+    }
 };
 
 /**
