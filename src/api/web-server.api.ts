@@ -15,6 +15,7 @@ import { responseHandler } from '../middleware/response-handler';
 import { commandAuditMiddleware } from '../middleware/command-audit';
 import commandLogRoutes from '../routes/command-log.routes';
 import { requestContextMiddleware } from '../middleware/request-context';
+import pushRoutes from '../routes/push.routes';
 
 const swaggerUiOptions = {
     swaggerOptions: {
@@ -77,6 +78,7 @@ export async function StartWebServer(): Promise<void> {
     app.use('/v2/api', userSettingsRoutes);
     app.use('/v2/api', commandLogRoutes);
     app.use('/v2/api', cieGatewayRoutes);
+    app.use('/v2/api', pushRoutes);
 
     /**
      * Rota para servir a documentação Swagger UI.

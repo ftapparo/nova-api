@@ -41,6 +41,10 @@
     {
       "name": "CIE",
       "description": "Gateway para monitoramento e comandos da central de incendio CIE2500."
+    },
+    {
+      "name": "Push",
+      "description": "Gerenciamento de subscriptions e envio de notificacoes Web Push."
     }
   ],
   "paths": {
@@ -3861,6 +3865,155 @@
           }
         },
         "parameters": []
+      }
+    },
+    "/v2/api/push/public-key": {
+      "get": {
+        "tags": [
+          "Push"
+        ],
+        "summary": "Obter chave publica VAPID",
+        "responses": {
+          "200": {
+            "description": "Chave publica carregada com sucesso"
+          }
+        }
+      }
+    },
+    "/v2/api/push/subscriptions": {
+      "post": {
+        "tags": [
+          "Push"
+        ],
+        "summary": "Criar/atualizar subscription de push",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user": {
+                    "type": "string"
+                  },
+                  "subscription": {
+                    "type": "object",
+                    "properties": {
+                      "endpoint": {
+                        "type": "string"
+                      },
+                      "expirationTime": {
+                        "type": "number",
+                        "nullable": true
+                      },
+                      "keys": {
+                        "type": "object",
+                        "properties": {
+                          "p256dh": {
+                            "type": "string"
+                          },
+                          "auth": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "p256dh",
+                          "auth"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "endpoint",
+                      "keys"
+                    ]
+                  }
+                },
+                "required": [
+                  "user",
+                  "subscription"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription registrada"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Push"
+        ],
+        "summary": "Remover subscription de push",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user": {
+                    "type": "string"
+                  },
+                  "endpoint": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "user",
+                  "endpoint"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription removida"
+          }
+        }
+      }
+    },
+    "/v2/api/push/events/fire-alarm": {
+      "post": {
+        "tags": [
+          "Push"
+        ],
+        "summary": "Disparar push de alarme de incendio para todos os inscritos",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string"
+                  },
+                  "triggeredAt": {
+                    "type": "string"
+                  },
+                  "counters": {
+                    "type": "object"
+                  },
+                  "latestAlarmLogs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Push processado (enviado ou ignorado por cooldown)"
+          }
+        }
       }
     }
   },

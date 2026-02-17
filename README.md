@@ -39,6 +39,11 @@ Observacoes:
 - `VEHICLE_LOOKUP_PROVIDER_3_URL`
 - `CIE_GATEWAY_BASE_URL` (default: `http://192.168.0.250:4021/v1/api`)
 - `CIE_GATEWAY_TIMEOUT_MS` (default: `5000`)
+- `WEB_PUSH_VAPID_PUBLIC_KEY`
+- `WEB_PUSH_VAPID_PRIVATE_KEY`
+- `WEB_PUSH_VAPID_SUBJECT` (ex.: `mailto:suporte@dominio.com`)
+- `PUSH_SUBSCRIPTIONS_DIR` (default: `./storage/push-subscriptions`)
+- `PUSH_FIRE_ALARM_COOLDOWN_MS` (default: `60000`)
 
 ### Scraping
 
@@ -78,3 +83,17 @@ VEHICLE_LOOKUP_WDAPI_TOKEN=seu_token_wdapi
 PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 PUPPETEER_HEADLESS=true
 ```
+
+## Web Push (Sprint 1)
+
+Rotas:
+
+- `GET /v2/api/push/public-key`
+- `POST /v2/api/push/subscriptions`
+- `DELETE /v2/api/push/subscriptions`
+- `POST /v2/api/push/events/fire-alarm`
+
+Observacoes:
+
+- O endpoint `fire-alarm` aplica deduplicacao por cooldown.
+- Subscriptions invalidas (HTTP 404/410 no provedor push) sao removidas automaticamente.
