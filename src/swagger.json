@@ -4011,7 +4011,7 @@
         },
         "responses": {
           "200": {
-            "description": "Push processado (enviado ou ignorado por cooldown)"
+            "description": "Push de alarme processado (envio depende de subscriptions validas)"
           }
         }
       }
@@ -4030,25 +4030,35 @@
                 "type": "object",
                 "properties": {
                   "title": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "SISTEMA EM FALHA"
                   },
                   "body": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "L1D128 - ESTACIONAMENTOS\\nDisp. em Falha | Tipo: Acionador Manual"
                   },
                   "tag": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "failure-alarm"
                   },
                   "icon": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "/icons/icon-192.png"
                   },
                   "badge": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "/icons/icon-192.png"
                   },
                   "requireInteraction": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "example": true
                   },
                   "data": {
-                    "type": "object"
+                    "type": "object",
+                    "example": {
+                      "url": "/dashboard/incendio",
+                      "type": "failure-alarm"
+                    }
                   }
                 },
                 "required": [
@@ -4061,7 +4071,7 @@
         },
         "responses": {
           "200": {
-            "description": "Push enviado"
+            "description": "Push generico enviado para os inscritos"
           }
         }
       }

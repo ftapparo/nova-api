@@ -68,7 +68,7 @@ const toDefaultFireAlarmPayload = (eventPayload?: Record<string, any>): Record<s
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
         data: {
-            url: '/dashboard/central-incendio',
+            url: '/dashboard/incendio',
             source: eventPayload?.source || 'CIE2500',
             triggeredAt,
             counters,
