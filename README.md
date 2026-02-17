@@ -43,7 +43,6 @@ Observacoes:
 - `WEB_PUSH_VAPID_PRIVATE_KEY`
 - `WEB_PUSH_VAPID_SUBJECT` (ex.: `mailto:suporte@dominio.com`)
 - `PUSH_SUBSCRIPTIONS_DIR` (default: `./storage/push-subscriptions`)
-- `PUSH_FIRE_ALARM_COOLDOWN_MS` (default: `60000`)
 
 ### Scraping
 
@@ -91,9 +90,11 @@ Rotas:
 - `GET /v2/api/push/public-key`
 - `POST /v2/api/push/subscriptions`
 - `DELETE /v2/api/push/subscriptions`
+- `POST /v2/api/push/send`
 - `POST /v2/api/push/events/fire-alarm`
 
 Observacoes:
 
-- O endpoint `fire-alarm` aplica deduplicacao por cooldown.
+- O endpoint `send` permite envio generico de push para todos os inscritos.
+- O endpoint `fire-alarm` e um atalho semantico para notificacao de incendio.
 - Subscriptions invalidas (HTTP 404/410 no provedor push) sao removidas automaticamente.

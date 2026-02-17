@@ -3981,7 +3981,7 @@
         "tags": [
           "Push"
         ],
-        "summary": "Disparar push de alarme de incendio para todos os inscritos",
+        "summary": "Atalho para push de alarme de incendio",
         "requestBody": {
           "required": false,
           "content": {
@@ -4012,6 +4012,56 @@
         "responses": {
           "200": {
             "description": "Push processado (enviado ou ignorado por cooldown)"
+          }
+        }
+      }
+    },
+    "/v2/api/push/send": {
+      "post": {
+        "tags": [
+          "Push"
+        ],
+        "summary": "Enviar push generico para todos os inscritos",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "body": {
+                    "type": "string"
+                  },
+                  "tag": {
+                    "type": "string"
+                  },
+                  "icon": {
+                    "type": "string"
+                  },
+                  "badge": {
+                    "type": "string"
+                  },
+                  "requireInteraction": {
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "title",
+                  "body"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Push enviado"
           }
         }
       }

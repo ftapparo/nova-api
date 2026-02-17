@@ -6,12 +6,10 @@ import {
 } from '../repositories/push-subscription.repository';
 import {
     getPublicPushKey,
+    sendGenericPushToAll,
     sendFireAlarmPushToAll,
-    type FireAlarmEventPayload,
+    type GenericPushPayload,
 } from '../services/push.service';
-
-const FIRE_ALARM_COOLDOWN_MS = Number(process.env.PUSH_FIRE_ALARM_COOLDOWN_MS || 60000);
-let lastFireAlarmSentAt = 0;
 
 const normalizeUser = (value: unknown): string => String(value ?? '').trim().toUpperCase();
 
@@ -42,13 +40,6 @@ const parseSubscription = (value: unknown): PushSubscriptionInput | null => {
         expirationTime,
         keys: { p256dh, auth },
     };
-};
-
-const parseCooldown = (): number => {
-    if (!Number.isFinite(FIRE_ALARM_COOLDOWN_MS) || FIRE_ALARM_COOLDOWN_MS < 0) {
-        return 60000;
-    }
-    return Math.trunc(FIRE_ALARM_COOLDOWN_MS);
 };
 
 export const pushPublicKeyController = (_req: Request, res: Response): void => {
@@ -119,27 +110,12 @@ export const pushUnsubscribeController = async (req: Request, res: Response): Pr
 };
 
 export const pushFireAlarmEventController = async (req: Request, res: Response): Promise<void> => {
-    const now = Date.now();
-    const cooldownMs = parseCooldown();
-    const elapsedMs = now - lastFireAlarmSentAt;
-
-    if (lastFireAlarmSentAt > 0 && elapsedMs < cooldownMs) {
-        res.ok({
-            skipped: true,
-            reason: 'cooldown',
-            cooldownMs,
-            elapsedMs,
-            nextAllowedAt: lastFireAlarmSentAt + cooldownMs,
-        });
-        return;
-    }
-
     try {
-        const payload: FireAlarmEventPayload = isPlainObject(req.body)
+        const payload = isPlainObject(req.body)
             ? {
                 source: typeof req.body.source === 'string' ? req.body.source : 'CIE2500',
                 triggeredAt: typeof req.body.triggeredAt === 'string' ? req.body.triggeredAt : new Date().toISOString(),
-                counters: isPlainObject(req.body.counters) ? req.body.counters as FireAlarmEventPayload['counters'] : undefined,
+                counters: isPlainObject(req.body.counters) ? req.body.counters : undefined,
                 latestAlarmLogs: Array.isArray(req.body.latestAlarmLogs) ? req.body.latestAlarmLogs : undefined,
             }
             : {
@@ -148,16 +124,42 @@ export const pushFireAlarmEventController = async (req: Request, res: Response):
             };
 
         const dispatch = await sendFireAlarmPushToAll(payload);
-        lastFireAlarmSentAt = now;
 
         res.ok({
-            skipped: false,
-            cooldownMs,
-            sentAt: now,
+            sentAt: Date.now(),
             dispatch,
         });
     } catch (error: any) {
         console.error('[PushController] Falha ao enviar push de alarme:', error?.message || error);
         res.fail(error?.message || 'Falha ao enviar push de alarme.', 500, error?.message || error);
+    }
+};
+
+export const pushSendController = async (req: Request, res: Response): Promise<void> => {
+    const body = req.body;
+    if (!isPlainObject(body)) {
+        res.fail('Body invalido. Envie um objeto com title/body.', 400);
+        return;
+    }
+
+    const payload: GenericPushPayload = {
+        title: typeof body.title === 'string' ? body.title : undefined,
+        body: typeof body.body === 'string' ? body.body : undefined,
+        tag: typeof body.tag === 'string' ? body.tag : undefined,
+        icon: typeof body.icon === 'string' ? body.icon : undefined,
+        badge: typeof body.badge === 'string' ? body.badge : undefined,
+        requireInteraction: typeof body.requireInteraction === 'boolean' ? body.requireInteraction : undefined,
+        data: isPlainObject(body.data) ? body.data : undefined,
+    };
+
+    try {
+        const dispatch = await sendGenericPushToAll(payload);
+        res.ok({
+            sentAt: Date.now(),
+            dispatch,
+        });
+    } catch (error: any) {
+        console.error('[PushController] Falha ao enviar push generico:', error?.message || error);
+        res.fail(error?.message || 'Falha ao enviar push.', 500, error?.message || error);
     }
 };

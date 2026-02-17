@@ -5,16 +5,14 @@ import {
     type StoredPushSubscription,
 } from '../repositories/push-subscription.repository';
 
-export type FireAlarmEventPayload = {
-    source?: string;
-    triggeredAt?: string;
-    counters?: {
-        alarme?: number;
-        falha?: number;
-        supervisao?: number;
-        bloqueio?: number;
-    };
-    latestAlarmLogs?: unknown[];
+export type GenericPushPayload = {
+    title?: string;
+    body?: string;
+    tag?: string;
+    icon?: string;
+    badge?: string;
+    requireInteraction?: boolean;
+    data?: Record<string, unknown>;
 };
 
 export type PushDispatchSummary = {
@@ -48,7 +46,7 @@ export const getPublicPushKey = (): string => {
     return VAPID_PUBLIC_KEY;
 };
 
-const toNotificationPayload = (eventPayload?: FireAlarmEventPayload): Record<string, unknown> => {
+const toDefaultFireAlarmPayload = (eventPayload?: Record<string, any>): Record<string, unknown> => {
     const triggeredAt = eventPayload?.triggeredAt || new Date().toISOString();
     const counters = {
         alarme: Number(eventPayload?.counters?.alarme || 0),
@@ -78,6 +76,25 @@ const toNotificationPayload = (eventPayload?: FireAlarmEventPayload): Record<str
     };
 };
 
+const toGenericNotificationPayload = (payload?: GenericPushPayload): Record<string, unknown> => {
+    const safeTitle = typeof payload?.title === 'string' && payload.title.trim()
+        ? payload.title.trim()
+        : 'Notificacao';
+    const safeBody = typeof payload?.body === 'string' && payload.body.trim()
+        ? payload.body.trim()
+        : 'Nova notificacao.';
+
+    return {
+        title: safeTitle,
+        body: safeBody,
+        tag: typeof payload?.tag === 'string' && payload.tag.trim() ? payload.tag.trim() : 'general',
+        requireInteraction: Boolean(payload?.requireInteraction),
+        icon: typeof payload?.icon === 'string' && payload.icon.trim() ? payload.icon.trim() : '/icons/icon-192.png',
+        badge: typeof payload?.badge === 'string' && payload.badge.trim() ? payload.badge.trim() : '/icons/icon-192.png',
+        data: payload?.data && typeof payload.data === 'object' ? payload.data : { url: '/dashboard' },
+    };
+};
+
 const isInvalidEndpointError = (error: unknown): boolean => {
     const statusCode = (error as WebPushError)?.statusCode;
     return statusCode === 404 || statusCode === 410;
@@ -89,7 +106,7 @@ const toWebPushSubscription = (stored: StoredPushSubscription) => ({
     keys: stored.keys,
 });
 
-export const sendFireAlarmPushToAll = async (eventPayload?: FireAlarmEventPayload): Promise<PushDispatchSummary> => {
+const sendPushToAllInternal = async (payload: Record<string, unknown>): Promise<PushDispatchSummary> => {
     ensureWebPushConfigured();
 
     const subscriptions = await listAllPushSubscriptions();
@@ -102,7 +119,7 @@ export const sendFireAlarmPushToAll = async (eventPayload?: FireAlarmEventPayloa
         };
     }
 
-    const payload = JSON.stringify(toNotificationPayload(eventPayload));
+    const encodedPayload = JSON.stringify(payload);
 
     let sent = 0;
     let failed = 0;
@@ -110,7 +127,7 @@ export const sendFireAlarmPushToAll = async (eventPayload?: FireAlarmEventPayloa
 
     await Promise.all(subscriptions.map(async ({ subscription }) => {
         try {
-            await webpush.sendNotification(toWebPushSubscription(subscription), payload);
+            await webpush.sendNotification(toWebPushSubscription(subscription), encodedPayload);
             sent += 1;
         } catch (error) {
             failed += 1;
@@ -127,3 +144,9 @@ export const sendFireAlarmPushToAll = async (eventPayload?: FireAlarmEventPayloa
         removedInvalid,
     };
 };
+
+export const sendFireAlarmPushToAll = async (eventPayload?: Record<string, unknown>): Promise<PushDispatchSummary> =>
+    sendPushToAllInternal(toDefaultFireAlarmPayload(eventPayload));
+
+export const sendGenericPushToAll = async (payload?: GenericPushPayload): Promise<PushDispatchSummary> =>
+    sendPushToAllInternal(toGenericNotificationPayload(payload));
