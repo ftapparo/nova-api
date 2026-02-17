@@ -2878,7 +2878,7 @@
         "tags": [
           "CIE"
         ],
-        "summary": "Reativar bip interno",
+        "summary": "Reativar bip interno (nao suportado remotamente na CIE2500)",
         "responses": {
           "200": {
             "description": "Sucesso",
@@ -2917,11 +2917,19 @@
             }
           },
           "409": {
-            "description": "Falha no gateway CIE",
+            "description": "Comando nao suportado remotamente nesta central",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorResponse"
+                },
+                "example": {
+                  "data": null,
+                  "message": "Reativar bip nao e suportado por comando remoto nesta central.",
+                  "errors": {
+                    "traceId": "swagger-example",
+                    "details": "A reativacao do bip ocorre localmente na central ou apos reinicio."
+                  }
                 }
               }
             },
