@@ -4137,6 +4137,16 @@
             "type": "string",
             "nullable": true
           },
+          "deviceTypeCode": {
+            "type": "integer",
+            "nullable": true,
+            "example": 1
+          },
+          "deviceTypeLabel": {
+            "type": "string",
+            "nullable": true,
+            "example": "Sensor de Fumaca"
+          },
           "deviceClassification": {
             "$ref": "#/components/schemas/CieDeviceClassification",
             "nullable": true
