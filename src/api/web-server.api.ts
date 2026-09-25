@@ -16,6 +16,7 @@ import { commandAuditMiddleware } from '../middleware/command-audit';
 import commandLogRoutes from '../routes/command-log.routes';
 import { requestContextMiddleware } from '../middleware/request-context';
 import pushRoutes from '../routes/push.routes';
+import { buildCorsOptions, rateLimit, requireFlag, securityHeaders } from '../middleware/security';
 
 const swaggerUiOptions = {
     swaggerOptions: {
@@ -33,24 +34,33 @@ export async function StartWebServer(): Promise<void> {
     const port = process.env.PORT || 3000;
 
     /**
-     * Middleware de CORS para permitir requisições de qualquer origem e métodos principais.
+     * O serviço roda atrás do túnel Cloudflare, que atua como proxy.
+     * Sem isto, req.ip seria sempre o IP do cloudflared.
      */
-    app.use(cors({
-        origin: '*',
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: '*',
-        credentials: false
-    }));
+    app.set('trust proxy', true);
+    app.disable('x-powered-by');
+
+    /**
+     * Cabeçalhos de segurança aplicados a todas as respostas.
+     */
+    app.use(securityHeaders);
+
+    /**
+     * Middleware de CORS restrito às origens configuradas em CORS_ALLOWED_ORIGINS.
+     */
+    const corsOptions = buildCorsOptions();
+    app.use(cors(corsOptions));
 
     /**
      * Middleware para tratar requisições OPTIONS (CORS Preflight).
      */
-    app.options(/.*/, cors());
+    app.options(/.*/, cors(corsOptions));
 
     /**
-     * Middleware para parsear JSON nas requisições.
+     * Middleware para parsear JSON nas requisições, com limite de tamanho.
      */
-    app.use(express.json());
+    app.use(express.json({ limit: process.env.BODY_LIMIT || '256kb', strict: true }));
+    app.use(express.urlencoded({ extended: false, limit: process.env.BODY_LIMIT || '256kb' }));
     app.use(requestContextMiddleware);
     app.use(commandAuditMiddleware);
 
@@ -68,7 +78,37 @@ export async function StartWebServer(): Promise<void> {
      * - /v2/api/query: Consultas diversas
      * - /v2/api/control: Controles diversos (portas, portões)
      */
+    /**
+     * Limite geral: protege contra varredura e uso abusivo da API.
+     * O healthcheck fica fora para não interferir no monitoramento do Docker.
+     */
+    const generalLimit = rateLimit({
+        windowMs: 60_000,
+        max: Number(process.env.RATE_LIMIT_GENERAL_MAX || 120),
+        name: 'geral',
+    });
+
+    /**
+     * Limite estrito para rotas que acionam hardware ou disparam notificações.
+     * Estes são os endpoints cujo abuso tem consequência física.
+     */
+    const commandLimit = rateLimit({
+        windowMs: 60_000,
+        max: Number(process.env.RATE_LIMIT_COMMAND_MAX || 15),
+        name: 'comando',
+    });
+
     app.use('/v2/api', healthRoutes);
+
+    app.use('/v2/api/control', commandLimit);
+    app.use('/v2/api/exhausts', commandLimit);
+    app.use('/v2/api/cie/commands', commandLimit);
+    app.use('/v2/api/push/send', commandLimit);
+    app.use('/v2/api/push/events', commandLimit);
+    app.use('/v2/api/access/register', commandLimit);
+
+    app.use('/v2/api', generalLimit);
+
     app.use('/v2/api', accessRoutes);
     app.use('/v2/api', vehicleRoutes);
     app.use('/v2/api', vehicleV2Routes);
@@ -81,14 +121,17 @@ export async function StartWebServer(): Promise<void> {
     app.use('/v2/api', pushRoutes);
 
     /**
-     * Rota para servir a documentação Swagger UI.
+     * Documentação Swagger.
+     *
+     * Desabilitada por padrão: o spec cataloga todos os endpoints, incluindo
+     * os que acionam portões e a central de incêndio. Habilitar apenas em
+     * desenvolvimento, via SWAGGER_ENABLED=true.
      */
-    app.use('/v2/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerUiOptions));
+    const swaggerGuard = requireFlag('SWAGGER_ENABLED', 'Not Found');
 
-    /**
-     * Endpoint para servir o arquivo swagger.json (OpenAPI spec).
-     */
-    app.get('/v2/apispec_1.json', (_req, res) => {
+    app.use('/v2/swagger', swaggerGuard, swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerUiOptions));
+
+    app.get('/v2/apispec_1.json', swaggerGuard, (_req, res) => {
         res.setHeader('Content-Type', 'application/json');
         res.send(swaggerDocument);
     });
