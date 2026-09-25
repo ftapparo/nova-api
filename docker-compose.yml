@@ -10,8 +10,9 @@ services:
     environment:
       - NODE_ENV=production
       - USER_SETTINGS_DIR=/app/storage/user-settings
-    env_file:
-      - .env
+    # env_file removido: no Portainer (stack via Git), o .env nao esta no
+    # clone (fica no .gitignore por conter segredos). As variaveis vem do
+    # campo "Environment variables" da stack.
     volumes:
       - C:/Servidor/docker/logs/api:/app/logs
       - C:/Servidor/docker/data/nova-api/user-settings:/app/storage/user-settings
