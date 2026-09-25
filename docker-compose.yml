@@ -7,12 +7,64 @@ services:
     restart: unless-stopped
     ports:
       - "3030:3030"
+    # env_file removido: no Portainer (stack via Git), o .env nao esta no
+    # clone (fica no .gitignore por conter segredos).
+    #
+    # IMPORTANTE: "Environment variables" da stack no Portainer NAO injeta
+    # variaveis no container automaticamente - elas so ficam disponiveis
+    # para interpolacao do compose (as referencias abaixo). Cada uma precisa
+    # ser listada aqui explicitamente para chegar ao processo do container.
     environment:
       - NODE_ENV=production
       - USER_SETTINGS_DIR=/app/storage/user-settings
-    # env_file removido: no Portainer (stack via Git), o .env nao esta no
-    # clone (fica no .gitignore por conter segredos). As variaveis vem do
-    # campo "Environment variables" da stack.
+      - PORT=${PORT}
+      - FIREBIRD_HOST=${FIREBIRD_HOST}
+      - FIREBIRD_PORT=${FIREBIRD_PORT}
+      - FIREBIRD_DATABASE=${FIREBIRD_DATABASE}
+      - FIREBIRD_USER=${FIREBIRD_USER}
+      - FIREBIRD_PASSWORD=${FIREBIRD_PASSWORD}
+      - FIREBIRD_POOL_SIZE=${FIREBIRD_POOL_SIZE}
+      - FREEDOM_HOST=${FREEDOM_HOST}
+      - FREEDOM_PORT=${FREEDOM_PORT}
+      - CONTROL_BASE_URL=${CONTROL_BASE_URL}
+      - CONTROL_TIMEOUT_MS=${CONTROL_TIMEOUT_MS}
+      - TAG_CONTROL_HOST=${TAG_CONTROL_HOST}
+      - TAG_CONTROL_BASE_PORT=${TAG_CONTROL_BASE_PORT}
+      - EXHAUST_A_14_HOST=${EXHAUST_A_14_HOST}
+      - EXHAUST_A_58_HOST=${EXHAUST_A_58_HOST}
+      - EXHAUST_B_14_HOST=${EXHAUST_B_14_HOST}
+      - EXHAUST_B_58_HOST=${EXHAUST_B_58_HOST}
+      - EXHAUST_C_14_HOST=${EXHAUST_C_14_HOST}
+      - EXHAUST_C_58_HOST=${EXHAUST_C_58_HOST}
+      - EXHAUST_PWR_14_HOST=${EXHAUST_PWR_14_HOST}
+      - EXHAUST_PWR_58_HOST=${EXHAUST_PWR_58_HOST}
+      - EXHAUST_MEMORY_DIR=${EXHAUST_MEMORY_DIR}
+      - EXHAUST_SWEEP_INTERVAL_MS=${EXHAUST_SWEEP_INTERVAL_MS}
+      - VEHICLE_LOOKUP_TIMEOUT_MS=${VEHICLE_LOOKUP_TIMEOUT_MS}
+      - VEHICLE_LOOKUP_PROVIDER_1_URL=${VEHICLE_LOOKUP_PROVIDER_1_URL}
+      - VEHICLE_LOOKUP_PROVIDER_2_URL=${VEHICLE_LOOKUP_PROVIDER_2_URL}
+      - VEHICLE_LOOKUP_PROVIDER_3_URL=${VEHICLE_LOOKUP_PROVIDER_3_URL}
+      - VEHICLE_LOOKUP_SCRAPING_ENABLED=${VEHICLE_LOOKUP_SCRAPING_ENABLED}
+      - VEHICLE_LOOKUP_SCRAPING_API1_ENABLED=${VEHICLE_LOOKUP_SCRAPING_API1_ENABLED}
+      - VEHICLE_LOOKUP_SCRAPING_API2_ENABLED=${VEHICLE_LOOKUP_SCRAPING_API2_ENABLED}
+      - VEHICLE_LOOKUP_WDAPI_ENABLED=${VEHICLE_LOOKUP_WDAPI_ENABLED}
+      - VEHICLE_LOOKUP_WDAPI_URL_TEMPLATE=${VEHICLE_LOOKUP_WDAPI_URL_TEMPLATE}
+      - VEHICLE_LOOKUP_WDAPI_TOKEN=${VEHICLE_LOOKUP_WDAPI_TOKEN}
+      - PUPPETEER_EXECUTABLE_PATH=${PUPPETEER_EXECUTABLE_PATH}
+      - PUPPETEER_HEADLESS=${PUPPETEER_HEADLESS}
+      - LOG_TO_FILE=${LOG_TO_FILE}
+      - LOG_DIR=${LOG_DIR}
+      - COMMAND_LOG_DIR=${COMMAND_LOG_DIR}
+      - COMMAND_LOG_RETENTION_DAYS=${COMMAND_LOG_RETENTION_DAYS}
+      - PUSH_SUBSCRIPTIONS_DIR=${PUSH_SUBSCRIPTIONS_DIR}
+      - WEB_PUSH_VAPID_PUBLIC_KEY=${WEB_PUSH_VAPID_PUBLIC_KEY}
+      - WEB_PUSH_VAPID_PRIVATE_KEY=${WEB_PUSH_VAPID_PRIVATE_KEY}
+      - WEB_PUSH_VAPID_SUBJECT=${WEB_PUSH_VAPID_SUBJECT}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - SWAGGER_ENABLED=${SWAGGER_ENABLED}
+      - BODY_LIMIT=${BODY_LIMIT}
+      - RATE_LIMIT_GENERAL_MAX=${RATE_LIMIT_GENERAL_MAX}
+      - RATE_LIMIT_COMMAND_MAX=${RATE_LIMIT_COMMAND_MAX}
     volumes:
       - C:/Servidor/docker/logs/api:/app/logs
       - C:/Servidor/docker/data/nova-api/user-settings:/app/storage/user-settings
