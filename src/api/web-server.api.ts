@@ -16,7 +16,7 @@ import { commandAuditMiddleware } from '../middleware/command-audit';
 import commandLogRoutes from '../routes/command-log.routes';
 import { requestContextMiddleware } from '../middleware/request-context';
 import pushRoutes from '../routes/push.routes';
-import { buildCorsOptions, rateLimit, requireFlag, securityHeaders } from '../middleware/security';
+import { buildCorsOptions, commandsOnly, rateLimit, requireFlag, securityHeaders } from '../middleware/security';
 
 const swaggerUiOptions = {
     swaggerOptions: {
@@ -100,12 +100,18 @@ export async function StartWebServer(): Promise<void> {
 
     app.use('/v2/api', healthRoutes);
 
-    app.use('/v2/api/control', commandLimit);
-    app.use('/v2/api/exhausts', commandLimit);
-    app.use('/v2/api/cie/commands', commandLimit);
-    app.use('/v2/api/push/send', commandLimit);
-    app.use('/v2/api/push/events', commandLimit);
-    app.use('/v2/api/access/register', commandLimit);
+    /**
+     * commandsOnly() garante que o limite estrito só se aplica a métodos de
+     * escrita (POST/PUT/PATCH/DELETE). /control e /exhausts também têm rotas
+     * GET de status (polling do dashboard) que devem seguir só sob o
+     * generalLimit, mais permissivo — ver nota de incidente de 25/09/2026.
+     */
+    app.use('/v2/api/control', commandsOnly(commandLimit));
+    app.use('/v2/api/exhausts', commandsOnly(commandLimit));
+    app.use('/v2/api/cie/commands', commandsOnly(commandLimit));
+    app.use('/v2/api/push/send', commandsOnly(commandLimit));
+    app.use('/v2/api/push/events', commandsOnly(commandLimit));
+    app.use('/v2/api/access/register', commandsOnly(commandLimit));
 
     app.use('/v2/api', generalLimit);
 

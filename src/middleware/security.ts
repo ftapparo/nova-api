@@ -143,6 +143,26 @@ export const rateLimit = ({ windowMs, max, name }: RateLimitOptions) => {
     };
 };
 
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/**
+ * Restringe um middleware a métodos de escrita (POST/PUT/PATCH/DELETE).
+ *
+ * Usado para aplicar o rate limit de comando apenas às rotas que de fato
+ * acionam hardware, mesmo quando elas compartilham prefixo de caminho com
+ * rotas de leitura (ex.: GET /control/status e POST /control/gate/open
+ * convivem sob /control). Sem isto, um limite pensado para "abrir portão"
+ * acaba estrangulando também o polling de status do dashboard.
+ */
+export const commandsOnly = (middleware: (req: Request, res: Response, next: NextFunction) => void) =>
+    (req: Request, res: Response, next: NextFunction): void => {
+        if (!WRITE_METHODS.has(req.method.toUpperCase())) {
+            next();
+            return;
+        }
+        middleware(req, res, next);
+    };
+
 /**
  * Resolve o IP real do cliente.
  *
