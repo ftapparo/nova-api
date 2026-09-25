@@ -164,6 +164,38 @@ export const commandsOnly = (middleware: (req: Request, res: Response, next: Nex
     };
 
 /**
+ * Executa o middleware apenas quando o caminho NÃO começa com um dos
+ * prefixos informados.
+ *
+ * Middlewares do Express se somam ao longo da cadeia: uma rota já
+ * contabilizada por um limite específico continuaria descendo e sendo
+ * contada de novo pelo limite geral. Este helper corta essa dupla
+ * contagem, deixando cada requisição sob um único bucket.
+ */
+export const exceptPaths = (
+    prefixes: string[],
+    middleware: (req: Request, res: Response, next: NextFunction) => void,
+) => {
+    const normalized = prefixes.map((prefix) => prefix.replace(/\/+$/, ''));
+
+    return (req: Request, res: Response, next: NextFunction): void => {
+        // req.path dentro de app.use('/v2/api', ...) já vem sem o prefixo de
+        // montagem, então a comparação usa o caminho original da requisição.
+        const fullPath = (req.originalUrl || req.url || '').split('?')[0];
+        const isExcluded = normalized.some(
+            (prefix) => fullPath === prefix || fullPath.startsWith(`${prefix}/`),
+        );
+
+        if (isExcluded) {
+            next();
+            return;
+        }
+
+        middleware(req, res, next);
+    };
+};
+
+/**
  * Resolve o IP real do cliente.
  *
  * Atrás do túnel Cloudflare, req.ip é o IP do cloudflared. O IP do visitante

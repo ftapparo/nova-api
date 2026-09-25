@@ -16,7 +16,29 @@ import { commandAuditMiddleware } from '../middleware/command-audit';
 import commandLogRoutes from '../routes/command-log.routes';
 import { requestContextMiddleware } from '../middleware/request-context';
 import pushRoutes from '../routes/push.routes';
-import { buildCorsOptions, commandsOnly, rateLimit, requireFlag, securityHeaders } from '../middleware/security';
+import { buildCorsOptions, commandsOnly, exceptPaths, rateLimit, requireFlag, securityHeaders } from '../middleware/security';
+
+/**
+ * Rotas de leitura consultadas em polling contínuo pelo painel.
+ *
+ * Ficam num bucket de rate limit próprio e são excluídas do limite geral,
+ * para que o polling do dashboard não dispute espaço com o restante da API.
+ */
+const POLLING_PATHS = [
+    '/v2/api/control/status',
+    '/v2/api/exhausts/status',
+    '/v2/api/exhausts/process/status',
+    // Central de incêndio: a tela consulta o painel a cada 4s e os logs a
+    // cada 2s enquanto aberta — o polling mais intenso do sistema hoje.
+    // Ainda é HTTP; o CIE expõe um WebSocket (/v1/ws), mas o painel não o
+    // consome. Migrar para WS eliminaria este tráfego por completo.
+    '/v2/api/cie/panel',
+    '/v2/api/cie/status',
+    '/v2/api/cie/logs',
+    '/v2/api/cie/alarms/active',
+    '/v2/api/cie/counters/blocks',
+    '/v2/api/cie/counters/outputs',
+];
 
 const swaggerUiOptions = {
     swaggerOptions: {
@@ -98,13 +120,45 @@ export async function StartWebServer(): Promise<void> {
         name: 'comando',
     });
 
+    /**
+     * Limite dedicado ao polling de status do dashboard.
+     *
+     * Incidente de 25/09/2026: as rotas GET de status competiam pelo mesmo
+     * bucket do generalLimit usado por todo o resto da API. O painel soma
+     * polling de várias origens simultâneas:
+     *
+     *   - control/status + exhausts/status ... 15s (DashboardContext)
+     *   - histórico de acessos e de comandos  15s (roda em qualquer página)
+     *   - exhausts/process/status ........... 60s (tela de Exaustores)
+     *   - cie/panel ......................... 4s  (Central de Incêndio)
+     *   - cie/logs .......................... 2s  (Central de Incêndio)
+     *
+     * Só a Central de Incêndio aberta já são ~45 req/min. Somado ao resto,
+     * o limite geral estourava em uso normal e gerava 429 — que o navegador
+     * reporta como falso bloqueio de CORS, mascarando a causa real.
+     *
+     * Isolar essas rotas em bucket próprio, bem mais alto, resolve sem
+     * precisar inflar o limite geral que protege o resto da API.
+     */
+    const pollingLimit = rateLimit({
+        windowMs: 60_000,
+        max: Number(process.env.RATE_LIMIT_POLLING_MAX || 600),
+        name: 'polling',
+    });
+
     app.use('/v2/api', healthRoutes);
+
+    /**
+     * Rotas de status consultadas em polling pelo dashboard: bucket próprio,
+     * generoso, antes de qualquer outro limite.
+     */
+    app.use(POLLING_PATHS, pollingLimit);
 
     /**
      * commandsOnly() garante que o limite estrito só se aplica a métodos de
      * escrita (POST/PUT/PATCH/DELETE). /control e /exhausts também têm rotas
-     * GET de status (polling do dashboard) que devem seguir só sob o
-     * generalLimit, mais permissivo — ver nota de incidente de 25/09/2026.
+     * GET de status (polling do dashboard) que já foram tratadas acima —
+     * aqui sobra só o que precisa mesmo do limite de comando.
      */
     app.use('/v2/api/control', commandsOnly(commandLimit));
     app.use('/v2/api/exhausts', commandsOnly(commandLimit));
@@ -113,7 +167,12 @@ export async function StartWebServer(): Promise<void> {
     app.use('/v2/api/push/events', commandsOnly(commandLimit));
     app.use('/v2/api/access/register', commandsOnly(commandLimit));
 
-    app.use('/v2/api', generalLimit);
+    /**
+     * O limite geral pula as rotas de polling: elas já foram contabilizadas
+     * no bucket dedicado acima. Sem isto, cada requisição de status contaria
+     * duas vezes e voltaria a estourar o limite geral em uso normal.
+     */
+    app.use('/v2/api', exceptPaths(POLLING_PATHS, generalLimit));
 
     app.use('/v2/api', accessRoutes);
     app.use('/v2/api', vehicleRoutes);
