@@ -1,0 +1,96 @@
+services:
+  postgres:
+    # Debian/Ubuntu, não Alpine: a imagem Alpine não traz pacotes de locale
+    # instalados, então locales glibc (ex: "en_US.utf8") viram só um nome
+    # sem efeito real (cai em C locale por baixo, sem avisar com erro) —
+    # foi o que aconteceu na primeira tentativa.
+    #
+    # pt_BR.UTF-8 (formato glibc) NÃO existe nesta imagem: só en_US.utf8 e
+    # C.UTF-8 vêm gerados de fábrica (confirmado via docker inspect em
+    # 25/09/2026). --locale=pt_BR.UTF-8 falha com "invalid locale name".
+    #
+    # Solução: usar o provider ICU (--locale-provider=icu), que é uma
+    # biblioteca própria (libicu) embutida na imagem, independente de
+    # locales glibc gerados no sistema. Nele, "pt-BR-x-icu" existe sempre.
+    # Isso configura o CLUSTER INTEIRO para colação ICU pt-BR — não precisa
+    # repetir COLLATE em cada CREATE TABLE depois.
+    #
+    # ⚠️ Se esta tentativa também falhar (ex: "ICU is not supported" — a
+    # imagem teria sido compilada sem libicu, o que seria incomum mas não
+    # impossível), o plano B é --locale=en_US.utf8 puro (testado e
+    # garantido nesta imagem) + COLLATE "pt-BR-x-icu" manual por coluna
+    # nas tabelas de texto que importam (nome, endereço) na seção 4.
+    image: postgres:16
+    container_name: nova-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale-provider=icu --icu-locale=pt-BR-x-icu
+    volumes:
+      - C:/Servidor/docker/data/postgres:/var/lib/postgresql/data
+    networks:
+      - nova-network
+    ports:
+      # ⚠️ "5432:5432" publica em TODAS as interfaces do host (0.0.0.0),
+      # não só na rota do Cloudflare WARP. A segurança real aqui NÃO vem
+      # do compose — vem de uma regra de firewall no Windows do servidor
+      # bloqueando entrada na porta 5432 de qualquer origem que não seja
+      # a rota autorizada. Ver docs/ETAPA-2-INFRAESTRUTURA.md §3.1a para
+      # o comando exato do firewall. Sem essa regra, isto expõe o Postgres
+      # a qualquer máquina na rede local do condomínio.
+      #
+      # Uso: acesso pontual via pgAdmin/DBeaver/psql para migrações e
+      # consultas manuais. A nova-api continua falando com "postgres:5432"
+      # por dentro da rede Docker (nova-network), sem passar por aqui.
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backup:
+    image: nova-postgres-backup:latest
+    build:
+      # Caminho relativo a este docker-compose.yml. No Portainer, ao apontar
+      # o "Build context" desta stack para API/infra/postgres, este build
+      # ainda resolve corretamente para API/infra/postgres/backup.
+      context: ./backup
+    container_name: nova-postgres-backup
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-14}
+      - TZ=America/Sao_Paulo
+    volumes:
+      - C:/Servidor/docker/backups/postgres:/backups
+      # Somente leitura: o container de backup nunca deve poder alterar as
+      # credenciais do rclone, só usá-las.
+      - C:/Servidor/docker/rclone:/config/rclone:ro
+    networks:
+      - nova-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Sem "ports": este serviço só executa o cron internamente, não expõe
+    # nenhuma API — não há motivo para ser alcançável de fora do container.
+
+networks:
+  nova-network:
+    external: true
+    name: nova-network

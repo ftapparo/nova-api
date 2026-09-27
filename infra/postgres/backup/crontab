@@ -1,0 +1,5 @@
+# Todo dia às 3h da manhã — horário de baixo uso, fora do expediente da
+# portaria. Saída redirecionada para stdout/stderr do processo cron (fd 1),
+# assim aparece nos logs do container no Portainer, não só num arquivo
+# interno que ninguém olha.
+0 3 * * * /usr/local/bin/backup.sh >>/proc/1/fd/1 2>>/proc/1/fd/2
