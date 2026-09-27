@@ -30,11 +30,11 @@
 --                           só como alvo desses GRANTs internos — ver seção 3.
 --
 --                           GRANT ALL ON SCHEMA public TO supabase_auth_admin
---                           (também na seção 3) foi aplicado como tentativa
---                           anterior a esta descoberta; mantido por segurança
---                           mas pode não ser mais necessário — reavaliar e
---                           possivelmente revogar depois que a subida
---                           completa do GoTrue for confirmada estável.
+--                           foi aplicado em 25/09/2026 como tentativa anterior
+--                           a esta descoberta, e REVOGADO em 27/09/2026 depois
+--                           de confirmar (via psql + restart do container)
+--                           que o GoTrue segue healthy sem ele. Isolamento de
+--                           schema entre auth e public alcançado por completo.
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -112,13 +112,18 @@ GRANT USAGE ON SCHEMA auth TO supabase_auth_admin;
 CREATE ROLE postgres NOLOGIN;
 
 -- ---------------------------------------------------------------------------
--- 3. Isolamento entre os dois roles de serviço.
+-- 3. Isolamento entre os dois roles de serviço — ALCANÇADO E CONFIRMADO.
 --
---    nova_api_app segue sem qualquer acesso a "auth" — isolamento mantido
---    nessa direção. supabase_auth_admin recebeu acesso a "public" (linha
---    abaixo) como tentativa anterior à descoberta do problema real (role
---    "postgres" ausente); mantido por segurança, mas reavaliar depois de
---    confirmar a subida estável do GoTrue — pode não ser mais necessário.
+--    nova_api_app não tem qualquer acesso a "auth". supabase_auth_admin não
+--    tem qualquer acesso a "public" (o GRANT ALL aplicado em 25/09/2026 como
+--    tentativa anterior à descoberta do problema real — role "postgres"
+--    ausente — foi REVOGADO em 27/09/2026, depois de confirmar que o
+--    GoTrue continua healthy sem ele; ver CHECKLIST.md).
+--
+--    Verificado via psql em 27/09/2026:
+--      - pg_namespace.nspacl de "public" não lista mais supabase_auth_admin
+--      - SELECT count(*) FROM auth.users segue funcionando
+--      - Container nova-auth voltou a healthy após o restart
 --
 -- ⚠️ IMPORTANTE sobre ordem: esta seção precisa rodar DEPOIS dos
 --    GRANT CONNECT acima, nunca antes. REVOKE ALL ON DATABASE ... FROM
@@ -130,6 +135,5 @@ CREATE ROLE postgres NOLOGIN;
 -- ---------------------------------------------------------------------------
 REVOKE ALL ON DATABASE nova_residence FROM PUBLIC;
 
--- Solução pragmática aplicada em 25/09/2026 para desbloquear a subida do
--- GoTrue — ver nota de dívida técnica no topo do arquivo antes de remover.
-GRANT ALL ON SCHEMA public TO supabase_auth_admin;
+-- Nada a conceder aqui: supabase_auth_admin fica só com o schema "auth"
+-- (seção 2) e nova_api_app só com "public" (seção 1). Isolamento completo.
