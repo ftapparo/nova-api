@@ -7,7 +7,7 @@ services:
     container_name: nova-auth
     restart: unless-stopped
     # Sem "depends_on": o postgres está em outra stack do Portainer
-    # (infra/postgres/), não neste mesmo arquivo — depends_on só funciona
+    # (API/infra/postgres/), não neste mesmo arquivo — depends_on só funciona
     # entre serviços declarados no mesmo compose. A conexão é resolvida
     # em runtime pela nova-network (nome de serviço "postgres"); a
     # checagem de prontidão fica a cargo do healthcheck abaixo, com
@@ -20,7 +20,7 @@ services:
       GOTRUE_DB_DRIVER: postgres
       # Role dedicado supabase_auth_admin (não o nova_app superusuário nem
       # o nova_api_app da aplicação) — isolamento de privilégio mínimo.
-      # Ver infra/postgres/setup-roles.sql.
+      # Ver API/infra/postgres/setup-roles.sql.
       GOTRUE_DB_DATABASE_URL: postgres://${SUPABASE_AUTH_ADMIN_USER}:${SUPABASE_AUTH_ADMIN_PASSWORD}@postgres:5432/${POSTGRES_DB}
       # Funciona: confirmado pelo log de migração criando auth.schema_migrations,
       # auth.users, auth.refresh_tokens etc. Sem esta variável, o GoTrue usaria
