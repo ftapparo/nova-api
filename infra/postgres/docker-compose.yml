@@ -66,6 +66,17 @@ services:
       context: ./backup
     container_name: nova-postgres-backup
     restart: unless-stopped
+    # init: true faz o Docker usar o tini embutido no Engine como PID 1
+    # real do container, em vez do crond assumir esse papel diretamente.
+    #
+    # Causa do crash loop original: sem um init de verdade, o crond roda
+    # como PID 1 e tenta setpgid() para isolar cada job cron em seu próprio
+    # grupo de processo — chamada que falha com "Operation not permitted"
+    # quando quem ocupa o PID 1 não tem os privilégios que um init normal
+    # teria. O log mostrava a falha se repetindo até o processo encerrar,
+    # e o Docker reiniciava o container em loop (visto no Portainer como
+    # "Container is restarting").
+    init: true
     depends_on:
       - postgres
     environment:
