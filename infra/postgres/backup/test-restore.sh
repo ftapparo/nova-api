@@ -54,8 +54,15 @@ for i in $(seq 1 30); do
 done
 
 echo "[test-restore] Restaurando dump..."
-docker cp "${DUMP_FILE}" "${TEST_CONTAINER}:/tmp/restore.dump"
-docker exec -e PGPASSWORD="${TEST_PASSWORD}" "${TEST_CONTAINER}" \
+# MSYS_NO_PATHCONV=1: no Git Bash do Windows, o MSYS reescreve automaticamente
+# qualquer argumento com cara de caminho Unix (ex: "/tmp/restore.dump") para
+# um caminho Windows (ex: "C:/Users/.../Temp/restore.dump"), pensando que é
+# um caminho local — mas aqui é um caminho DENTRO do container, que não deve
+# ser tocado. Sem isso, "docker cp"/"docker exec" recebem o caminho errado e
+# o pg_restore falha com "No such file or directory". Em Linux/macOS esta
+# variável não existe e não tem efeito nenhum — a linha é inofensiva lá.
+MSYS_NO_PATHCONV=1 docker cp "${DUMP_FILE}" "${TEST_CONTAINER}:/tmp/restore.dump"
+MSYS_NO_PATHCONV=1 docker exec -e PGPASSWORD="${TEST_PASSWORD}" "${TEST_CONTAINER}" \
     pg_restore -U postgres -d "${TEST_DB}" --no-owner --role=postgres -v /tmp/restore.dump \
     || { echo "[test-restore] FALHOU: pg_restore retornou erro"; exit 1; }
 
