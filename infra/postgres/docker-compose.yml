@@ -64,6 +64,15 @@ services:
       # o "Build context" desta stack para API/infra/postgres, este build
       # ainda resolve corretamente para API/infra/postgres/backup.
       context: ./backup
+    # pull_policy: build — ESSENCIAL. Sem isto, "Pull and redeploy" do
+    # Portainer (e qualquer `docker compose pull`) tenta baixar
+    # nova-postgres-backup:latest de um registry remoto, que não existe
+    # (a imagem só é criada localmente pelo "build:" acima). Isso falhava
+    # com "pull access denied ... repository does not exist" e travava
+    # o redeploy da stack inteira — inclusive do serviço "postgres", que
+    # nada tinha a ver com o problema. "build" força sempre reconstruir
+    # a imagem local em vez de tentar puxá-la de fora.
+    pull_policy: build
     container_name: nova-postgres-backup
     restart: unless-stopped
     # init: true faz o Docker usar o tini embutido no Engine como PID 1
