@@ -893,9 +893,10 @@
                 "type": "object",
                 "properties": {
                   "idToken": { "type": "string", "description": "id_token emitido pelo Google Sign-In." },
-                  "nonce": { "type": "string", "description": "Obrigatório se o app gerou nonce no login do Google." }
+                  "nonce": { "type": "string", "description": "NÃO enviar, a menos que o app tenha gerado um nonce no login do Google — um nonce ausente do token faz o login ser recusado." }
                 },
-                "required": ["idToken"]
+                "required": ["idToken"],
+                "example": { "idToken": "eyJhbGciOiJSUzI1NiIs..." }
               }
             }
           }

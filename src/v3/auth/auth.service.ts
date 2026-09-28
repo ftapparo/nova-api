@@ -53,8 +53,20 @@ const toSessionData = (session: GoTrueSession): SessionData => ({
 const classifyError = (error: unknown, operation: string): AuthFailure => {
     if (axios.isAxiosError(error) && error.response) {
         const status = error.response.status;
+        const errorCode = (error.response.data as { error_code?: string } | undefined)?.error_code ?? 'sem-codigo';
         if (status === 429) return 'rate-limited';
-        if (status >= 400 && status < 500) return 'invalid-credentials';
+        // Provedor desligado é erro de configuração do nova-auth, não do
+        // usuário: 503 para o cliente e log de erro, em vez de um 401 mudo
+        // (custou uma rodada de diagnóstico em 28/09/2026).
+        if (errorCode === 'provider_disabled') {
+            logger.error(`[ApiV3] Supabase Auth: provedor desabilitado em ${operation} — conferir GOOGLE_ENABLED na stack nova-auth.`);
+            return 'unavailable';
+        }
+        if (status >= 400 && status < 500) {
+            // Só o código do GoTrue — nunca o corpo, que ecoa e-mail/token.
+            logger.warn(`[ApiV3] Supabase Auth recusou ${operation}: ${status} ${errorCode}`);
+            return 'invalid-credentials';
+        }
         logger.error(`[ApiV3] Supabase Auth respondeu ${status} em ${operation}.`);
         return 'unavailable';
     }
