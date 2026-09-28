@@ -4,6 +4,7 @@ import fastifySwaggerUi from '@fastify/swagger-ui';
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import logger from '../core/utils/logger';
 import { healthRoutes } from './routes/health.routes';
+import { registerErrorHandler, responseHelpersPlugin } from './lib/reply-helpers';
 
 /**
  * Bootstrap da v3 (Fastify + Zod). Roda num processo/porta própria,
@@ -24,6 +25,12 @@ export async function StartWebServerV3(): Promise<void> {
 
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
+
+    // Mecanismo de resposta padrão da v3 (reply.ok()/reply.fail()) e
+    // tratamento central de erro — ver src/v3/lib/response.ts para o
+    // desenho completo do envelope.
+    await app.register(responseHelpersPlugin);
+    registerErrorHandler(app);
 
     // Mesma flag que protege o Swagger da v2 (SWAGGER_ENABLED): o spec
     // cataloga endpoints sensíveis (portões, central de incêndio), então
