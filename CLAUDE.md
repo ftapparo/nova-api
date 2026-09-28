@@ -1,0 +1,65 @@
+# nova-api
+
+API principal do Condomínio Nova Residence. Integra o ERP Freedom PROANSI (Firebird) com controle de acesso físico (portões, portas, veículos), exaustores, gateway para a central de incêndio (`nova-cie`), push notifications e configurações de usuário. Consumida pelo painel administrativo (`FRONT`) e, futuramente, por apps mobile.
+
+Veja `README.md` para a visão completa (arquitetura, endpoints, variáveis de ambiente) e `CHANGELOG.md` para o histórico. Este arquivo é só o contexto operacional para trabalhar no código.
+
+## Arquitetura
+
+```
+src/
+  core/         # lógica de negócio, sem framework HTTP — reaproveitável por qualquer camada de API
+    services/   # firebird, exhaust, access-control, push, vehicle-lookup, command-log
+    repositories/  # Firebird (queries) e Postgres (user-settings, push-subscriptions)
+    utils/      # logger, pool de conexão Postgres
+
+  v2/           # API REST atual (Express) — não mexer na lógica de negócio aqui, só na camada HTTP
+    api/, controllers/, routes/, middleware/
+
+  scripts/      # scripts avulsos (ex.: migrate-json-to-postgres.ts)
+  server.ts     # entry point: inicializa core (Firebird, exaustores, controle de acesso) e a v2
+```
+
+**Regra importante**: `core/` nunca deve importar nada de Express ou de `v2/`. Uma v3 (Fastify + Zod, pensada para mobile) está planejada para rodar lado a lado com a v2 no mesmo processo, reaproveitando tudo em `core/` sem duplicar lógica. Trabalho em andamento na branch `nova-versao`.
+
+## Stack
+
+Node.js 20 + TypeScript, Express (v2), `node-firebird` (ERP), `pg` (Postgres), `web-push`, Puppeteer (scraping fallback), Winston (logs), Swagger.
+
+## Comandos
+
+```bash
+npm run build   # tsc
+npm start       # node dist/server.js
+npm run dev     # hot reload, usa .env.dev
+npx tsc --noEmit   # checar compilação sem gerar arquivos
+```
+
+Não há suíte de testes automatizados neste projeto ainda — validação é manual (build limpo + teste funcional local ou contra o servidor via VPN).
+
+## Persistência — dois bancos, propósitos diferentes
+
+- **Firebird** (`FIREBIRD_*`): dado operacional do condomínio (moradores, veículos, histórico de acesso). É o ERP legado, fonte de verdade — não fazer suposições sobre schema sem checar `core/repositories/`.
+- **PostgreSQL** (`nova-postgres`, `POSTGRES_*`/`NOVA_API_APP_*`): só `user_settings` e `push_subscriptions`. Acessado pela role `nova_api_app`, que só tem privilégio no schema `public` — nunca vai ter acesso ao schema `auth` (usado pelo Supabase Auth/GoTrue, serviço separado). Ver `infra/postgres/` para os composes e SQL de setup.
+
+## Convenções
+
+- Toda rota v2 fica sob `/v2/api`. Ao adicionar uma rota, seguir o padrão dos `routes/*.routes.ts` existentes (Router do Express, sem lógica — delega pro controller).
+- Rotas que acionam hardware físico (portão, exaustor, comandos CIE) ou enviam notificações passam pelo rate limit de comando (`commandsOnly()` em `middleware/security.ts`), não o geral.
+- Rotas de status consultadas em polling pelo painel (ex.: `/control/status`) devem entrar em `POLLING_PATHS` (`v2/api/web-server.api.ts`) para não competir com o rate limit geral — isso já causou um incidente de 429 falso-positivo, documentado no código.
+- Nunca commitar `.env` real nem segredos. `env_file`/`COPY .env` foram removidos de propósito do Dockerfile/compose — o Portainer roda stacks Git-based e injeta variáveis diretamente.
+- Ao mexer em `core/repositories/*.repository.ts` do Postgres, manter a mesma interface pública dos métodos exportados — os controllers em `v2/` dependem dela sem saber se por trás é arquivo, Postgres ou outra coisa.
+
+## Erros conhecidos e contexto histórico
+
+- **Locale do Postgres**: o cluster usa ICU (`--locale-provider=icu --icu-locale=pt-BR-x-icu`), não glibc — `pt_BR.UTF-8` não existe na imagem `postgres:16` (Debian). Ver `infra/postgres/docker-compose.yml` para o porquê comentado.
+- **GRANT CONNECT vs GRANT CREATE**: no Postgres, `GRANT CREATE ON DATABASE` não inclui `CONNECT` implicitamente — causou `permission denied for database` no GoTrue. Ver `infra/postgres/setup-roles.sql`.
+- **MSYS path conversion**: scripts bash rodados via Git Bash no Windows sofrem reescrita automática de caminhos tipo `/tmp/...` para caminho Windows. Usar `MSYS_NO_PATHCONV=1` nos comandos Docker afetados (ver `infra/postgres/backup/test-restore.sh`).
+
+## Outros serviços do ecossistema
+
+- `nova-tag`: antenas RFID de portão, conexão TCP direta com o hardware.
+- `nova-cie` (cie2500-api): central de incêndio Intelbras CIE2500, REST + WebSocket em `/v1/api`.
+- `FRONT`: painel administrativo React/Vite, consome esta API via `VITE_API_BASE_URL`.
+
+Essas integrações acontecem via HTTP simples (axios) — não há acoplamento de código entre os repositórios.
