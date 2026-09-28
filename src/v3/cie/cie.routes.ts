@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { successResponseSchema } from '../shared/response';
 import { callService, sendServiceResult } from '../shared/service-proxy';
+import { requireRoleOrResident } from '../residence/residence.guard';
 import {
     alarmActiveSnapshotSchema,
     blockCountersSchema,
@@ -37,10 +38,16 @@ const resolveCieLogsTimeout = (): number => {
     return Number.isFinite(value) && value > 0 ? value : 15000;
 };
 
+// Central de incêndio: equipe e morador com unidade liberada. Hoje todas as
+// rotas são de leitura; rota de comando futura deve usar requireRole
+// (só equipe) — morador só lê (decisão de 28/09/2026).
+const cieReadAccess = requireRoleOrResident('porteiro', 'sindico', 'admin');
+
 export async function cieRoutes(app: FastifyInstance) {
     const typedApp = app.withTypeProvider<ZodTypeProvider>();
 
     typedApp.get('/cie/status', {
+        onRequest: cieReadAccess,
         schema: { response: { 200: successResponseSchema(cieStateSnapshotSchema) } },
     }, async (_request, reply) => {
         const result = await callService<z.infer<typeof cieStateSnapshotSchema>>({
@@ -53,6 +60,7 @@ export async function cieRoutes(app: FastifyInstance) {
     });
 
     typedApp.get('/cie/panel', {
+        onRequest: cieReadAccess,
         schema: { response: { 200: successResponseSchema(panelDataSchema) } },
     }, async (_request, reply) => {
         const result = await callService<z.infer<typeof panelDataSchema>>({
@@ -65,6 +73,7 @@ export async function cieRoutes(app: FastifyInstance) {
     });
 
     typedApp.get('/cie/alarms/active', {
+        onRequest: cieReadAccess,
         schema: { response: { 200: successResponseSchema(alarmActiveSnapshotSchema) } },
     }, async (_request, reply) => {
         const result = await callService<z.infer<typeof alarmActiveSnapshotSchema>>({
@@ -77,6 +86,7 @@ export async function cieRoutes(app: FastifyInstance) {
     });
 
     typedApp.get('/cie/logs', {
+        onRequest: cieReadAccess,
         schema: {
             querystring: z.object({
                 type: logTypeQuerySchema.optional(),
@@ -97,6 +107,7 @@ export async function cieRoutes(app: FastifyInstance) {
     });
 
     typedApp.get('/cie/counters/blocks', {
+        onRequest: cieReadAccess,
         schema: { response: { 200: successResponseSchema(blockCountersSchema) } },
     }, async (_request, reply) => {
         const result = await callService<z.infer<typeof blockCountersSchema>>({
@@ -109,6 +120,7 @@ export async function cieRoutes(app: FastifyInstance) {
     });
 
     typedApp.get('/cie/counters/outputs', {
+        onRequest: cieReadAccess,
         schema: { response: { 200: successResponseSchema(outputCountersSchema) } },
     }, async (_request, reply) => {
         const result = await callService<z.infer<typeof outputCountersSchema>>({

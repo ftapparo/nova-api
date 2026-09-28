@@ -16,12 +16,17 @@ import logger from '../../core/utils/logger';
 // este projeto compila para CommonJS em Node 20, e HS256 é um único HMAC.
 // =============================================================================
 
-// Papéis da aplicação. A autorização é responsabilidade da API, não do
-// Supabase Auth — o papel é gravado em app_metadata.role pelo processo
-// administrativo de criação de conta (app_metadata só é editável via API
-// admin, nunca pelo próprio usuário).
-export const APP_ROLES = ['morador', 'portaria', 'sindico', 'admin', 'servico'] as const;
+// Papéis da aplicação (decisão de 28/09/2026). A autorização é
+// responsabilidade da API, não do Supabase Auth — o papel fica em
+// app_metadata.role, editável só pela API admin, nunca pelo próprio usuário.
+// Zelador usa o papel de síndico.
+//
+// 'morador' não é concedido pelo papel gravado: acesso de morador exige
+// vínculo com unidade liberada (ver v3/residence/). Conta sem papel de
+// equipe e com vínculo ativo é tratada como morador.
+export const APP_ROLES = ['morador', 'porteiro', 'sindico', 'admin'] as const;
 export type AppRole = (typeof APP_ROLES)[number];
+export type StaffRole = Exclude<AppRole, 'morador'>;
 
 export type Actor = {
     id: string;
@@ -128,14 +133,18 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
 }
 
 /**
- * Hook de autorização por papel. Registrar depois de requireAuth (ou
- * enforceAuth), que é quem preenche `request.actor`. Sem ator ou sem papel
- * atribuído = 403, nunca passa.
+ * Hook de autorização por papel de equipe. Registrar depois de requireAuth
+ * (ou enforceAuth), que é quem preenche `request.actor`. Sem papel = 403.
+ *
+ * Única exceção: sem ator com AUTH_ENFORCE=false (período de corte), passa
+ * — senão o flag não teria efeito nas rotas com papel. Rotas que precisam
+ * do ator sempre (admin) registram requireAuth antes, e aí nunca caem aqui.
  */
-export const requireRole = (...allowed: AppRole[]) =>
+export const requireRole = (...allowed: StaffRole[]) =>
     async function (request: FastifyRequest, reply: FastifyReply) {
+        if (!request.actor && process.env.AUTH_ENFORCE === 'false') return;
         const role = request.actor?.role;
-        if (!role || !allowed.includes(role)) {
+        if (!role || !(allowed as AppRole[]).includes(role)) {
             return reply.fail({ type: 'forbidden', detail: 'Acesso negado.', instance: request.url });
         }
     };

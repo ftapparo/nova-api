@@ -3,6 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { successResponseSchema } from '../shared/response';
 import { callService, sendServiceResult } from '../shared/service-proxy';
+import { requireRole } from '../shared/require-auth';
 import { cacheTypeQuerySchema, gateStateSchema, listCacheDataSchema } from './tag.schema';
 
 // Proxy para as rotas de leitura da v3 de nova-tag. TAG1/TAG2 rodam em
@@ -32,10 +33,15 @@ const resolveControlTimeout = (): number => {
 const resolveTagV3BaseUrl = (numeroDispositivo: number): string =>
     `http://${resolveTagControlHost()}:${resolveTagV3PortBase() + numeroDispositivo}`;
 
+// Portões: só equipe (decisão de 28/09/2026). Por rota, não addHook: tag e
+// cie dividem o mesmo escopo no server.ts, um hook de escopo vazaria.
+const tagAccess = requireRole('porteiro', 'sindico', 'admin');
+
 export async function tagRoutes(app: FastifyInstance) {
     const typedApp = app.withTypeProvider<ZodTypeProvider>();
 
     typedApp.get('/tag/gate/state', {
+        onRequest: tagAccess,
         schema: {
             querystring: z.object({ numeroDispositivo: z.coerce.number().int().positive() }),
             response: { 200: successResponseSchema(gateStateSchema) },
@@ -51,6 +57,7 @@ export async function tagRoutes(app: FastifyInstance) {
     });
 
     typedApp.get('/tag/cache', {
+        onRequest: tagAccess,
         schema: {
             querystring: z.object({
                 numeroDispositivo: z.coerce.number().int().positive(),

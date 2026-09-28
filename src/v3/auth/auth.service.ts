@@ -133,8 +133,8 @@ export const createUser = async (input: { email: string; password: string; role:
                 email_confirm: true,
                 // app_metadata só é editável pela API admin — o usuário não
                 // consegue promover o próprio papel.
-                // Sem papel = conta comum. Papel de equipe (portaria, sindico,
-                // admin...) só por admin; morador vem do vínculo com o Firebird.
+                // Sem papel = conta comum. Papel de equipe (porteiro, sindico,
+                // admin) só por síndico/admin; morador vem do vínculo com o Firebird.
                 app_metadata: input.role ? { role: input.role } : {},
             },
             { timeout: resolveAuthTimeout(), headers: adminHeaders() },

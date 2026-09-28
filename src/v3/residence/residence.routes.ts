@@ -20,7 +20,8 @@ const toLinkResponse = (link: { accountId: string; personSeq: number; linkedBy: 
 
 export async function residenceRoutes(app: FastifyInstance) {
     const typedApp = app.withTypeProvider<ZodTypeProvider>();
-    const adminOnly = [requireAuth, requireRole('admin')];
+    // Contas e vínculos: síndico e admin (decisão de 28/09/2026).
+    const accountManagers = [requireAuth, requireRole('sindico', 'admin')];
 
     // Chamado pelo app logo após o login: define o que fica liberado.
     typedApp.get('/residence/me', {
@@ -29,12 +30,12 @@ export async function residenceRoutes(app: FastifyInstance) {
     }, async (request, reply) => reply.ok(await residenceService.getResidence(request.actor!.id)));
 
     typedApp.get('/residence/links', {
-        onRequest: adminOnly,
+        onRequest: accountManagers,
         schema: { response: { 200: successResponseSchema(z.array(linkSchema)) } },
     }, async (_request, reply) => reply.ok((await residenceService.listLinks()).map(toLinkResponse)));
 
     typedApp.put('/residence/links/:accountId', {
-        onRequest: adminOnly,
+        onRequest: accountManagers,
         schema: {
             params: linkParamsSchema,
             body: linkBodySchema,
@@ -56,7 +57,7 @@ export async function residenceRoutes(app: FastifyInstance) {
     });
 
     typedApp.delete('/residence/links/:accountId', {
-        onRequest: adminOnly,
+        onRequest: accountManagers,
         schema: {
             params: linkParamsSchema,
             response: { 200: successResponseSchema(z.null()) },

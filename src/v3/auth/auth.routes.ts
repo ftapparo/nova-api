@@ -11,7 +11,7 @@ import { loginByIp, loginFailuresByEmail, normalizeEmailKey, resolveClientIp, si
 // Login/refresh/logout delegados ao Supabase Auth. /login e /refresh são
 // públicos por natureza; /logout e /me exigem access token válido sempre,
 // mesmo com AUTH_ENFORCE=false. /signup é o cadastro público do morador.
-// /users (criação de conta com qualquer papel) exige admin. O primeiro
+// /users (listar e criar contas) exige síndico ou admin; só admin cria admin. O primeiro
 // admin é promovido direto no banco (auth.users.raw_app_meta_data).
 
 const sendAuthFailure = (request: FastifyRequest, reply: FastifyReply, reason: authService.AuthFailure) => {
@@ -137,12 +137,18 @@ export async function authRoutes(app: FastifyInstance) {
     }, async (request, reply) => reply.ok(request.actor!));
 
     typedApp.post('/auth/users', {
-        onRequest: [requireAuth, requireRole('admin')],
+        onRequest: [requireAuth, requireRole('sindico', 'admin')],
         schema: {
             body: createUserBodySchema,
             response: { 201: successResponseSchema(authUserSchema) },
         },
     }, async (request, reply) => {
+        // Síndico gerencia contas, mas não cria admin — senão poderia se
+        // promover indiretamente.
+        if (request.body.role === 'admin' && request.actor?.role !== 'admin') {
+            return reply.fail({ type: 'forbidden', detail: 'Acesso negado.', instance: request.url });
+        }
+
         const result = await authService.createUser(request.body);
         if (result.ok) {
             logger.info(`[ApiV3] Conta criada: ${result.data.id} (papel ${result.data.role}) por ${request.actor?.id}`);
@@ -152,7 +158,7 @@ export async function authRoutes(app: FastifyInstance) {
     });
 
     typedApp.get('/auth/users', {
-        onRequest: [requireAuth, requireRole('admin')],
+        onRequest: [requireAuth, requireRole('sindico', 'admin')],
         schema: {
             querystring: listUsersQuerySchema,
             response: { 200: successResponseSchema(z.array(authUserSchema.extend({ createdAt: z.string() }))) },

@@ -20,11 +20,11 @@
     },
     {
       "name": "Tag",
-      "description": "Controle de acesso veicular via RFID (portões)."
+      "description": "Controle de acesso veicular via RFID (portões). Acesso: porteiro, síndico e admin."
     },
     {
       "name": "CIE",
-      "description": "Central de incêndio."
+      "description": "Central de incêndio. Acesso: porteiro, síndico, admin e morador com unidade liberada (somente leitura)."
     }
   ],
   "components": {
@@ -532,7 +532,7 @@
           "role": {
             "type": "string",
             "nullable": true,
-            "enum": ["morador", "portaria", "sindico", "admin", "servico"],
+            "enum": ["morador", "porteiro", "sindico", "admin"],
             "description": "Papel da aplicação. null quando a conta ainda não tem papel atribuído."
           }
         },
@@ -758,7 +758,7 @@
     "/v3/api/auth/users": {
       "get": {
         "tags": ["Auth"],
-        "summary": "Listar contas (admin)",
+        "summary": "Listar contas (síndico/admin)",
         "description": "Contas do Supabase Auth, para achar quem se cadastrou e vincular ao cadastro.",
         "operationId": "authListUsers",
         "security": [{ "bearerAuth": [] }],
@@ -796,7 +796,7 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": {
-            "description": "Usuário sem papel admin.",
+            "description": "Papel sem permissão para esta rota.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           },
           "503": {
@@ -807,8 +807,8 @@
       },
       "post": {
         "tags": ["Auth"],
-        "summary": "Criar conta (admin)",
-        "description": "Cria uma conta com qualquer papel. Exige usuário `admin`. O primeiro admin é promovido direto no banco.",
+        "summary": "Criar conta (síndico/admin)",
+        "description": "Cria uma conta com qualquer papel. Exige síndico ou admin; só admin cria admin. O primeiro admin é promovido direto no banco.",
         "operationId": "authCreateUser",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
@@ -820,7 +820,7 @@
                 "properties": {
                   "email": { "type": "string", "format": "email" },
                   "password": { "type": "string", "minLength": 8 },
-                  "role": { "type": "string", "enum": ["morador", "portaria", "sindico", "admin", "servico"] }
+                  "role": { "type": "string", "enum": ["morador", "porteiro", "sindico", "admin"] }
                 },
                 "required": ["email", "password", "role"]
               }
@@ -838,7 +838,7 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": {
-            "description": "Usuário sem papel admin.",
+            "description": "Papel sem permissão para esta rota.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           },
           "409": {
@@ -965,7 +965,7 @@
     "/v3/api/residence/links": {
       "get": {
         "tags": ["Residência"],
-        "summary": "Listar vínculos (admin)",
+        "summary": "Listar vínculos (síndico/admin)",
         "operationId": "listResidenceLinks",
         "security": [{ "bearerAuth": [] }],
         "responses": {
@@ -987,7 +987,7 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": {
-            "description": "Usuário sem papel admin.",
+            "description": "Papel sem permissão para esta rota.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           }
         }
@@ -996,7 +996,7 @@
     "/v3/api/residence/links/{accountId}": {
       "put": {
         "tags": ["Residência"],
-        "summary": "Vincular conta a pessoa (admin)",
+        "summary": "Vincular conta a pessoa (síndico/admin)",
         "description": "Liga a conta ao cadastro PESSOAS.SEQUENCIA do Firebird. Uma pessoa só pode estar vinculada a uma conta.",
         "operationId": "linkResidence",
         "security": [{ "bearerAuth": [] }],
@@ -1040,7 +1040,7 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": {
-            "description": "Usuário sem papel admin.",
+            "description": "Papel sem permissão para esta rota.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           },
           "404": {
@@ -1055,7 +1055,7 @@
       },
       "delete": {
         "tags": ["Residência"],
-        "summary": "Remover vínculo (admin)",
+        "summary": "Remover vínculo (síndico/admin)",
         "operationId": "unlinkResidence",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -1086,7 +1086,7 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": {
-            "description": "Usuário sem papel admin.",
+            "description": "Papel sem permissão para esta rota.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           },
           "404": {
