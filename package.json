@@ -20,6 +20,8 @@
     "dev": "dotenv -e .env.dev -- cross-env 'NODE_ENV=development' ts-node-dev --respawn src/server.ts"
   },
   "dependencies": {
+    "@fastify/swagger": "^9.9.0",
+    "@fastify/swagger-ui": "^6.1.1",
     "axios": "^1.13.4",
     "cors": "^2.8.5",
     "cross-env": "^7.0.3",

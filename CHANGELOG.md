@@ -7,7 +7,8 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ## [Unreleased]
 
 ### Adicionado
-- Esqueleto da v3 (`src/v3/`): servidor Fastify + Zod rodando lado a lado com a v2 (Express) no mesmo processo, porta própria (`PORT_V3`, padrão `3031`). Primeiro endpoint (`GET /v3/api/healthcheck`) valida o padrão de resposta tipado com Zod. Falha ao iniciar a v3 não derruba a v2. Ainda não expõe nenhuma rota de negócio nem exige autenticação.
+- Esqueleto da v3 (`src/v3/`): servidor Fastify + Zod rodando lado a lado com a v2 (Express) no mesmo processo, porta própria (`PORT_V3`, padrão `3031`). Endpoints `GET /v3/api/health` e `/v3/api/healthcheck` (mesmo par de rotas da v2) validam o padrão de resposta tipado com Zod. Falha ao iniciar a v3 não derruba a v2. Ainda não expõe nenhuma rota de negócio nem exige autenticação.
+- Swagger/OpenAPI na v3 (`@fastify/swagger` + `@fastify/swagger-ui`, gerado a partir dos schemas Zod), atrás da mesma flag `SWAGGER_ENABLED` que já protege o Swagger da v2 — desabilitado por padrão em produção. Interface em `/v3/swagger`, spec em `/v3/swagger/json`.
 
 ### Alterado
 - Reorganização estrutural do código: `services/`, `repositories/` e `utils/` movidos para `src/core/` (lógica de negócio e integrações, sem framework HTTP); `controllers/`, `routes/`, `middleware/` e `api/` movidos para `src/v2/` (camada Express atual). Preparação para uma futura v3 (pensada para consumo mobile), que reaproveitará tudo em `core/` sem duplicar lógica já validada em produção. Sem mudança de comportamento.

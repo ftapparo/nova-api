@@ -1,5 +1,7 @@
 import Fastify from 'fastify';
-import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
+import fastifySwagger from '@fastify/swagger';
+import fastifySwaggerUi from '@fastify/swagger-ui';
+import { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import logger from '../core/utils/logger';
 import { healthRoutes } from './routes/health.routes';
 
@@ -22,6 +24,28 @@ export async function StartWebServerV3(): Promise<void> {
 
     app.setValidatorCompiler(validatorCompiler);
     app.setSerializerCompiler(serializerCompiler);
+
+    // Mesma flag que protege o Swagger da v2 (SWAGGER_ENABLED): o spec
+    // cataloga endpoints sensíveis (portões, central de incêndio), então
+    // fica desabilitado por padrão em produção.
+    const swaggerEnabled = process.env.SWAGGER_ENABLED === 'true';
+    if (swaggerEnabled) {
+        await app.register(fastifySwagger, {
+            openapi: {
+                info: {
+                    title: 'Nova API — v3',
+                    version: '3.0.0',
+                    description: 'API v3 (Fastify + Zod) do Condomínio Nova Residence — em construção, convive com a v2 (Express) no mesmo processo.',
+                },
+                servers: [],
+            },
+            transform: jsonSchemaTransform,
+        });
+
+        await app.register(fastifySwaggerUi, {
+            routePrefix: '/v3/swagger',
+        });
+    }
 
     await app.register(async (instance) => {
         instance.withTypeProvider<ZodTypeProvider>();
