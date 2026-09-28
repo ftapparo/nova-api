@@ -1,10 +1,11 @@
 import Fastify from 'fastify';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
-import { jsonSchemaTransform, serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
+import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import logger from '../core/utils/logger';
 import { healthRoutes } from './routes/health.routes';
 import { registerErrorHandler, responseHelpersPlugin } from './lib/reply-helpers';
+import openapiDocument from './openapi.json';
 
 /**
  * Bootstrap da v3 (Fastify + Zod). Roda num processo/porta própria,
@@ -36,22 +37,27 @@ export async function StartWebServerV3(): Promise<void> {
     // manter o Swagger da v3 ligado durante o desenvolvimento ativo sem
     // afetar a v2, e desligar só a v3 quando ela for para produção de
     // verdade (mesmo raciocínio da v2: o spec cataloga endpoints sensíveis).
+    //
+    // Spec escrito à mão em openapi.json (não gerado a partir dos schemas
+    // Zod): a geração automática do @fastify/swagger ficou pobre demais
+    // (sem summary/description reais, "pagination" aparecendo mesmo em
+    // endpoints sem paginação, valores de exemplo sem sentido) — mesmo
+    // padrão que a v2 já usa com swagger.json mantido manualmente.
     const swaggerV3Enabled = process.env.SWAGGER_V3_ENABLED === 'true';
     if (swaggerV3Enabled) {
+        // mode: 'static' — @fastify/swagger só serve o documento pronto,
+        // sem tentar gerar nada a partir dos schemas Zod das rotas.
         await app.register(fastifySwagger, {
-            openapi: {
-                info: {
-                    title: 'Nova API — v3',
-                    version: '3.0.0',
-                    description: 'API v3 (Fastify + Zod) do Condomínio Nova Residence — em construção, convive com a v2 (Express) no mesmo processo.',
-                },
-                servers: [],
-            },
-            transform: jsonSchemaTransform,
+            mode: 'static',
+            specification: { document: openapiDocument as never },
         });
 
         await app.register(fastifySwaggerUi, {
             routePrefix: '/v3/swagger',
+        });
+
+        app.get('/v3/apispec_1.json', async (_request, reply) => {
+            reply.header('Content-Type', 'application/json').send(openapiDocument);
         });
     }
 
