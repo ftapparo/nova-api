@@ -3,13 +3,13 @@ import {
     removePushSubscriptionByEndpoint,
     upsertPushSubscription,
     type PushSubscriptionInput,
-} from '../repositories/push-subscription.repository';
+} from '../../core/repositories/push-subscription.repository';
 import {
     getPublicPushKey,
     sendGenericPushToAll,
     sendFireAlarmPushToAll,
     type GenericPushPayload,
-} from '../services/push.service';
+} from '../../core/services/push.service';
 
 const normalizeUser = (value: unknown): string => String(value ?? '').trim().toUpperCase();
 

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { findPersonByCpf, findVehicleByPlate, findVehicleByTag } from '../repositories/query.repository';
+import { findPersonByCpf, findVehicleByPlate, findVehicleByTag } from '../../core/repositories/query.repository';
 
 /**
  * Valida CPF usando dígitos verificadores.

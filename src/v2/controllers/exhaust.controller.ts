@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { configureExhaustModule, getAllModulesStatus, getExhaustMemory, getExhaustProcessStatus, getExhaustStatus, turnOffExhaust, turnOnExhaust } from '../services/exhaust.service';
+import { configureExhaustModule, getAllModulesStatus, getExhaustMemory, getExhaustProcessStatus, getExhaustStatus, turnOffExhaust, turnOnExhaust } from '../../core/services/exhaust.service';
 
 type ExhaustPayload = {
     bloco?: string;

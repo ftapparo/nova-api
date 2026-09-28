@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { listCommandLogs } from '../services/command-log.service';
+import { listCommandLogs } from '../../core/services/command-log.service';
 
 const parseLimit = (value: unknown): number => {
     const parsed = Number(value);

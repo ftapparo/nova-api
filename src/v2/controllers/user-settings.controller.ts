@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { readUserSettings, writeUserSettings } from '../repositories/user-settings.repository';
+import { readUserSettings, writeUserSettings } from '../../core/repositories/user-settings.repository';
 
 const normalizeUser = (value: unknown): string => String(value ?? '').trim().toUpperCase();
 

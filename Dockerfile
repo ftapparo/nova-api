@@ -39,7 +39,7 @@ COPY --from=builder /app/dist ./dist
 # qualquer "docker history". As variaveis chegam em runtime, via Environment
 # variables da stack no Portainer.
 
-RUN mkdir -p logs storage/user-settings
+RUN mkdir -p logs storage/exhaust
 
 EXPOSE 4000
 

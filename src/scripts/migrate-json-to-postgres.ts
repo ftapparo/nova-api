@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { pool } from '../utils/db';
+import { pool } from '../core/utils/db';
 
 // Migra os dados hoje gravados em arquivos .json (user-settings e
 // push-subscriptions) para as tabelas Postgres criadas em

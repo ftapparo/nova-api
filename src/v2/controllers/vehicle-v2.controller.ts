@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { verifyAccessById } from '../repositories/access.repository';
-import { findPersonByCpf } from '../repositories/query.repository';
+import { verifyAccessById } from '../../core/repositories/access.repository';
+import { findPersonByCpf } from '../../core/repositories/query.repository';
 import {
     deleteTagByVehicleSeq,
     getVehicleByPlate,
@@ -9,8 +9,8 @@ import {
     listVehiclesByOwner,
     unlinkOwnerByVehicleSeq,
     upsertVehicleByPlate,
-} from '../repositories/vehicle-v2.repository';
-import { lookupVehicleExternalSources, type ProviderName } from '../services/vehicle-lookup.service';
+} from '../../core/repositories/vehicle-v2.repository';
+import { lookupVehicleExternalSources, type ProviderName } from '../../core/services/vehicle-lookup.service';
 
 const PLATE_PATTERN = /^[A-Z0-9]{7}$/;
 const CPF_DIGITS_REGEX = /^[0-9]{11}$/;

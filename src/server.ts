@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
-import { StartWebServer } from './api/web-server.api';
-import { closeConnection } from './services/firebird.service';
-import { startExhaustService } from './services/exhaust.service';
-import { startAccessControlService } from './services/access-control.service';
+import { StartWebServer } from './v2/api/web-server.api';
+import { closeConnection } from './core/services/firebird.service';
+import { startExhaustService } from './core/services/exhaust.service';
+import { startAccessControlService } from './core/services/access-control.service';
 
 // Carrega variáveis de ambiente do arquivo .env
 const dotenvResult = dotenv.config();

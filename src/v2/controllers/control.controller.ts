@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { Request, Response } from 'express';
-import { getAccessControlStatusCache } from '../services/access-control.service';
-import { getDoorById, getGateByNumeroDispositivo, listAvailableDoors, listAvailableGates } from '../repositories/control.repository';
+import { getAccessControlStatusCache } from '../../core/services/access-control.service';
+import { getDoorById, getGateByNumeroDispositivo, listAvailableDoors, listAvailableGates } from '../../core/repositories/control.repository';
 
 const CONTROL_BASE_URL = process.env.CONTROL_BASE_URL?.trim();
 const CONTROL_TIMEOUT_MS = Number(process.env.CONTROL_TIMEOUT_MS || '5000');

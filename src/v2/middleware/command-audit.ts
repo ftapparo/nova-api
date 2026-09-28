@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { appendCommandLog, type CommandLogEntry } from '../services/command-log.service';
+import { appendCommandLog, type CommandLogEntry } from '../../core/services/command-log.service';
 
 const COMMAND_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 

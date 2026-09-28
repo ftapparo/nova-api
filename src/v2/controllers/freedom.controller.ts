@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { getAllVehicles, getOneVehicle, registerVehicle, registerVehicleAccess, registerVehiclePhoto, setLockVehicle, setLockVehicleByData, setUnlockVehicle } from '../repositories/vehicle.repository';
-import { insertAccess, listRecentAccessByDevice, openGatePedestrian, openGateVehicle, verifyAccessById } from '../repositories/access.repository';
-import { findPersonByCpf, findVehicleByPlate } from '../repositories/query.repository';
+import { getAllVehicles, getOneVehicle, registerVehicle, registerVehicleAccess, registerVehiclePhoto, setLockVehicle, setLockVehicleByData, setUnlockVehicle } from '../../core/repositories/vehicle.repository';
+import { insertAccess, listRecentAccessByDevice, openGatePedestrian, openGateVehicle, verifyAccessById } from '../../core/repositories/access.repository';
+import { findPersonByCpf, findVehicleByPlate } from '../../core/repositories/query.repository';
 
 type SearchIdType = 'plate' | 'cpf' | 'tag' | 'shortAccessId' | 'normalizedAccessId';
 type VehicleLookupRow = Awaited<ReturnType<typeof findVehicleByPlate>>[number];
