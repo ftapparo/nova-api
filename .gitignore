@@ -91,6 +91,7 @@ out
 .nuxt
 dist
 storage/user-settings/*.json
+storage/push-subscriptions/*.json
 
 # Gatsby files
 .cache/

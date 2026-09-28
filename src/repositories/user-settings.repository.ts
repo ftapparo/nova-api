@@ -1,5 +1,4 @@
-import { promises as fs } from 'fs';
-import path from 'path';
+import { pool } from '../utils/db';
 
 export type UserSettingsData = {
     user: string;
@@ -7,81 +6,54 @@ export type UserSettingsData = {
     items: Record<string, string>;
 };
 
-const USER_SETTINGS_DIR = path.resolve(process.env.USER_SETTINGS_DIR || path.join(process.cwd(), 'storage', 'user-settings'));
-
-let ensureDirPromise: Promise<unknown> | null = null;
-
-const ensureUserSettingsDirectory = async (): Promise<void> => {
-    if (!ensureDirPromise) {
-        ensureDirPromise = fs.mkdir(USER_SETTINGS_DIR, { recursive: true });
-    }
-    await ensureDirPromise;
-};
-
-const sanitizeUserForFile = (user: string): string => user.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '_');
-
-const getUserSettingsFilePath = (user: string): string => {
-    const safeUser = sanitizeUserForFile(user);
-    return path.join(USER_SETTINGS_DIR, `${safeUser}.json`);
-};
-
 const isPlainObject = (value: unknown): value is Record<string, unknown> => {
     if (!value || typeof value !== 'object') return false;
     return Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null;
 };
 
-const normalizeStoredData = (user: string, value: unknown): UserSettingsData | null => {
-    if (!isPlainObject(value)) return null;
-
-    const rawUpdatedAt = value.updatedAt;
-    const updatedAt = typeof rawUpdatedAt === 'number' && Number.isFinite(rawUpdatedAt) && rawUpdatedAt > 0
-        ? Math.trunc(rawUpdatedAt)
-        : 0;
-
-    const rawItems = value.items;
+const normalizeItems = (value: unknown): Record<string, string> => {
     const items: Record<string, string> = {};
-    if (isPlainObject(rawItems)) {
-        for (const [key, itemValue] of Object.entries(rawItems)) {
-            if (typeof itemValue === 'string') {
-                items[key] = itemValue;
-            }
+    if (!isPlainObject(value)) return items;
+    for (const [key, itemValue] of Object.entries(value)) {
+        if (typeof itemValue === 'string') {
+            items[key] = itemValue;
         }
     }
-
-    return {
-        user,
-        updatedAt,
-        items,
-    };
+    return items;
 };
 
 export const readUserSettings = async (user: string): Promise<UserSettingsData | null> => {
-    await ensureUserSettingsDirectory();
-    const filePath = getUserSettingsFilePath(user);
+    const result = await pool.query<{ user_id: string; items: unknown; updated_at: Date }>(
+        'SELECT user_id, items, updated_at FROM user_settings WHERE user_id = $1',
+        [user],
+    );
 
-    try {
-        const raw = await fs.readFile(filePath, 'utf8');
-        const parsed = JSON.parse(raw);
-        return normalizeStoredData(user, parsed);
-    } catch (error: any) {
-        if (error?.code === 'ENOENT') return null;
-        throw error;
-    }
+    const row = result.rows[0];
+    if (!row) return null;
+
+    return {
+        user: row.user_id,
+        updatedAt: row.updated_at.getTime(),
+        items: normalizeItems(row.items),
+    };
 };
 
 export const writeUserSettings = async (
     user: string,
     data: Pick<UserSettingsData, 'updatedAt' | 'items'>,
 ): Promise<UserSettingsData> => {
-    await ensureUserSettingsDirectory();
-    const filePath = getUserSettingsFilePath(user);
+    const updatedAt = Number.isFinite(data.updatedAt) && data.updatedAt > 0 ? Math.trunc(data.updatedAt) : Date.now();
 
-    const payload: UserSettingsData = {
+    await pool.query(
+        `INSERT INTO user_settings (user_id, items, updated_at)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id) DO UPDATE SET items = EXCLUDED.items, updated_at = EXCLUDED.updated_at`,
+        [user, JSON.stringify(data.items), new Date(updatedAt)],
+    );
+
+    return {
         user,
-        updatedAt: Number.isFinite(data.updatedAt) && data.updatedAt > 0 ? Math.trunc(data.updatedAt) : Date.now(),
+        updatedAt,
         items: data.items,
     };
-
-    await fs.writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
-    return payload;
 };
