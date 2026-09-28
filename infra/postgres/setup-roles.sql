@@ -92,6 +92,16 @@ GRANT CONNECT ON DATABASE nova_residence TO supabase_auth_admin;
 CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
 GRANT USAGE ON SCHEMA auth TO supabase_auth_admin;
 
+-- GOTRUE_DB_NAMESPACE só vale para as migrações (que qualificam
+-- "auth.tabela"). Em runtime o GoTrue consulta tabelas sem schema
+-- ("identities", "users") e depende do search_path do role — o compose
+-- oficial do Supabase faz exatamente isto. Sem esta linha: migrações OK,
+-- container healthy, mas todo /admin/users e /token falha com
+-- 'relation "identities" does not exist' (erro real, 28/09/2026, no
+-- primeiro signup pela v3). Vale a partir da próxima conexão: reiniciar
+-- o nova-auth depois de aplicar.
+ALTER ROLE supabase_auth_admin SET search_path = auth;
+
 -- No compose do serviço auth (infra/auth/docker-compose.yml):
 --   GOTRUE_DB_NAMESPACE: auth
 -- Funciona corretamente — GoTrue cria e usa o schema "auth" de fato.

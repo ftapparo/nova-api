@@ -77,6 +77,7 @@ Não há suíte de testes automatizados neste projeto ainda — validação é m
 
 - **Locale do Postgres**: o cluster usa ICU (`--locale-provider=icu --icu-locale=pt-BR-x-icu`), não glibc — `pt_BR.UTF-8` não existe na imagem `postgres:16` (Debian). Ver `infra/postgres/docker-compose.yml` para o porquê comentado.
 - **GRANT CONNECT vs GRANT CREATE**: no Postgres, `GRANT CREATE ON DATABASE` não inclui `CONNECT` implicitamente — causou `permission denied for database` no GoTrue. Ver `infra/postgres/setup-roles.sql`.
+- **search_path do GoTrue**: `GOTRUE_DB_NAMESPACE=auth` só afeta as migrações. Em runtime o GoTrue consulta tabelas sem schema, então o role `supabase_auth_admin` precisa de `search_path = auth` — sem isso o container fica healthy mas todo signup/login falha com `relation "identities" does not exist`. Ver `infra/postgres/setup-roles.sql`.
 - **MSYS path conversion**: scripts bash rodados via Git Bash no Windows sofrem reescrita automática de caminhos tipo `/tmp/...` para caminho Windows. Usar `MSYS_NO_PATHCONV=1` nos comandos Docker afetados (ver `infra/postgres/backup/test-restore.sh`).
 
 ## Outros serviços do ecossistema
