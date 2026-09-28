@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { successResponseSchema } from '../shared/response';
 import { extractBearerToken, requireAuth, requireRole } from '../shared/require-auth';
 import logger from '../../core/utils/logger';
-import { authUserSchema, createUserBodySchema, loginBodySchema, refreshBodySchema, sessionDataSchema, signupBodySchema } from './auth.schema';
+import { authUserSchema, createUserBodySchema, listUsersQuerySchema, loginBodySchema, refreshBodySchema, sessionDataSchema, signupBodySchema } from './auth.schema';
 import * as authService from './auth.service';
 import { loginByIp, loginFailuresByEmail, normalizeEmailKey, resolveClientIp, signupByIp } from './auth.rate-limit';
 
@@ -73,10 +73,9 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.ok(result.data);
     });
 
-    // Cadastro público do morador. Versão básica, decisão de 28/09/2026: cria
-    // a conta com papel 'morador' sem conferir nada no Firebird — a
-    // verificação de que a pessoa é moradora de fato entra depois, aqui
-    // mesmo, antes do createUser. O signup do GoTrue continua desligado
+    // Cadastro público. A conta nasce sem papel e sem acesso: fica
+    // 'pendente' até um admin vinculá-la ao cadastro de pessoa no Firebird
+    // (ver v3/residence/). O que ela pode fazer vem desse vínculo. O signup do GoTrue continua desligado
     // (GOTRUE_DISABLE_SIGNUP=true): a conta é criada pela API admin, para a
     // API seguir sendo a única porta de entrada e o papel nunca vir do cliente.
     typedApp.post('/auth/signup', {
@@ -96,10 +95,10 @@ export async function authRoutes(app: FastifyInstance) {
         signupByIp.hit(ip);
 
         const { email, password } = request.body;
-        const created = await authService.createUser({ email, password, role: 'morador' });
+        const created = await authService.createUser({ email, password, role: null });
         if (!created.ok) return sendCreateUserFailure(request, reply, created);
 
-        logger.info(`[ApiV3] Conta criada por cadastro público: ${created.data.id} (papel morador)`);
+        logger.info(`[ApiV3] Conta criada por cadastro público: ${created.data.id}`);
 
         // Já devolve a sessão, para o app não precisar de um segundo passo.
         const session = await authService.login(email, password);
@@ -150,5 +149,17 @@ export async function authRoutes(app: FastifyInstance) {
             return reply.ok(result.data, { status: 201 });
         }
         return sendCreateUserFailure(request, reply, result);
+    });
+
+    typedApp.get('/auth/users', {
+        onRequest: [requireAuth, requireRole('admin')],
+        schema: {
+            querystring: listUsersQuerySchema,
+            response: { 200: successResponseSchema(z.array(authUserSchema.extend({ createdAt: z.string() }))) },
+        },
+    }, async (request, reply) => {
+        const result = await authService.listUsers(request.query.page, request.query.perPage);
+        if (!result.ok) return sendAuthFailure(request, reply, result.reason);
+        return reply.ok(result.data);
     });
 }

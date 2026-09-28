@@ -39,3 +39,8 @@ export const createUserBodySchema = z.object({
 // Cadastro público: sem `role` no corpo de propósito — o papel é sempre
 // definido pela API, nunca pelo cliente.
 export const signupBodySchema = createUserBodySchema.omit({ role: true });
+
+export const listUsersQuerySchema = z.object({
+    page: z.coerce.number().int().positive().default(1),
+    perPage: z.coerce.number().int().min(1).max(100).default(50),
+});

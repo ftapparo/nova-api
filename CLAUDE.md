@@ -36,6 +36,7 @@ src/
 v3/
   health/         health.routes.ts
   auth/           auth.routes.ts, auth.schema.ts, auth.service.ts, auth.rate-limit.ts (limite de tentativas em memória) — signup/login/refresh/logout/me e criação de conta por admin, delegando ao Supabase Auth (nova-auth)
+  residence/      residence.routes.ts, residence.schema.ts, residence.service.ts — vínculo conta ↔ PESSOAS.SEQUENCIA (Postgres) e situação por unidade lida do Firebird (regras de bloqueio no service)
   tag/            tag.routes.ts, tag.schema.ts — proxy autenticado para nova-tag
   cie/            cie.routes.ts, cie.schema.ts — proxy autenticado para nova-cie
   shared/         response.ts, reply-helpers.ts (envelope de resposta), service-proxy.ts (chamada autenticada a TAG/CIE), require-auth.ts (validação local do JWT do usuário, hooks requireAuth/requireRole/enforceAuth)
@@ -63,7 +64,7 @@ Não há suíte de testes automatizados neste projeto ainda — validação é m
 ## Persistência — dois bancos, propósitos diferentes
 
 - **Firebird** (`FIREBIRD_*`): dado operacional do condomínio (moradores, veículos, histórico de acesso). É o ERP legado, fonte de verdade — não fazer suposições sobre schema sem checar `core/repositories/`.
-- **PostgreSQL** (`nova-postgres`, `POSTGRES_*`/`NOVA_API_APP_*`): só `user_settings` e `push_subscriptions`. Acessado pela role `nova_api_app`, que só tem privilégio no schema `public` — nunca vai ter acesso ao schema `auth` (usado pelo Supabase Auth/GoTrue, serviço separado). Ver `infra/postgres/` para os composes e SQL de setup.
+- **PostgreSQL** (`nova-postgres`, `POSTGRES_*`/`NOVA_API_APP_*`): `user_settings`, `push_subscriptions` e `account_person_link` (vínculo conta de login ↔ `PESSOAS.SEQUENCIA`; unidade e situação continuam só no Firebird). Acessado pela role `nova_api_app`, que só tem privilégio no schema `public` — nunca vai ter acesso ao schema `auth` (usado pelo Supabase Auth/GoTrue, serviço separado). Ver `infra/postgres/` para os composes e SQL de setup.
 
 ## Convenções
 

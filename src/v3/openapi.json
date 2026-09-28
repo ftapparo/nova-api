@@ -15,6 +15,10 @@
       "description": "Login, renovação e encerramento de sessão (Supabase Auth). Demais rotas de negócio exigem Authorization: Bearer <accessToken>."
     },
     {
+      "name": "Residência",
+      "description": "Vínculo da conta com o cadastro de pessoa do condomínio (Firebird) e situação por unidade."
+    },
+    {
       "name": "Tag",
       "description": "Controle de acesso veicular via RFID (portões)."
     },
@@ -459,6 +463,67 @@
         },
         "required": ["success", "data", "meta"]
       },
+      "ResidenceUnit": {
+        "type": "object",
+        "properties": {
+          "sequencia": { "type": "integer" },
+          "quadra": { "type": "string" },
+          "lote": { "type": "string" },
+          "label": { "type": "string", "example": "A-124" },
+          "morador": { "type": "boolean" },
+          "proprietario": { "type": "boolean" },
+          "locatario": { "type": "boolean" },
+          "blocked": { "type": "boolean", "description": "true = mostrar a unidade, mas desativar toda ação nela." },
+          "blockedReason": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["nao-morador", "unidade-com-inquilino", "cadastro-inconsistente"],
+            "description": "nao-morador: MOR diferente de S. unidade-com-inquilino: proprietário numa unidade com locatário (lei do inquilinato). cadastro-inconsistente: PROP e LOC juntos, ou nenhum dos dois — corrigir o cadastro."
+          }
+        },
+        "required": [
+          "sequencia",
+          "quadra",
+          "lote",
+          "label",
+          "morador",
+          "proprietario",
+          "locatario",
+          "blocked",
+          "blockedReason"
+        ]
+      },
+      "Residence": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["pendente", "ativo", "sem-unidade"],
+            "description": "pendente: conta ainda não vinculada ao cadastro. sem-unidade: vinculada, sem ligação com unidade no momento."
+          },
+          "blocked": {
+            "type": "boolean",
+            "description": "true quando nenhuma unidade está liberada — app todo desativado. O login continua funcionando."
+          },
+          "person": {
+            "type": "object",
+            "nullable": true,
+            "properties": { "sequencia": { "type": "integer" }, "nome": { "type": "string" } }
+          },
+          "units": { "type": "array", "items": { "$ref": "#/components/schemas/ResidenceUnit" } }
+        },
+        "required": ["status", "blocked", "person", "units"]
+      },
+      "AccountLink": {
+        "type": "object",
+        "properties": {
+          "accountId": { "type": "string", "format": "uuid" },
+          "personSequencia": { "type": "integer", "description": "PESSOAS.SEQUENCIA no Firebird." },
+          "linkedBy": { "type": "string", "format": "uuid" },
+          "linkedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["accountId", "personSequencia", "linkedBy", "linkedAt"]
+      },
       "AuthUser": {
         "type": "object",
         "properties": {
@@ -652,7 +717,7 @@
       "post": {
         "tags": ["Auth"],
         "summary": "Cadastro público",
-        "description": "Cria a conta do morador (papel sempre `morador`, definido pela API) e já devolve a sessão. Versão básica: ainda não confere o cadastro no Firebird. Limite: 5 cadastros por IP por hora (429 com Retry-After).",
+        "description": "Cria a conta e já devolve a sessão. A conta nasce sem papel e sem acesso (pendente) até um admin vinculá-la ao cadastro do condomínio — ver /residence. Limite: 5 cadastros por IP por hora (429 com Retry-After).",
         "operationId": "authSignup",
         "requestBody": {
           "required": true,
@@ -691,6 +756,55 @@
       }
     },
     "/v3/api/auth/users": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Listar contas (admin)",
+        "description": "Contas do Supabase Auth, para achar quem se cadastrou e vincular ao cadastro.",
+        "operationId": "authListUsers",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "perPage", "in": "query", "schema": { "type": "integer", "default": 50, "maximum": 100 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "allOf": [
+                          { "$ref": "#/components/schemas/AuthUser" },
+                          {
+                            "type": "object",
+                            "properties": { "createdAt": { "type": "string", "format": "date-time" } }
+                          }
+                        ]
+                      }
+                    },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Usuário sem papel admin.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      },
       "post": {
         "tags": ["Auth"],
         "summary": "Criar conta (admin)",
@@ -817,6 +931,168 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthUserResponse" } } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v3/api/residence/me": {
+      "get": {
+        "tags": ["Residência"],
+        "summary": "Situação residencial da conta",
+        "description": "Chamar logo após o login. Define o que o app libera: unidades vinculadas no cadastro do condomínio e se cada uma está bloqueada. Consulta o Firebird com cache de 2 minutos.",
+        "operationId": "getMyResidence",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Situação atual.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/Residence" },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v3/api/residence/links": {
+      "get": {
+        "tags": ["Residência"],
+        "summary": "Listar vínculos (admin)",
+        "operationId": "listResidenceLinks",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Vínculos existentes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/AccountLink" } },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Usuário sem papel admin.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/v3/api/residence/links/{accountId}": {
+      "put": {
+        "tags": ["Residência"],
+        "summary": "Vincular conta a pessoa (admin)",
+        "description": "Liga a conta ao cadastro PESSOAS.SEQUENCIA do Firebird. Uma pessoa só pode estar vinculada a uma conta.",
+        "operationId": "linkResidence",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conta (auth).",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "personSequencia": { "type": "integer" } },
+                "required": ["personSequencia"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Vínculo criado ou trocado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/AccountLink" },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Usuário sem papel admin.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "404": {
+            "description": "Pessoa não encontrada no cadastro.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "409": {
+            "description": "Pessoa já vinculada a outra conta.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Residência"],
+        "summary": "Remover vínculo (admin)",
+        "operationId": "unlinkResidence",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conta (auth).",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vínculo removido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "nullable": true },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Usuário sem papel admin.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "404": {
+            "description": "Conta sem vínculo.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
         }
       }
     },

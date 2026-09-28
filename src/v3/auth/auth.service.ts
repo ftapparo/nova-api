@@ -119,7 +119,7 @@ const adminHeaders = () => ({ Authorization: `Bearer ${signServiceRoleToken()}` 
 
 export type CreateUserFailure = 'email-taken' | 'rejected' | 'unavailable';
 
-export const createUser = async (input: { email: string; password: string; role: AppRole }): Promise<
+export const createUser = async (input: { email: string; password: string; role: AppRole | null }): Promise<
     { ok: true; data: AuthUser } | { ok: false; reason: CreateUserFailure; detail?: string }
 > => {
     try {
@@ -133,7 +133,9 @@ export const createUser = async (input: { email: string; password: string; role:
                 email_confirm: true,
                 // app_metadata só é editável pela API admin — o usuário não
                 // consegue promover o próprio papel.
-                app_metadata: { role: input.role },
+                // Sem papel = conta comum. Papel de equipe (portaria, sindico,
+                // admin...) só por admin; morador vem do vínculo com o Firebird.
+                app_metadata: input.role ? { role: input.role } : {},
             },
             { timeout: resolveAuthTimeout(), headers: adminHeaders() },
         );
@@ -152,5 +154,27 @@ export const createUser = async (input: { email: string; password: string; role:
         const message = error instanceof Error ? error.message : 'erro desconhecido';
         logger.error(`[ApiV3] Falha ao contatar o Supabase Auth ao criar usuário: ${message}`);
         return { ok: false, reason: 'unavailable' };
+    }
+};
+
+/**
+ * Contas do GoTrue, mais recentes primeiro — para o admin achar quem acabou
+ * de se cadastrar e vincular ao cadastro do Firebird.
+ */
+export const listUsers = async (page: number, perPage: number): Promise<AuthResult<(AuthUser & { createdAt: string })[]>> => {
+    try {
+        const { data } = await axios.get<{ users?: { id: string; email?: string | null; created_at: string; app_metadata?: Record<string, unknown> }[] }>(
+            `${resolveAuthUrl()}/admin/users`,
+            { params: { page, per_page: perPage }, timeout: resolveAuthTimeout(), headers: adminHeaders() },
+        );
+        const users = (data.users ?? []).map((user) => ({
+            id: user.id,
+            email: user.email ?? null,
+            role: toAppRole(user.app_metadata?.role),
+            createdAt: user.created_at,
+        }));
+        return { ok: true, data: users };
+    } catch (error) {
+        return { ok: false, reason: classifyError(error, 'admin/users') };
     }
 };
