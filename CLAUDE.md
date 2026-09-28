@@ -2,7 +2,7 @@
 
 API principal do Condomínio Nova Residence. Integra o ERP Freedom PROANSI (Firebird) com controle de acesso físico (portões, portas, veículos), exaustores, gateway para a central de incêndio (`nova-cie`), push notifications e configurações de usuário. Consumida pelo painel administrativo (`FRONT`) e, futuramente, por apps mobile.
 
-Veja `README.md` para a visão completa (arquitetura, endpoints, variáveis de ambiente) e `CHANGELOG.md` para o histórico. Este arquivo é só o contexto operacional para trabalhar no código.
+Veja `README.md` para a visão completa (arquitetura, endpoints, variáveis de ambiente) e `CHANGELOG.md` para o histórico. Este arquivo é o contexto real do projeto; `AGENTS.md` tem as regras genéricas de processo/arquitetura (cohesion, boundaries, validation) — leia os dois, começando por este.
 
 ## 🔴 Regra absoluta: nunca tocar em `src/v2/`
 
@@ -28,7 +28,21 @@ src/
   server.ts     # entry point: inicializa core (Firebird, exaustores, controle de acesso) e a v2
 ```
 
-**Regra importante**: `core/` nunca deve importar nada de Express ou de `v2/`. Uma v3 (Fastify + Zod, pensada para mobile) está planejada para rodar lado a lado com a v2 no mesmo processo, reaproveitando tudo em `core/` sem duplicar lógica. Trabalho em andamento na branch `nova-versao`.
+**Regra importante**: `core/` nunca deve importar nada de Express ou de `v2/`. A v3 (Fastify + Zod, para mobile) roda lado a lado com a v2 no mesmo processo, reaproveitando tudo em `core/` sem duplicar lógica. Trabalho em andamento na branch `nova-versao`.
+
+### `v3/` — organizada por feature, não por camada
+
+```
+v3/
+  health/         health.routes.ts
+  tag/            tag.routes.ts, tag.schema.ts — proxy autenticado para nova-tag
+  cie/            cie.routes.ts, cie.schema.ts — proxy autenticado para nova-cie
+  shared/         response.ts, reply-helpers.ts (envelope de resposta), service-proxy.ts (chamada autenticada a TAG/CIE)
+  openapi.json    spec escrito à mão, não gerado
+  server.ts       bootstrap do Fastify, porta própria (PORT_V3)
+```
+
+Ao criar uma rota nova: schema só entra em `shared/` se for usado por 2+ features; senão fica junto da própria feature. Nunca criar `lib/`/`utils/` genérico. Padrão completo (envelope de resposta, autenticação de serviço, convenção de pastas): `docs/PADRAO-RESPOSTA-V3.md` (raiz do workspace) e `AI-Friendly Architecture Specification.md` (raiz do workspace, racional da estrutura por feature). Ler só quando a tarefa envolver `v3/` — não carregar por padrão.
 
 ## Stack
 
