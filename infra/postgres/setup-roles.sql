@@ -100,6 +100,18 @@ GRANT USAGE ON SCHEMA auth TO supabase_auth_admin;
 -- 'relation "identities" does not exist' (erro real, 28/09/2026, no
 -- primeiro signup pela v3). Vale a partir da próxima conexão: reiniciar
 -- o nova-auth depois de aplicar.
+--
+-- ⚠️ Instalação que já subiu SEM esta linha: o GoTrue vinha controlando
+-- migrações em public.schema_migrations (tabela sem schema + search_path
+-- padrão), e auth.schema_migrations fica velha. Trocar o search_path faz
+-- ele ler a tabela velha e reaplicar migrações já feitas → crash loop
+-- ('column "client_id" does not exist', 28/09/2026). Antes do ALTER ROLE,
+-- sincronizar:
+--   INSERT INTO auth.schema_migrations (version)
+--   SELECT p.version FROM public.schema_migrations p
+--   WHERE NOT EXISTS (SELECT 1 FROM auth.schema_migrations a WHERE a.version = p.version);
+-- Instalação nova (esta linha aplicada antes do 1º boot do GoTrue) não
+-- tem o problema: só auth.schema_migrations passa a existir.
 ALTER ROLE supabase_auth_admin SET search_path = auth;
 
 -- No compose do serviço auth (infra/auth/docker-compose.yml):
