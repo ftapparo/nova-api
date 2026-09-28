@@ -19,6 +19,10 @@
       "description": "Vínculo da conta com o cadastro de pessoa do condomínio (Firebird) e situação por unidade."
     },
     {
+      "name": "Exaustores",
+      "description": "Exaustores das churrasqueiras. Equipe opera todos; morador opera só a prumada da sua unidade. Limite de 10 comandos por minuto por conta."
+    },
+    {
       "name": "Tag",
       "description": "Controle de acesso veicular via RFID (portões). Acesso: porteiro, síndico e admin."
     },
@@ -523,6 +527,28 @@
           "linkedAt": { "type": "string", "format": "date-time" }
         },
         "required": ["accountId", "personSequencia", "linkedBy", "linkedAt"]
+      },
+      "Exhaust": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "example": "A4" },
+          "tower": { "type": "string", "example": "A" },
+          "final": { "type": "integer", "example": 4 },
+          "on": { "type": "boolean" },
+          "expiresAt": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Desligamento automático agendado (epoch ms)."
+          },
+          "processStatus": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["iniciando", "executado", "erro", null],
+            "description": "Andamento do último comando."
+          },
+          "moduleOnline": { "type": "boolean" }
+        },
+        "required": ["id", "tower", "final", "on", "expiresAt", "processStatus", "moduleOnline"]
       },
       "AuthUser": {
         "type": "object",
@@ -1091,6 +1117,158 @@
           },
           "404": {
             "description": "Conta sem vínculo.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/v3/api/exhausts": {
+      "get": {
+        "tags": ["Exaustores"],
+        "summary": "Exaustores acessíveis",
+        "description": "Equipe (porteiro, síndico, admin) vê os 24. Morador vê só a prumada das suas unidades liberadas (A-124 → A4).",
+        "operationId": "listExhausts",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Exaustores.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Exhaust" } },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v3/api/exhausts/{id}/on": {
+      "post": {
+        "tags": ["Exaustores"],
+        "summary": "Ligar exaustor",
+        "description": "Sem minutes, fica ligado até ser desligado.",
+        "operationId": "turnOnExhaust",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Torre + final do apartamento, ex.: A4 (A-124). Aceita A4, A-4, A_4.",
+            "schema": { "type": "string", "example": "A4" }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "minutes": { "type": "integer", "minimum": 1, "maximum": 1440 } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado após o comando.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/Exhaust" },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Id ou tempo inválido.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": {
+            "description": "Exaustor não encontrado ou fora da sua prumada.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Mais de 10 comandos por minuto nesta conta.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "502": {
+            "description": "Falha ao acionar o módulo.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Módulo do exaustor offline.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/v3/api/exhausts/{id}/off": {
+      "post": {
+        "tags": ["Exaustores"],
+        "summary": "Desligar exaustor",
+        "operationId": "turnOffExhaust",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Torre + final do apartamento, ex.: A4 (A-124). Aceita A4, A-4, A_4.",
+            "schema": { "type": "string", "example": "A4" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado após o comando.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/Exhaust" },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Id ou tempo inválido.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": {
+            "description": "Exaustor não encontrado ou fora da sua prumada.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Mais de 10 comandos por minuto nesta conta.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "502": {
+            "description": "Falha ao acionar o módulo.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Módulo do exaustor offline.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           }
         }

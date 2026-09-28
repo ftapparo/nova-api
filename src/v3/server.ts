@@ -8,6 +8,7 @@ import { tagRoutes } from './tag/tag.routes';
 import { cieRoutes } from './cie/cie.routes';
 import { authRoutes } from './auth/auth.routes';
 import { residenceRoutes } from './residence/residence.routes';
+import { exhaustRoutes } from './exhaust/exhaust.routes';
 import { enforceAuth } from './shared/require-auth';
 import { registerErrorHandler, responseHelpersPlugin } from './shared/reply-helpers';
 import openapiDocument from './openapi.json';
@@ -82,6 +83,7 @@ export async function StartWebServerV3(): Promise<void> {
         await tagRoutes(instance);
         await cieRoutes(instance);
         await residenceRoutes(instance);
+        await exhaustRoutes(instance);
     }, { prefix: '/v3/api' });
 
     const port = Number(process.env.PORT_V3 || 3031);

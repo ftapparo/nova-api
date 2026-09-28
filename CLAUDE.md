@@ -35,11 +35,12 @@ src/
 ```
 v3/
   health/         health.routes.ts
-  auth/           auth.routes.ts, auth.schema.ts, auth.service.ts, auth.rate-limit.ts (limite de tentativas em memória) — signup/login/refresh/logout/me e criação de conta por admin, delegando ao Supabase Auth (nova-auth)
+  auth/           auth.routes.ts, auth.schema.ts, auth.service.ts, auth.rate-limit.ts (limites de login/signup) — signup/login/refresh/logout/me e criação de conta por admin, delegando ao Supabase Auth (nova-auth)
   residence/      residence.routes.ts, residence.schema.ts, residence.service.ts — vínculo conta ↔ PESSOAS.SEQUENCIA (Postgres) e situação por unidade lida do Firebird (regras de bloqueio no service; residence.guard.ts = requireRoleOrResident, equipe ou morador com unidade liberada)
+  exhaust/        exhaust.routes.ts, exhaust.schema.ts — exaustores via core/services/exhaust.service; equipe opera os 24, morador só a prumada da unidade (A-124 → A4)
   tag/            tag.routes.ts, tag.schema.ts — proxy autenticado para nova-tag
   cie/            cie.routes.ts, cie.schema.ts — proxy autenticado para nova-cie
-  shared/         response.ts, reply-helpers.ts (envelope de resposta), service-proxy.ts (chamada autenticada a TAG/CIE), require-auth.ts (validação local do JWT do usuário, hooks requireAuth/requireRole/enforceAuth; papéis morador/porteiro/sindico/admin)
+  shared/         response.ts, reply-helpers.ts (envelope de resposta), service-proxy.ts (chamada autenticada a TAG/CIE), attempt-limiter.ts (limite de tentativas em memória, usado por auth/ e exhaust/), require-auth.ts (validação local do JWT do usuário, hooks requireAuth/requireRole/enforceAuth; papéis morador/porteiro/sindico/admin)
   openapi.json    spec escrito à mão, não gerado
   server.ts       bootstrap do Fastify, porta própria (PORT_V3)
 ```
