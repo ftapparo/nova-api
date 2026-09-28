@@ -32,11 +32,12 @@ export async function StartWebServerV3(): Promise<void> {
     await app.register(responseHelpersPlugin);
     registerErrorHandler(app);
 
-    // Mesma flag que protege o Swagger da v2 (SWAGGER_ENABLED): o spec
-    // cataloga endpoints sensíveis (portões, central de incêndio), então
-    // fica desabilitado por padrão em produção.
-    const swaggerEnabled = process.env.SWAGGER_ENABLED === 'true';
-    if (swaggerEnabled) {
+    // Flag própria da v3 (independente da SWAGGER_ENABLED da v2): permite
+    // manter o Swagger da v3 ligado durante o desenvolvimento ativo sem
+    // afetar a v2, e desligar só a v3 quando ela for para produção de
+    // verdade (mesmo raciocínio da v2: o spec cataloga endpoints sensíveis).
+    const swaggerV3Enabled = process.env.SWAGGER_V3_ENABLED === 'true';
+    if (swaggerV3Enabled) {
         await app.register(fastifySwagger, {
             openapi: {
                 info: {
