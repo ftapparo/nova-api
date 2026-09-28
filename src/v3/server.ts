@@ -6,6 +6,8 @@ import logger from '../core/utils/logger';
 import { healthRoutes } from './health/health.routes';
 import { tagRoutes } from './tag/tag.routes';
 import { cieRoutes } from './cie/cie.routes';
+import { authRoutes } from './auth/auth.routes';
+import { enforceAuth } from './shared/require-auth';
 import { registerErrorHandler, responseHelpersPlugin } from './shared/reply-helpers';
 import openapiDocument from './openapi.json';
 
@@ -63,9 +65,19 @@ export async function StartWebServerV3(): Promise<void> {
         });
     }
 
+    // Rotas públicas: health e o próprio fluxo de autenticação.
     await app.register(async (instance) => {
         instance.withTypeProvider<ZodTypeProvider>();
         await healthRoutes(instance);
+        await authRoutes(instance);
+    }, { prefix: '/v3/api' });
+
+    // Rotas de negócio: o hook vale para todo este escopo encapsulado, então
+    // uma rota nova registrada aqui já nasce protegida. Ver enforceAuth
+    // para o comportamento com AUTH_ENFORCE=false.
+    await app.register(async (instance) => {
+        instance.withTypeProvider<ZodTypeProvider>();
+        instance.addHook('onRequest', enforceAuth);
         await tagRoutes(instance);
         await cieRoutes(instance);
     }, { prefix: '/v3/api' });

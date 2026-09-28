@@ -11,6 +11,10 @@
       "description": "Disponibilidade do serviço, sem dependência de nenhum recurso externo."
     },
     {
+      "name": "Auth",
+      "description": "Login, renovação e encerramento de sessão (Supabase Auth). Demais rotas de negócio exigem Authorization: Bearer <accessToken>."
+    },
+    {
       "name": "Tag",
       "description": "Controle de acesso veicular via RFID (portões)."
     },
@@ -454,9 +458,66 @@
           "meta": { "$ref": "#/components/schemas/ResponseMeta" }
         },
         "required": ["success", "data", "meta"]
+      },
+      "AuthUser": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "nullable": true },
+          "role": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["morador", "portaria", "sindico", "admin", "servico"],
+            "description": "Papel da aplicação. null quando a conta ainda não tem papel atribuído."
+          }
+        },
+        "required": ["id", "email", "role"]
+      },
+      "SessionData": {
+        "type": "object",
+        "properties": {
+          "accessToken": { "type": "string", "description": "JWT de acesso. Enviar em Authorization: Bearer <accessToken>." },
+          "refreshToken": { "type": "string", "description": "Uso único: cada refresh devolve um novo refresh token." },
+          "tokenType": { "type": "string", "enum": ["bearer"] },
+          "expiresIn": { "type": "integer", "description": "Segundos até o access token expirar.", "example": 900 },
+          "expiresAt": { "type": "integer", "description": "Expiração do access token (Unix epoch, segundos)." },
+          "user": { "$ref": "#/components/schemas/AuthUser" }
+        },
+        "required": ["accessToken", "refreshToken", "tokenType", "expiresIn", "expiresAt", "user"]
+      },
+      "SessionResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "$ref": "#/components/schemas/SessionData" },
+          "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+        },
+        "required": ["success", "data", "meta"]
+      },
+      "AuthUserResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "$ref": "#/components/schemas/AuthUser" },
+          "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+        },
+        "required": ["success", "data", "meta"]
+      },
+      "LogoutResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "nullable": true, "description": "Sempre null." },
+          "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+        },
+        "required": ["success", "data", "meta"]
       }
     },
     "responses": {
+      "Unauthorized": {
+        "description": "Não autorizado — token ausente, inválido ou expirado.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
       "NotFound": {
         "description": "Rota inexistente.",
         "content": {
@@ -479,6 +540,14 @@
             }
           }
         }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Access token obtido em POST /v3/api/auth/login. Expira em 15 minutos; renovar em POST /v3/api/auth/refresh."
       }
     }
   },
@@ -537,12 +606,226 @@
         }
       }
     },
+    "/v3/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login",
+        "description": "Autentica com e-mail e senha. Contas são criadas apenas por processo administrativo (cadastro público desativado).",
+        "operationId": "authLogin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "email": { "type": "string", "format": "email" }, "password": { "type": "string" } },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sessão criada.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionResponse" } } }
+          },
+          "400": {
+            "description": "Dados de entrada inválidos.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Credenciais inválidas.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Muitas tentativas.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/v3/api/auth/signup": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Cadastro público",
+        "description": "Cria a conta do morador (papel sempre `morador`, definido pela API) e já devolve a sessão. Versão básica: ainda não confere o cadastro no Firebird.",
+        "operationId": "authSignup",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 8 }
+                },
+                "required": ["email", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conta criada e sessão iniciada.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionResponse" } } }
+          },
+          "400": {
+            "description": "Dados de entrada inválidos ou recusados pela política de senha.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "409": {
+            "description": "Já existe uma conta com este e-mail.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/v3/api/auth/users": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Criar conta (admin)",
+        "description": "Cria uma conta com qualquer papel. Exige usuário `admin`. O primeiro admin é promovido direto no banco.",
+        "operationId": "authCreateUser",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string", "minLength": 8 },
+                  "role": { "type": "string", "enum": ["morador", "portaria", "sindico", "admin", "servico"] }
+                },
+                "required": ["email", "password", "role"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conta criada.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthUserResponse" } } }
+          },
+          "400": {
+            "description": "Dados de entrada inválidos ou recusados pela política de senha.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Usuário sem papel admin.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "409": {
+            "description": "Já existe uma conta com este e-mail.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/v3/api/auth/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Renovar sessão",
+        "description": "Troca um refresh token por um novo par de tokens.",
+        "operationId": "authRefresh",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "refreshToken": { "type": "string" } },
+                "required": ["refreshToken"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sessão criada.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionResponse" } } }
+          },
+          "400": {
+            "description": "Dados de entrada inválidos.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Refresh token inválido ou revogado.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Muitas tentativas.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/v3/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Logout",
+        "description": "Revoga a sessão atual (refresh token). O access token segue válido até expirar (máx. 15 min).",
+        "operationId": "authLogout",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Sessão encerrada.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LogoutResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": {
+            "description": "Muitas tentativas.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/v3/api/auth/me": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Usuário autenticado",
+        "description": "Dados do usuário extraídos do access token.",
+        "operationId": "authMe",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Usuário atual.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthUserResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
     "/v3/api/tag/gate/state": {
       "get": {
         "tags": ["Tag"],
         "summary": "Estado de um portão",
         "description": "Retorna o estado atual do portão associado ao dispositivo informado.",
         "operationId": "getTagGateState",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
             "name": "numeroDispositivo",
@@ -557,6 +840,7 @@
             "description": "Estado atual.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GateStateResponse" } } }
           },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
           "502": { "description": "Falha ao consultar o serviço de controle de acesso." }
         }
       }
@@ -567,6 +851,7 @@
         "summary": "Cache de TAGs validadas",
         "description": "Retorna as entradas do cache de validação de TAGs do dispositivo informado, com estatísticas.",
         "operationId": "getTagCache",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
             "name": "numeroDispositivo",
@@ -588,6 +873,7 @@
             "description": "Entradas do cache.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ListCacheResponse" } } }
           },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
           "502": { "description": "Falha ao consultar o serviço de controle de acesso." }
         }
       }
@@ -598,11 +884,13 @@
         "summary": "Estado bruto da central de incêndio",
         "description": "Retorna o último snapshot de estado da central de incêndio.",
         "operationId": "getCieStatus",
+        "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
             "description": "Snapshot atual.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CieStatusResponse" } } }
           },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
           "502": { "description": "Falha ao consultar a central de incêndio." }
         }
       }
@@ -613,11 +901,13 @@
         "summary": "Painel consolidado da central de incêndio",
         "description": "Retorna uma visão agregada do estado da central, pronta para exibição.",
         "operationId": "getCiePanel",
+        "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
             "description": "Painel atual.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PanelResponse" } } }
           },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
           "502": { "description": "Falha ao consultar a central de incêndio." }
         }
       }
@@ -628,11 +918,13 @@
         "summary": "Alarmes ativos",
         "description": "Retorna se há alarme disparado no momento e os últimos registros de alarme.",
         "operationId": "getCieActiveAlarms",
+        "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
             "description": "Estado de alarme atual.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AlarmActiveResponse" } } }
           },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
           "502": { "description": "Falha ao consultar a central de incêndio." }
         }
       }
@@ -643,6 +935,7 @@
         "summary": "Logs da central de incêndio",
         "description": "Retorna eventos registrados pela central, com paginação por cursor e filtro opcional por tipo.",
         "operationId": "listCieLogs",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
             "name": "type",
@@ -668,6 +961,7 @@
             "description": "Página de logs.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LogsListResponse" } } }
           },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
           "502": { "description": "Falha ao consultar a central de incêndio." }
         }
       }
@@ -678,11 +972,13 @@
         "summary": "Contadores de bloqueio",
         "description": "Retorna a quantidade de dispositivos, saídas, sirenes e atuadores configurados para bloqueio, por laço.",
         "operationId": "getCieBlockCounters",
+        "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
             "description": "Contadores atuais.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCountersResponse" } } }
           },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
           "502": { "description": "Falha ao consultar a central de incêndio." }
         }
       }
@@ -693,11 +989,13 @@
         "summary": "Contadores de saída",
         "description": "Retorna a quantidade de saídas, sirenes e atuadores configurados, por laço.",
         "operationId": "getCieOutputCounters",
+        "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
             "description": "Contadores atuais.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OutputCountersResponse" } } }
           },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
           "502": { "description": "Falha ao consultar a central de incêndio." }
         }
       }

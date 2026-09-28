@@ -35,14 +35,15 @@ src/
 ```
 v3/
   health/         health.routes.ts
+  auth/           auth.routes.ts, auth.schema.ts, auth.service.ts — signup/login/refresh/logout/me e criação de conta por admin, delegando ao Supabase Auth (nova-auth)
   tag/            tag.routes.ts, tag.schema.ts — proxy autenticado para nova-tag
   cie/            cie.routes.ts, cie.schema.ts — proxy autenticado para nova-cie
-  shared/         response.ts, reply-helpers.ts (envelope de resposta), service-proxy.ts (chamada autenticada a TAG/CIE)
+  shared/         response.ts, reply-helpers.ts (envelope de resposta), service-proxy.ts (chamada autenticada a TAG/CIE), require-auth.ts (validação local do JWT do usuário, hooks requireAuth/requireRole/enforceAuth)
   openapi.json    spec escrito à mão, não gerado
   server.ts       bootstrap do Fastify, porta própria (PORT_V3)
 ```
 
-Ao criar uma rota nova: schema só entra em `shared/` se for usado por 2+ features; senão fica junto da própria feature. Nunca criar `lib/`/`utils/` genérico. Padrão completo (envelope de resposta, autenticação de serviço, convenção de pastas): `docs/PADRAO-RESPOSTA-V3.md` (raiz do workspace) e `AI-Friendly Architecture Specification.md` (raiz do workspace, racional da estrutura por feature). Ler só quando a tarefa envolver `v3/` — não carregar por padrão.
+Rotas de negócio da v3 são registradas no escopo protegido de `v3/server.ts` (hook `enforceAuth`) — rota nova ali já nasce exigindo token. Só `health/` e `auth/` ficam no escopo público. Ao criar uma rota nova: schema só entra em `shared/` se for usado por 2+ features; senão fica junto da própria feature. Nunca criar `lib/`/`utils/` genérico. Padrão completo (envelope de resposta, autenticação de serviço, convenção de pastas): `docs/PADRAO-RESPOSTA-V3.md` (raiz do workspace) e `AI-Friendly Architecture Specification.md` (raiz do workspace, racional da estrutura por feature). Ler só quando a tarefa envolver `v3/` — não carregar por padrão.
 
 ## Stack
 
