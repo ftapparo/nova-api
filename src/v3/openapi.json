@@ -610,7 +610,7 @@
       "post": {
         "tags": ["Auth"],
         "summary": "Login",
-        "description": "Autentica com e-mail e senha. Contas são criadas apenas por processo administrativo (cadastro público desativado).",
+        "description": "Autentica com e-mail e senha. Limites: 20 tentativas por IP e 5 falhas por e-mail a cada 15 minutos (429 com Retry-After).",
         "operationId": "authLogin",
         "requestBody": {
           "required": true,
@@ -652,7 +652,7 @@
       "post": {
         "tags": ["Auth"],
         "summary": "Cadastro público",
-        "description": "Cria a conta do morador (papel sempre `morador`, definido pela API) e já devolve a sessão. Versão básica: ainda não confere o cadastro no Firebird.",
+        "description": "Cria a conta do morador (papel sempre `morador`, definido pela API) e já devolve a sessão. Versão básica: ainda não confere o cadastro no Firebird. Limite: 5 cadastros por IP por hora (429 com Retry-After).",
         "operationId": "authSignup",
         "requestBody": {
           "required": true,
@@ -678,6 +678,7 @@
             "description": "Dados de entrada inválidos ou recusados pela política de senha.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           },
+          "429": { "description": "Muitas tentativas.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "409": {
             "description": "Já existe uma conta com este e-mail.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }

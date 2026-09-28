@@ -35,7 +35,7 @@ src/
 ```
 v3/
   health/         health.routes.ts
-  auth/           auth.routes.ts, auth.schema.ts, auth.service.ts — signup/login/refresh/logout/me e criação de conta por admin, delegando ao Supabase Auth (nova-auth)
+  auth/           auth.routes.ts, auth.schema.ts, auth.service.ts, auth.rate-limit.ts (limite de tentativas em memória) — signup/login/refresh/logout/me e criação de conta por admin, delegando ao Supabase Auth (nova-auth)
   tag/            tag.routes.ts, tag.schema.ts — proxy autenticado para nova-tag
   cie/            cie.routes.ts, cie.schema.ts — proxy autenticado para nova-cie
   shared/         response.ts, reply-helpers.ts (envelope de resposta), service-proxy.ts (chamada autenticada a TAG/CIE), require-auth.ts (validação local do JWT do usuário, hooks requireAuth/requireRole/enforceAuth)

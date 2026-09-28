@@ -6,6 +6,7 @@ import { extractBearerToken, requireAuth, requireRole } from '../shared/require-
 import logger from '../../core/utils/logger';
 import { authUserSchema, createUserBodySchema, loginBodySchema, refreshBodySchema, sessionDataSchema, signupBodySchema } from './auth.schema';
 import * as authService from './auth.service';
+import { loginByIp, loginFailuresByEmail, normalizeEmailKey, resolveClientIp, signupByIp } from './auth.rate-limit';
 
 // Login/refresh/logout delegados ao Supabase Auth. /login e /refresh são
 // públicos por natureza; /logout e /me exigem access token válido sempre,
@@ -21,6 +22,12 @@ const sendAuthFailure = (request: FastifyRequest, reply: FastifyReply, reason: a
         return reply.fail({ type: 'upstream-error', detail: 'Serviço de autenticação indisponível.', instance: request.url, status: 503 });
     }
     return reply.fail({ type: 'unauthorized', detail: 'Credenciais inválidas.', instance: request.url });
+};
+
+// Retry-After segue o RFC 9110; o app pode usar para mostrar a espera.
+const sendTooManyAttempts = (request: FastifyRequest, reply: FastifyReply, retryAfterSeconds: number) => {
+    reply.header('Retry-After', String(retryAfterSeconds));
+    return reply.fail({ type: 'rate-limited', detail: 'Muitas tentativas. Tente novamente mais tarde.', instance: request.url });
 };
 
 const sendCreateUserFailure = (
@@ -46,8 +53,23 @@ export async function authRoutes(app: FastifyInstance) {
             response: { 200: successResponseSchema(sessionDataSchema) },
         },
     }, async (request, reply) => {
+        const ip = resolveClientIp(request);
+        const emailKey = normalizeEmailKey(request.body.email);
+        const retryAfter = Math.max(loginByIp.retryAfter(ip), loginFailuresByEmail.retryAfter(emailKey));
+        if (retryAfter > 0) {
+            logger.warn(`[ApiV3] Login bloqueado por excesso de tentativas (ip ${ip}).`);
+            return sendTooManyAttempts(request, reply, retryAfter);
+        }
+        loginByIp.hit(ip);
+
         const result = await authService.login(request.body.email, request.body.password);
-        if (!result.ok) return sendAuthFailure(request, reply, result.reason);
+        if (!result.ok) {
+            // Só credencial errada conta contra o e-mail — falha do próprio
+            // serviço de auth não deve bloquear o dono da conta.
+            if (result.reason === 'invalid-credentials') loginFailuresByEmail.hit(emailKey);
+            return sendAuthFailure(request, reply, result.reason);
+        }
+        loginFailuresByEmail.reset(emailKey);
         return reply.ok(result.data);
     });
 
@@ -63,6 +85,16 @@ export async function authRoutes(app: FastifyInstance) {
             response: { 201: successResponseSchema(sessionDataSchema) },
         },
     }, async (request, reply) => {
+        const ip = resolveClientIp(request);
+        const retryAfter = signupByIp.retryAfter(ip);
+        if (retryAfter > 0) {
+            logger.warn(`[ApiV3] Cadastro bloqueado por excesso de tentativas (ip ${ip}).`);
+            return sendTooManyAttempts(request, reply, retryAfter);
+        }
+        // Conta toda tentativa, inclusive e-mail já existente: também freia
+        // o uso do 409 para descobrir quais e-mails têm conta.
+        signupByIp.hit(ip);
+
         const { email, password } = request.body;
         const created = await authService.createUser({ email, password, role: 'morador' });
         if (!created.ok) return sendCreateUserFailure(request, reply, created);
