@@ -26,6 +26,8 @@
     "dotenv": "^16.5.0",
     "dotenv-cli": "^8.0.0",
     "express": "^4.21.1",
+    "fastify": "^5.12.5",
+    "fastify-type-provider-zod": "^7.0.0",
     "mqtt": "^5.10.3",
     "multer": "^1.4.5-lts.1",
     "node-firebird": "^1.1.9",
@@ -37,7 +39,8 @@
     "typescript": "^5.8.2",
     "web-push": "^3.6.7",
     "winston": "^3.19.0",
-    "winston-daily-rotate-file": "^5.0.0"
+    "winston-daily-rotate-file": "^5.0.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/cors": "^2",

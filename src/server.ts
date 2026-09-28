@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { StartWebServer } from './v2/api/web-server.api';
+import { StartWebServerV3 } from './v3/server';
 import { closeConnection } from './core/services/firebird.service';
 import { startExhaustService } from './core/services/exhaust.service';
 import { startAccessControlService } from './core/services/access-control.service';
@@ -42,9 +43,19 @@ async function StartService(): Promise<void> {
             }
         };
 
-        // Inicializa o serviço web
+        // Inicializa o serviço web (v2 — Express, em produção)
         await StartWebServer();
         console.log('[Server] Serviço web inicializado.');
+
+        // Inicializa a v3 (Fastify) — roda lado a lado da v2, porta própria,
+        // ainda em construção. Falha aqui não deve derrubar a v2 (que já
+        // atende produção), então erro é logado, não propagado.
+        try {
+            await StartWebServerV3();
+            console.log('[Server] Serviço web v3 inicializado.');
+        } catch (v3Err) {
+            console.error('[Server] Falha ao iniciar a v3 (nao fatal, v2 segue operando):', v3Err);
+        }
 
         // Inicializa o serviço dos exaustores
         await startExhaustService();

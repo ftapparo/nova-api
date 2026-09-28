@@ -6,6 +6,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## [Unreleased]
 
+### Adicionado
+- Esqueleto da v3 (`src/v3/`): servidor Fastify + Zod rodando lado a lado com a v2 (Express) no mesmo processo, porta própria (`PORT_V3`, padrão `3031`). Primeiro endpoint (`GET /v3/api/healthcheck`) valida o padrão de resposta tipado com Zod. Falha ao iniciar a v3 não derruba a v2. Ainda não expõe nenhuma rota de negócio nem exige autenticação.
+
 ### Alterado
 - Reorganização estrutural do código: `services/`, `repositories/` e `utils/` movidos para `src/core/` (lógica de negócio e integrações, sem framework HTTP); `controllers/`, `routes/`, `middleware/` e `api/` movidos para `src/v2/` (camada Express atual). Preparação para uma futura v3 (pensada para consumo mobile), que reaproveitará tudo em `core/` sem duplicar lógica já validada em produção. Sem mudança de comportamento.
 
