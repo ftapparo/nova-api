@@ -86,7 +86,7 @@ export const problemDetailsSchema = z.object({
     status: z.number().int(),
     detail: z.string().nullable(),
     instance: z.string().nullable(),
-    // Extensão nossa (permitida pelo RFC): detalhes estruturados de
+    // Extensão local (permitida pelo RFC): detalhes estruturados de
     // validação Zod, quando o erro for 'validation-error'.
     validationErrors: z
         .array(
