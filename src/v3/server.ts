@@ -4,6 +4,8 @@ import fastifySwaggerUi from '@fastify/swagger-ui';
 import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import logger from '../core/utils/logger';
 import { healthRoutes } from './routes/health.routes';
+import { tagRoutes } from './routes/tag.routes';
+import { cieRoutes } from './routes/cie.routes';
 import { registerErrorHandler, responseHelpersPlugin } from './lib/reply-helpers';
 import openapiDocument from './openapi.json';
 
@@ -64,6 +66,8 @@ export async function StartWebServerV3(): Promise<void> {
     await app.register(async (instance) => {
         instance.withTypeProvider<ZodTypeProvider>();
         await healthRoutes(instance);
+        await tagRoutes(instance);
+        await cieRoutes(instance);
     }, { prefix: '/v3/api' });
 
     const port = Number(process.env.PORT_V3 || 3031);
