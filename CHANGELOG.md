@@ -29,6 +29,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 - Novas variáveis: `AUTH_URL`, `AUTH_JWT_SECRET`, `AUTH_TIMEOUT_MS`, `AUTH_ENFORCE` (listadas no `docker-compose.yml`). `openapi.json` documenta as rotas de auth e o esquema `bearerAuth` nas rotas protegidas.
 
 ### Corrigido
+- Validação do código de recuperação de senha (`/auth/password/recover/confirm`) recusava todo código válido: a regex foi gravada como `/^d{6}$/` (barra invertida perdida na geração do arquivo), aceitando só "dddddd". Corrigida para `/^\d{6}$/`.
 - `nova-auth` (GoTrue) falhava em runtime com `relation "identities" does not exist` — todo signup/login pela v3 retornava 503. `GOTRUE_DB_NAMESPACE=auth` só vale para as migrações; em runtime o GoTrue consulta tabelas sem schema e depende do `search_path` do role. `infra/postgres/setup-roles.sql` agora aplica `ALTER ROLE supabase_auth_admin SET search_path = auth` (exige restart do `nova-auth`). Em instalação que já rodava sem ele, sincronizar `auth.schema_migrations` a partir de `public.schema_migrations` antes — senão o GoTrue reaplica migrações já feitas e entra em crash loop (SQL no próprio script).
 - Bug de leitura de variável de ambiente antes de `dotenv.config()` rodar: `TAG_SERVICE_TOKEN`/`CIE_SERVICE_TOKEN` eram lidos numa `const` no topo dos módulos de rota, capturando sempre `undefined` (imports resolvem antes do `.env` carregar). Corrigido lendo cada variável dentro de uma função, chamada no momento do uso.
 

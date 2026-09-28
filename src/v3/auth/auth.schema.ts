@@ -83,6 +83,6 @@ export const recoverBodySchema = z.object({
 
 export const recoverConfirmBodySchema = z.object({
     email: z.email().max(254),
-    code: z.string().regex(/^d{6}$/, 'Código de 6 dígitos.'),
+    code: z.string().regex(/^\d{6}$/, 'Código de 6 dígitos.'),
     newPassword: newPasswordSchema,
 });
