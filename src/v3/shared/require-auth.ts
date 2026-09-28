@@ -32,12 +32,18 @@ export type Actor = {
     id: string;
     email: string | null;
     role: AppRole | null;
+    /** Senha provisória (reset pela equipe): só pode trocar a senha até resolver. */
+    mustChangePassword: boolean;
 };
 
 declare module 'fastify' {
     interface FastifyRequest {
         /** Usuário autenticado, extraído do access token. Ausente em rota pública. */
         actor?: Actor;
+    }
+    interface FastifyContextConfig {
+        /** Rota acessível mesmo com senha provisória pendente de troca. */
+        allowPendingPasswordChange?: boolean;
     }
 }
 
@@ -106,6 +112,7 @@ export function verifyAccessToken(token: string): Actor | null {
         id: payload.sub,
         email: typeof payload.email === 'string' ? payload.email : null,
         role: toAppRole(appMetadata.role),
+        mustChangePassword: appMetadata.must_change_password === true,
     };
 }
 
@@ -121,6 +128,16 @@ export const extractBearerToken = (request: FastifyRequest): string | null => {
 const sendUnauthorized = (request: FastifyRequest, reply: FastifyReply) =>
     reply.fail({ type: 'unauthorized', detail: 'Não autorizado.', instance: request.url });
 
+// Senha provisória: a troca é imposta pela API, não só pelo app. Até
+// trocar, só passam rotas marcadas com config.allowPendingPasswordChange
+// (trocar senha, /auth/me, logout). O flag vem no JWT (app_metadata), então
+// um access token emitido antes do reset segue sem ele até expirar (15 min).
+const blockedByPendingPasswordChange = (request: FastifyRequest, actor: Actor): boolean =>
+    actor.mustChangePassword && request.routeOptions.config?.allowPendingPasswordChange !== true;
+
+const sendPasswordChangeRequired = (request: FastifyRequest, reply: FastifyReply) =>
+    reply.fail({ type: 'forbidden', title: 'Troca de senha obrigatória', detail: 'Troque a senha provisória para continuar.', instance: request.url });
+
 /**
  * Hook estrito: exige access token válido sempre, independente de
  * AUTH_ENFORCE. Para rotas que só fazem sentido com sessão (logout, /me).
@@ -129,6 +146,7 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
     const token = extractBearerToken(request);
     const actor = token ? verifyAccessToken(token) : null;
     if (!actor) return sendUnauthorized(request, reply);
+    if (blockedByPendingPasswordChange(request, actor)) return sendPasswordChangeRequired(request, reply);
     request.actor = actor;
 }
 
@@ -162,6 +180,7 @@ export async function enforceAuth(request: FastifyRequest, reply: FastifyReply) 
     const actor = token ? verifyAccessToken(token) : null;
 
     if (actor) {
+        if (blockedByPendingPasswordChange(request, actor)) return sendPasswordChangeRequired(request, reply);
         request.actor = actor;
         return;
     }

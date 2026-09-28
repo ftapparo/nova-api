@@ -6,6 +6,7 @@ import { extractBearerToken, requireAuth, requireRole } from '../shared/require-
 import logger from '../../core/utils/logger';
 import { authUserSchema, createUserBodySchema, googleLoginBodySchema, listUsersQuerySchema, loginBodySchema, refreshBodySchema, sessionDataSchema, signupBodySchema } from './auth.schema';
 import * as authService from './auth.service';
+import { passwordRoutes } from './auth.password.routes';
 import { loginByIp, loginFailuresByEmail, normalizeEmailKey, resolveClientIp, signupByIp } from './auth.rate-limit';
 
 // Login/refresh/logout delegados ao Supabase Auth. /login, /google e /refresh são
@@ -138,6 +139,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     typedApp.post('/auth/logout', {
         onRequest: requireAuth,
+        config: { allowPendingPasswordChange: true },
         schema: {
             response: { 200: successResponseSchema(z.null()) },
         },
@@ -150,6 +152,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     typedApp.get('/auth/me', {
         onRequest: requireAuth,
+        config: { allowPendingPasswordChange: true },
         schema: {
             response: { 200: successResponseSchema(authUserSchema) },
         },
@@ -187,4 +190,6 @@ export async function authRoutes(app: FastifyInstance) {
         if (!result.ok) return sendAuthFailure(request, reply, result.reason);
         return reply.ok(result.data);
     });
+
+    await passwordRoutes(app);
 }

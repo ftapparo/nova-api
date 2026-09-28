@@ -560,9 +560,10 @@
             "nullable": true,
             "enum": ["morador", "porteiro", "sindico", "admin"],
             "description": "Papel da aplicação. null quando a conta ainda não tem papel atribuído."
-          }
+          },
+          "mustChangePassword": { "type": "boolean", "description": "Senha provisória: levar direto para a troca de senha." }
         },
-        "required": ["id", "email", "role"]
+        "required": ["id", "email", "role", "mustChangePassword"]
       },
       "SessionData": {
         "type": "object",
@@ -905,6 +906,215 @@
           "401": { "description": "Token do Google inválido, expirado ou de outro app.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "429": { "description": "Muitas tentativas.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
           "503": { "description": "Serviço de autenticação indisponível.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/v3/api/auth/password/staff-reset": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Resetar senha (porteiro/síndico/admin)",
+        "description": "Gera e devolve uma senha provisória. A conta fica obrigada a trocar a senha: até isso, a API só aceita /auth/password/change, /auth/me e /auth/logout (demais rotas respondem 403). Informe accountId ou personSequencia. Hierarquia: porteiro reseta só moradores; síndico, moradores e porteiros; admin, qualquer conta.",
+        "operationId": "authStaffResetPassword",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accountId": { "type": "string", "format": "uuid" },
+                  "personSequencia": { "type": "integer", "description": "PESSOAS.SEQUENCIA da pessoa vinculada." }
+                },
+                "required": []
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Senha provisória gerada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accountId": { "type": "string" },
+                        "email": { "type": "string", "nullable": true },
+                        "temporaryPassword": { "type": "string", "example": "Kx7mPq2wZr" }
+                      },
+                      "required": ["accountId", "email", "temporaryPassword"]
+                    },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Informe accountId ou personSequencia.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Papel sem permissão, ou conta de nível igual/maior.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "404": {
+            "description": "Conta não encontrada / pessoa sem conta vinculada.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/v3/api/auth/password/change": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Trocar a própria senha",
+        "description": "Também é o caminho para sair da senha provisória. Devolve uma sessão nova. Limite: 5 senhas atuais erradas por conta a cada 15 minutos.",
+        "operationId": "authChangePassword",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentPassword": { "type": "string" },
+                  "newPassword": { "type": "string", "minLength": 8 }
+                },
+                "required": ["currentPassword", "newPassword"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Senha trocada; sessão nova, já sem a marca de senha provisória.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionResponse" } } }
+          },
+          "400": {
+            "description": "Nova senha inválida ou recusada (ex.: igual à anterior).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Senha atual incorreta / não autenticado.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Muitas tentativas.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/v3/api/auth/password/recover": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Recuperar senha — enviar código",
+        "description": "Envia um código de 6 dígitos (válido por 15 minutos) para o e-mail. Responde 202 sempre, exista a conta ou não. Limite: 5 pedidos por IP e 3 por e-mail por hora.",
+        "operationId": "authRecoverPassword",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "email": { "type": "string", "format": "email" } },
+                "required": ["email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Pedido aceito.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "nullable": true },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "E-mail inválido.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Muitas tentativas.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/v3/api/auth/password/recover/confirm": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Recuperar senha — confirmar código",
+        "description": "Código do e-mail + nova senha. Devolve uma sessão. Limite: 5 códigos errados por e-mail a cada 15 minutos.",
+        "operationId": "authConfirmRecovery",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "code": { "type": "string", "pattern": "^\\d{6}$" },
+                  "newPassword": { "type": "string", "minLength": 8 }
+                },
+                "required": ["email", "code", "newPassword"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Senha trocada; sessão nova, já sem a marca de senha provisória.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionResponse" } } }
+          },
+          "400": {
+            "description": "Dados inválidos ou senha recusada.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": {
+            "description": "Código inválido ou expirado.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Muitas tentativas.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
         }
       }
     },

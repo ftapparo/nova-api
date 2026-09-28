@@ -32,3 +32,12 @@ export const resolveClientIp = (request: FastifyRequest): string => {
 };
 
 export const normalizeEmailKey = (email: string): string => email.trim().toLowerCase();
+
+// Recuperação por e-mail: cada pedido dispara um e-mail (custo e spam).
+export const recoverByIp = new AttemptLimiter(5, ONE_HOUR);
+export const recoverByEmail = new AttemptLimiter(3, ONE_HOUR);
+// Código de 6 dígitos: só falhas contam, por e-mail — segura força bruta
+// no código (1 em 1 milhão por tentativa, 5 tentativas por janela).
+export const recoverCodeFailuresByEmail = new AttemptLimiter(5, FIFTEEN_MINUTES);
+// Troca de senha: só falhas de senha atual contam, por conta.
+export const passwordChangeFailuresByAccount = new AttemptLimiter(5, FIFTEEN_MINUTES);

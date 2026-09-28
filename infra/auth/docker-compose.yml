@@ -50,10 +50,33 @@ services:
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
       GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
 
-      # Sem SMTP configurado ainda: contas entram já confirmadas.
-      # Revisar quando houver servidor de e-mail (ver §9 do documento
-      # técnico da Etapa 2 — recuperação de senha por e-mail depende disso).
+      # Contas entram já confirmadas, mesmo com SMTP: o cadastro já depende
+      # do vínculo manual com o Firebird para liberar qualquer acesso, então
+      # confirmar o e-mail seria um passo a mais sem ganho de segurança.
       GOTRUE_MAILER_AUTOCONFIRM: "true"
+
+      # SMTP — usado hoje só pela recuperação de senha (POST
+      # /v3/api/auth/password/recover). Sem SMTP_HOST o GoTrue não envia
+      # e-mail e a recuperação não funciona; o resto do login não depende.
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-}
+      GOTRUE_SMTP_SENDER_NAME: "Condomínio Nova Residence"
+
+      # Recuperação por código de 6 dígitos, não por link: o link padrão
+      # aponta para o próprio GoTrue, que não é exposto. O template com o
+      # código é servido pela nova-api na rede interna (porta da v3).
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: http://nova-api:3031/v3/api/auth/email-templates/recovery
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: "Código para redefinir sua senha"
+      GOTRUE_MAILER_OTP_LENGTH: 6
+      # 15 min (padrão do GoTrue é 24 h — longo demais para um código).
+      GOTRUE_MAILER_OTP_EXP: 900
+      # Limite global de e-mails por hora. Todo pedido chega pela nova-api
+      # (que já limita por IP e por e-mail), então o padrão baixo do GoTrue
+      # viraria um teto para o condomínio inteiro.
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: 100
 
       GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
 

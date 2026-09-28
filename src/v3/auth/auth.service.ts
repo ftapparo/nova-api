@@ -29,17 +29,22 @@ type GoTrueSession = {
     user?: { id: string; email?: string | null; app_metadata?: Record<string, unknown> };
 };
 
+type GoTrueUser = { id: string; email?: string | null; created_at?: string; app_metadata?: Record<string, unknown> };
+
+const toAuthUser = (user: GoTrueUser | undefined): AuthUser => ({
+    id: user?.id ?? '',
+    email: user?.email ?? null,
+    role: toAppRole(user?.app_metadata?.role),
+    mustChangePassword: user?.app_metadata?.must_change_password === true,
+});
+
 const toSessionData = (session: GoTrueSession): SessionData => ({
     accessToken: session.access_token,
     refreshToken: session.refresh_token,
     tokenType: 'bearer',
     expiresIn: session.expires_in,
     expiresAt: session.expires_at ?? Math.floor(Date.now() / 1000) + session.expires_in,
-    user: {
-        id: session.user?.id ?? '',
-        email: session.user?.email ?? null,
-        role: toAppRole(session.user?.app_metadata?.role),
-    },
+    user: toAuthUser(session.user),
 });
 
 // O GoTrue responde 400 tanto para senha errada quanto para usuário
@@ -60,17 +65,25 @@ const classifyError = (error: unknown, operation: string): AuthFailure => {
     return 'unavailable';
 };
 
-const requestToken = async (grantType: 'password' | 'refresh_token' | 'id_token', body: Record<string, string>): Promise<AuthResult<SessionData>> => {
+const postForSession = async (
+    path: string,
+    body: Record<string, string>,
+    operation: string,
+    params?: Record<string, string>,
+): Promise<AuthResult<SessionData>> => {
     try {
-        const { data } = await axios.post<GoTrueSession>(`${resolveAuthUrl()}/token`, body, {
-            params: { grant_type: grantType },
+        const { data } = await axios.post<GoTrueSession>(`${resolveAuthUrl()}${path}`, body, {
+            params,
             timeout: resolveAuthTimeout(),
         });
         return { ok: true, data: toSessionData(data) };
     } catch (error) {
-        return { ok: false, reason: classifyError(error, `token/${grantType}`) };
+        return { ok: false, reason: classifyError(error, operation) };
     }
 };
+
+const requestToken = (grantType: 'password' | 'refresh_token' | 'id_token', body: Record<string, string>) =>
+    postForSession('/token', body, `token/${grantType}`, { grant_type: grantType });
 
 export const login = (email: string, password: string) => requestToken('password', { email, password });
 
@@ -127,6 +140,23 @@ const adminHeaders = () => ({ Authorization: `Bearer ${signServiceRoleToken()}` 
 
 export type CreateUserFailure = 'email-taken' | 'rejected' | 'unavailable';
 
+// Falhas de escrita de conta/senha no GoTrue. 4xx = política dele (senha
+// fraca, senha igual à anterior, e-mail repetido); a mensagem é segura para
+// quem está preenchendo o formulário.
+const toCreateUserFailure = (error: unknown, operation: string): { ok: false; reason: CreateUserFailure; detail?: string } => {
+    if (axios.isAxiosError(error) && error.response) {
+        const status = error.response.status;
+        const body = error.response.data as { msg?: string; error_code?: string } | undefined;
+        if (status === 422 && body?.error_code === 'email_exists') return { ok: false, reason: 'email-taken' };
+        if (status >= 400 && status < 500) return { ok: false, reason: 'rejected', detail: body?.msg };
+        logger.error(`[ApiV3] Supabase Auth respondeu ${status} em ${operation}.`);
+        return { ok: false, reason: 'unavailable' };
+    }
+    const message = error instanceof Error ? error.message : 'erro desconhecido';
+    logger.error(`[ApiV3] Falha ao contatar o Supabase Auth em ${operation}: ${message}`);
+    return { ok: false, reason: 'unavailable' };
+};
+
 export const createUser = async (input: { email: string; password: string; role: AppRole | null }): Promise<
     { ok: true; data: AuthUser } | { ok: false; reason: CreateUserFailure; detail?: string }
 > => {
@@ -147,21 +177,9 @@ export const createUser = async (input: { email: string; password: string; role:
             },
             { timeout: resolveAuthTimeout(), headers: adminHeaders() },
         );
-        return { ok: true, data: { id: data.id, email: data.email ?? null, role: toAppRole(data.app_metadata?.role) } };
+        return { ok: true, data: toAuthUser(data) };
     } catch (error) {
-        if (axios.isAxiosError(error) && error.response) {
-            const status = error.response.status;
-            const body = error.response.data as { msg?: string; error_code?: string } | undefined;
-            if (status === 422 && body?.error_code === 'email_exists') return { ok: false, reason: 'email-taken' };
-            // 4xx restante = política do GoTrue (ex.: senha fraca). A mensagem
-            // dele é segura para o admin que está criando a conta.
-            if (status >= 400 && status < 500) return { ok: false, reason: 'rejected', detail: body?.msg };
-            logger.error(`[ApiV3] Supabase Auth respondeu ${status} ao criar usuário.`);
-            return { ok: false, reason: 'unavailable' };
-        }
-        const message = error instanceof Error ? error.message : 'erro desconhecido';
-        logger.error(`[ApiV3] Falha ao contatar o Supabase Auth ao criar usuário: ${message}`);
-        return { ok: false, reason: 'unavailable' };
+        return toCreateUserFailure(error, 'admin/users (create)');
     }
 };
 
@@ -175,14 +193,84 @@ export const listUsers = async (page: number, perPage: number): Promise<AuthResu
             `${resolveAuthUrl()}/admin/users`,
             { params: { page, per_page: perPage }, timeout: resolveAuthTimeout(), headers: adminHeaders() },
         );
-        const users = (data.users ?? []).map((user) => ({
-            id: user.id,
-            email: user.email ?? null,
-            role: toAppRole(user.app_metadata?.role),
-            createdAt: user.created_at,
-        }));
+        const users = (data.users ?? []).map((user) => ({ ...toAuthUser(user), createdAt: user.created_at }));
         return { ok: true, data: users };
     } catch (error) {
         return { ok: false, reason: classifyError(error, 'admin/users') };
     }
 };
+
+// -----------------------------------------------------------------------------
+// Senha: reset pela equipe, troca pelo próprio usuário, recuperação por e-mail
+// -----------------------------------------------------------------------------
+
+export const getUser = async (accountId: string): Promise<AuthResult<AuthUser> | { ok: false; reason: 'not-found' }> => {
+    try {
+        const { data } = await axios.get<GoTrueUser>(`${resolveAuthUrl()}/admin/users/${encodeURIComponent(accountId)}`, {
+            timeout: resolveAuthTimeout(),
+            headers: adminHeaders(),
+        });
+        return { ok: true, data: toAuthUser(data) };
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) return { ok: false, reason: 'not-found' };
+        return { ok: false, reason: classifyError(error, 'admin/users/:id') };
+    }
+};
+
+/**
+ * Atualiza senha e/ou app_metadata via API admin. O GoTrue mescla as chaves
+ * de app_metadata (não substitui o objeto) e remove as que vierem null —
+ * por isso o papel e os dados de provedor sobrevivem.
+ */
+export const adminUpdateUser = async (
+    accountId: string,
+    changes: { password?: string; appMetadata?: Record<string, unknown> },
+): Promise<{ ok: true } | { ok: false; reason: CreateUserFailure; detail?: string }> => {
+    try {
+        await axios.put(
+            `${resolveAuthUrl()}/admin/users/${encodeURIComponent(accountId)}`,
+            {
+                ...(changes.password ? { password: changes.password } : {}),
+                ...(changes.appMetadata ? { app_metadata: changes.appMetadata } : {}),
+            },
+            { timeout: resolveAuthTimeout(), headers: adminHeaders() },
+        );
+        return { ok: true };
+    } catch (error) {
+        return toCreateUserFailure(error, 'admin/users/:id (update)');
+    }
+};
+
+/** Troca a senha da própria conta, autenticada pelo access token dela. */
+export const updateOwnPassword = async (
+    accessToken: string,
+    password: string,
+): Promise<{ ok: true } | { ok: false; reason: CreateUserFailure; detail?: string }> => {
+    try {
+        await axios.put(`${resolveAuthUrl()}/user`, { password }, {
+            timeout: resolveAuthTimeout(),
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        return { ok: true };
+    } catch (error) {
+        return toCreateUserFailure(error, 'user (password)');
+    }
+};
+
+/**
+ * Pede o e-mail de recuperação. O template (GOTRUE_MAILER_TEMPLATES_RECOVERY)
+ * manda um código de 6 dígitos, não um link — o link padrão apontaria para o
+ * próprio GoTrue, que não é exposto.
+ */
+export const requestRecovery = async (email: string): Promise<AuthResult<null>> => {
+    try {
+        await axios.post(`${resolveAuthUrl()}/recover`, { email }, { timeout: resolveAuthTimeout() });
+        return { ok: true, data: null };
+    } catch (error) {
+        return { ok: false, reason: classifyError(error, 'recover') };
+    }
+};
+
+/** Troca o código do e-mail de recuperação por uma sessão da conta. */
+export const verifyRecoveryCode = (email: string, code: string) =>
+    postForSession('/verify', { type: 'recovery', email, token: code }, 'verify/recovery');

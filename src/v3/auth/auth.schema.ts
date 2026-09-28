@@ -16,6 +16,8 @@ export const authUserSchema = z.object({
     id: z.string(),
     email: z.string().nullable(),
     role: z.enum(APP_ROLES).nullable(),
+    /** Senha provisória: o app deve levar direto para a troca de senha. */
+    mustChangePassword: z.boolean(),
 });
 
 export const sessionDataSchema = z.object({
@@ -50,4 +52,36 @@ export const googleLoginBodySchema = z.object({
     idToken: z.string().min(1).max(4096),
     // Obrigatório quando o app gerou nonce no login do Google (iOS costuma).
     nonce: z.string().min(1).max(256).optional(),
+});
+
+const newPasswordSchema = z.string().min(8).max(256);
+
+export const changePasswordBodySchema = z.object({
+    currentPassword: z.string().min(1).max(256),
+    newPassword: newPasswordSchema,
+});
+
+export const staffResetPasswordBodySchema = z
+    .object({
+        accountId: z.uuid().optional(),
+        personSequencia: z.number().int().positive().optional(),
+    })
+    .refine((body) => Boolean(body.accountId) !== Boolean(body.personSequencia), {
+        message: 'Informe accountId ou personSequencia (um dos dois).',
+    });
+
+export const temporaryPasswordSchema = z.object({
+    accountId: z.string(),
+    email: z.string().nullable(),
+    temporaryPassword: z.string(),
+});
+
+export const recoverBodySchema = z.object({
+    email: z.email().max(254),
+});
+
+export const recoverConfirmBodySchema = z.object({
+    email: z.email().max(254),
+    code: z.string().regex(/^d{6}$/, 'Código de 6 dígitos.'),
+    newPassword: newPasswordSchema,
 });
