@@ -4,6 +4,10 @@ API principal do Condomínio Nova Residence. Integra o ERP Freedom PROANSI (Fire
 
 Veja `README.md` para a visão completa (arquitetura, endpoints, variáveis de ambiente) e `CHANGELOG.md` para o histórico. Este arquivo é só o contexto operacional para trabalhar no código.
 
+## Commits
+
+Este projeto usa um fluxo de commit específico — ver skill `commit` (`.claude/skills/commit/SKILL.md`). Resumo: separar commits por grupo lógico de mudança, mensagem com subject curto + corpo completo, atualizar `CHANGELOG.md` (seção `[Unreleased]`) antes do commit, apresentar para aprovação antes de commitar, perguntar antes de dar push. Nunca criar versão numerada nem tocar no `package.json` sem pedido explícito de "versionar".
+
 ## Arquitetura
 
 ```
