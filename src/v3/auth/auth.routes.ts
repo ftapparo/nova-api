@@ -4,11 +4,11 @@ import { z } from 'zod';
 import { successResponseSchema } from '../shared/response';
 import { extractBearerToken, requireAuth, requireRole } from '../shared/require-auth';
 import logger from '../../core/utils/logger';
-import { authUserSchema, createUserBodySchema, listUsersQuerySchema, loginBodySchema, refreshBodySchema, sessionDataSchema, signupBodySchema } from './auth.schema';
+import { authUserSchema, createUserBodySchema, googleLoginBodySchema, listUsersQuerySchema, loginBodySchema, refreshBodySchema, sessionDataSchema, signupBodySchema } from './auth.schema';
 import * as authService from './auth.service';
 import { loginByIp, loginFailuresByEmail, normalizeEmailKey, resolveClientIp, signupByIp } from './auth.rate-limit';
 
-// Login/refresh/logout delegados ao Supabase Auth. /login e /refresh são
+// Login/refresh/logout delegados ao Supabase Auth. /login, /google e /refresh são
 // públicos por natureza; /logout e /me exigem access token válido sempre,
 // mesmo com AUTH_ENFORCE=false. /signup é o cadastro público do morador.
 // /users (listar e criar contas) exige síndico ou admin; só admin cria admin. O primeiro
@@ -104,6 +104,25 @@ export async function authRoutes(app: FastifyInstance) {
         const session = await authService.login(email, password);
         if (!session.ok) return sendAuthFailure(request, reply, session.reason);
         return reply.ok(session.data, { status: 201 });
+    });
+
+    // Login com Google. Mesmo limite por IP do login por senha. Não há
+    // limite por e-mail: o e-mail só é conhecido depois de o GoTrue validar
+    // o token, e um token forjado não passa na assinatura do Google.
+    typedApp.post('/auth/google', {
+        schema: {
+            body: googleLoginBodySchema,
+            response: { 200: successResponseSchema(sessionDataSchema) },
+        },
+    }, async (request, reply) => {
+        const ip = resolveClientIp(request);
+        const retryAfter = loginByIp.retryAfter(ip);
+        if (retryAfter > 0) return sendTooManyAttempts(request, reply, retryAfter);
+        loginByIp.hit(ip);
+
+        const result = await authService.loginWithGoogle(request.body.idToken, request.body.nonce);
+        if (!result.ok) return sendAuthFailure(request, reply, result.reason);
+        return reply.ok(result.data);
     });
 
     typedApp.post('/auth/refresh', {

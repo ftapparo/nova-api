@@ -60,7 +60,7 @@ const classifyError = (error: unknown, operation: string): AuthFailure => {
     return 'unavailable';
 };
 
-const requestToken = async (grantType: 'password' | 'refresh_token', body: Record<string, string>): Promise<AuthResult<SessionData>> => {
+const requestToken = async (grantType: 'password' | 'refresh_token' | 'id_token', body: Record<string, string>): Promise<AuthResult<SessionData>> => {
     try {
         const { data } = await axios.post<GoTrueSession>(`${resolveAuthUrl()}/token`, body, {
             params: { grant_type: grantType },
@@ -75,6 +75,14 @@ const requestToken = async (grantType: 'password' | 'refresh_token', body: Recor
 export const login = (email: string, password: string) => requestToken('password', { email, password });
 
 export const refresh = (refreshToken: string) => requestToken('refresh_token', { refresh_token: refreshToken });
+
+/**
+ * Login com Google: o GoTrue valida a assinatura e a audience do id_token
+ * (GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID) e cria a conta no primeiro acesso —
+ * sem papel, como no signup. Mesmo e-mail de conta existente é ligado a ela.
+ */
+export const loginWithGoogle = (idToken: string, nonce?: string) =>
+    requestToken('id_token', { provider: 'google', id_token: idToken, ...(nonce ? { nonce } : {}) });
 
 /**
  * Revoga a sessão atual (refresh token) no GoTrue. O access token em si

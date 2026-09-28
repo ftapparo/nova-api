@@ -878,6 +878,36 @@
         }
       }
     },
+    "/v3/api/auth/google": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Login com Google",
+        "description": "O app faz o login do Google no próprio dispositivo e envia o idToken. Primeiro acesso cria a conta (sem papel, pendente de vínculo); conta existente com o mesmo e-mail é reaproveitada. Limite: 20 tentativas por IP a cada 15 minutos.",
+        "operationId": "authGoogle",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idToken": { "type": "string", "description": "id_token emitido pelo Google Sign-In." },
+                  "nonce": { "type": "string", "description": "Obrigatório se o app gerou nonce no login do Google." }
+                },
+                "required": ["idToken"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Sessão criada.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionResponse" } } } },
+          "400": { "description": "Dados de entrada inválidos.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "401": { "description": "Token do Google inválido, expirado ou de outro app.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "429": { "description": "Muitas tentativas.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } },
+          "503": { "description": "Serviço de autenticação indisponível.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
     "/v3/api/auth/refresh": {
       "post": {
         "tags": ["Auth"],

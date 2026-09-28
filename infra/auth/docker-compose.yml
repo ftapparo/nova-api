@@ -30,10 +30,13 @@ services:
       GOTRUE_SITE_URL: ${API_EXTERNAL_URL}
       GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-}
 
-      # Ninguém se cadastra sozinho. Contas são criadas por processo
-      # administrativo (via API admin do GoTrue), vinculado ao CPF no
-      # Firebird. Sem isso, qualquer um na internet criaria conta.
-      GOTRUE_DISABLE_SIGNUP: "true"
+      # "false" desde 28/09/2026, para o login com Google: no fluxo id_token
+      # é o próprio GoTrue quem cria a conta no primeiro login, e com signup
+      # desligado ele recusa. Seguro porque o GoTrue não tem porta publicada
+      # e a nova-api não repassa o /signup dele — o cadastro por e-mail
+      # continua passando só por POST /v3/api/auth/signup. Toda conta nasce
+      # sem papel (pendente) até ser vinculada ao cadastro do Firebird.
+      GOTRUE_DISABLE_SIGNUP: "false"
 
       GOTRUE_JWT_ADMIN_ROLES: service_role
       GOTRUE_JWT_AUD: authenticated
@@ -53,6 +56,18 @@ services:
       GOTRUE_MAILER_AUTOCONFIRM: "true"
 
       GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+
+      # Login com Google pelo app (grant_type=id_token): o app obtém o
+      # id_token do Google no próprio celular e a nova-api repassa. CLIENT_ID
+      # aceita lista separada por vírgula — incluir os client IDs de todas
+      # as plataformas (web, Android, iOS), senão o token daquela plataforma
+      # é recusado por audience. SECRET e REDIRECT_URI são exigidos pela
+      # validação de config do GoTrue ao habilitar o provedor, mesmo sem
+      # fluxo de redirect.
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: ${GOOGLE_ENABLED:-false}
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_IDS:-}
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: ${API_EXTERNAL_URL}/callback
     networks:
       - nova-network
     # Sem "ports": só a nova-api fala com este serviço, via

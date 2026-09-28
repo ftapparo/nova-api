@@ -44,3 +44,10 @@ export const listUsersQuerySchema = z.object({
     page: z.coerce.number().int().positive().default(1),
     perPage: z.coerce.number().int().min(1).max(100).default(50),
 });
+
+export const googleLoginBodySchema = z.object({
+    // id_token do Google é um JWT (~1-2 KB); limite só para não repassar lixo.
+    idToken: z.string().min(1).max(4096),
+    // Obrigatório quando o app gerou nonce no login do Google (iOS costuma).
+    nonce: z.string().min(1).max(256).optional(),
+});

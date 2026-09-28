@@ -35,7 +35,7 @@ src/
 ```
 v3/
   health/         health.routes.ts
-  auth/           auth.routes.ts, auth.schema.ts, auth.service.ts, auth.rate-limit.ts (limites de login/signup) — signup/login/refresh/logout/me e criação de conta por admin, delegando ao Supabase Auth (nova-auth)
+  auth/           auth.routes.ts, auth.schema.ts, auth.service.ts, auth.rate-limit.ts (limites de login/signup) — signup/login/google/refresh/logout/me e criação de conta por admin, delegando ao Supabase Auth (nova-auth)
   residence/      residence.routes.ts, residence.schema.ts, residence.service.ts — vínculo conta ↔ PESSOAS.SEQUENCIA (Postgres) e situação por unidade lida do Firebird (regras de bloqueio no service; residence.guard.ts = requireRoleOrResident, equipe ou morador com unidade liberada)
   exhaust/        exhaust.routes.ts, exhaust.schema.ts — exaustores via core/services/exhaust.service; equipe opera os 24, morador só a prumada da unidade (A-124 → A4)
   tag/            tag.routes.ts, tag.schema.ts — proxy autenticado para nova-tag
