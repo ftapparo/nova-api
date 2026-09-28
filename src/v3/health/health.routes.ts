@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { successResponseSchema } from '../lib/response';
+import { successResponseSchema } from '../shared/response';
 
 // Rota de referência: mostra o padrão de resposta da v3 (reply.ok(),
 // schema de sucesso via successResponseSchema) que toda rota nova deve

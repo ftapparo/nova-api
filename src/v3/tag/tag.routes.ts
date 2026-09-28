@@ -1,9 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { successResponseSchema } from '../lib/response';
-import { callService, sendServiceResult } from '../lib/service-proxy';
-import { cacheTypeQuerySchema, gateStateSchema, listCacheDataSchema } from '../lib/tag-schemas';
+import { successResponseSchema } from '../shared/response';
+import { callService, sendServiceResult } from '../shared/service-proxy';
+import { cacheTypeQuerySchema, gateStateSchema, listCacheDataSchema } from './tag.schema';
 
 // Proxy para as rotas de leitura da v3 de nova-tag. TAG1/TAG2 rodam em
 // containers separados, cada um com sua própria porta v3 — o mapeamento

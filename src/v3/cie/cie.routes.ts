@@ -1,8 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { successResponseSchema } from '../lib/response';
-import { callService, sendServiceResult } from '../lib/service-proxy';
+import { successResponseSchema } from '../shared/response';
+import { callService, sendServiceResult } from '../shared/service-proxy';
 import {
     alarmActiveSnapshotSchema,
     blockCountersSchema,
@@ -11,7 +11,7 @@ import {
     logTypeQuerySchema,
     outputCountersSchema,
     panelDataSchema,
-} from '../lib/cie-schemas';
+} from './cie.schema';
 
 // Proxy para as rotas de leitura da v3 de nova-cie. Único serviço (uma
 // central), sem necessidade de mapeamento por dispositivo como o TAG.

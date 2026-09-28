@@ -3,10 +3,10 @@ import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import logger from '../core/utils/logger';
-import { healthRoutes } from './routes/health.routes';
-import { tagRoutes } from './routes/tag.routes';
-import { cieRoutes } from './routes/cie.routes';
-import { registerErrorHandler, responseHelpersPlugin } from './lib/reply-helpers';
+import { healthRoutes } from './health/health.routes';
+import { tagRoutes } from './tag/tag.routes';
+import { cieRoutes } from './cie/cie.routes';
+import { registerErrorHandler, responseHelpersPlugin } from './shared/reply-helpers';
 import openapiDocument from './openapi.json';
 
 /**
@@ -30,7 +30,7 @@ export async function StartWebServerV3(): Promise<void> {
     app.setSerializerCompiler(serializerCompiler);
 
     // Mecanismo de resposta padrão da v3 (reply.ok()/reply.fail()) e
-    // tratamento central de erro — ver src/v3/lib/response.ts para o
+    // tratamento central de erro — ver src/v3/shared/response.ts para o
     // desenho completo do envelope.
     await app.register(responseHelpersPlugin);
     registerErrorHandler(app);
