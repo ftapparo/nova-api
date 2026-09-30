@@ -11,7 +11,17 @@ import { cieCommandRoutes } from './cie/cie.commands.routes';
 import { authRoutes } from './auth/auth.routes';
 import { residenceRoutes } from './residence/residence.routes';
 import { exhaustRoutes } from './exhaust/exhaust.routes';
-import { enforceAuth } from './shared/require-auth';
+import { queryRoutes } from './query/query.routes';
+import { accessRoutes } from './access/access.routes';
+import { commandLogRoutes } from './command-log/command-log.routes';
+import { doorRoutes } from './door/door.routes';
+import { vehicleRoutes } from './vehicle/vehicle.routes';
+import { settingsRoutes } from './settings/settings.routes';
+import { pushRoutes } from './push/push.routes';
+import { wsRoutes } from './ws/ws.routes';
+import { startWsGateway } from './ws/ws.gateway';
+import { enforceUserOrService } from './shared/service-auth';
+import { auditCommand } from './shared/command-audit';
 import { registerErrorHandler, responseHelpersPlugin } from './shared/reply-helpers';
 import openapiDocument from './openapi.json';
 
@@ -81,13 +91,25 @@ export async function StartWebServerV3(): Promise<void> {
     // para o comportamento com AUTH_ENFORCE=false.
     await app.register(async (instance) => {
         instance.withTypeProvider<ZodTypeProvider>();
-        instance.addHook('onRequest', enforceAuth);
+        // enforceUserOrService = enforceAuth, exceto em rota marcada com
+        // allowServiceToken, onde o token de serviço (TAG/CIE) também vale.
+        instance.addHook('onRequest', enforceUserOrService);
+        // Comandos (POST/PUT/PATCH/DELETE) vão para o mesmo log da v2.
+        instance.addHook('onResponse', auditCommand);
         await tagRoutes(instance);
         await tagCommandRoutes(instance);
         await cieRoutes(instance);
         await cieCommandRoutes(instance);
         await residenceRoutes(instance);
         await exhaustRoutes(instance);
+        await queryRoutes(instance);
+        await accessRoutes(instance);
+        await commandLogRoutes(instance);
+        await doorRoutes(instance);
+        await vehicleRoutes(instance);
+        await settingsRoutes(instance);
+        await pushRoutes(instance);
+        await wsRoutes(instance);
     }, { prefix: '/v3/api' });
 
     const port = Number(process.env.PORT_V3 || 3031);
@@ -98,5 +120,13 @@ export async function StartWebServerV3(): Promise<void> {
     } catch (err) {
         logger.error('[ApiV3] Falha ao iniciar o servidor Fastify:', err);
         throw err;
+    }
+
+    // WebSocket /v3/ws no mesmo servidor HTTP (mesma porta e hostname do
+    // túnel). Falha aqui não derruba as rotas REST.
+    try {
+        startWsGateway(app.server);
+    } catch (err) {
+        logger.error('[ApiV3] Falha ao iniciar o WebSocket /v3/ws:', err);
     }
 }

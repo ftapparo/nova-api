@@ -40,12 +40,21 @@ v3/
   exhaust/        exhaust.routes.ts, exhaust.schema.ts — exaustores via core/services/exhaust.service; equipe opera os 24, morador só a prumada da unidade (A-124 → A4)
   tag/            tag.routes.ts, tag.schema.ts — proxy autenticado para nova-tag
   cie/            cie.routes.ts, cie.schema.ts — proxy autenticado para nova-cie
-  shared/         response.ts, reply-helpers.ts (envelope de resposta), service-proxy.ts (chamada autenticada a TAG/CIE), attempt-limiter.ts (limite de tentativas em memória, usado por auth/ e exhaust/), require-auth.ts (validação local do JWT do usuário, hooks requireAuth/requireRole/enforceAuth; papéis morador/porteiro/sindico/admin)
+  query/          consultas CPF/placa/TAG no Firebird (equipe)
+  access/         últimos acessos, verify e register (equipe; verify/register também token de serviço do TAG)
+  door/           portas de pedestre: lista, status, abrir (core/services/door.service)
+  vehicle/        veículos e TAG veicular (fluxo vehicles-v2); vehicle.service.ts tem as regras copiadas do controller v2
+  command-log/    GET /commands/logs (v2 + v3 no mesmo arquivo)
+  settings/       GET|PUT /me/settings (chave = conta do token)
+  push/           Web Push: chave, inscrições, envio (síndico/admin ou token de serviço do CIE)
+  ws/             WebSocket /v3/ws para clientes: ws-tickets (ticket de uso único), ws-broker (filtro por público), ws-upstream (cliente dos /v3/ws de TAG/CIE), ws.gateway (liga fontes → broker), ws.routes (POST /ws/ticket)
+  shared/         response.ts, reply-helpers.ts (envelope de resposta), service-proxy.ts (chamada autenticada a TAG/CIE), attempt-limiter.ts (limite de tentativas em memória, usado por auth/ e exhaust/), service-auth.ts (API_SERVICE_TOKEN só em rota com config.allowServiceToken), command-audit.ts (comandos da v3 no log da v2, com ator do token), require-auth.ts (validação local do JWT do usuário, hooks requireAuth/requireRole/enforceAuth; papéis morador/porteiro/sindico/admin)
   openapi.json    spec escrito à mão, não gerado
+  APP-GUIDE.md    guia de uso da v3 para a sessão que desenvolve o app Android — atualizar junto com o openapi.json
   server.ts       bootstrap do Fastify, porta própria (PORT_V3)
 ```
 
-Rotas de negócio da v3 são registradas no escopo protegido de `v3/server.ts` (hook `enforceAuth`) — rota nova ali já nasce exigindo token. Só `health/` e `auth/` ficam no escopo público. Ao criar uma rota nova: schema só entra em `shared/` se for usado por 2+ features; senão fica junto da própria feature. Nunca criar `lib/`/`utils/` genérico. Padrão completo (envelope de resposta, autenticação de serviço, convenção de pastas): `docs/PADRAO-RESPOSTA-V3.md` (raiz do workspace) e `AI-Friendly Architecture Specification.md` (raiz do workspace, racional da estrutura por feature). Ler só quando a tarefa envolver `v3/` — não carregar por padrão.
+Rotas de negócio da v3 são registradas no escopo protegido de `v3/server.ts` (hook `enforceUserOrService` = `enforceAuth`, exceto rota com `allowServiceToken`; hook `onResponse` de auditoria) — rota nova ali já nasce exigindo token. Só `health/` e `auth/` ficam no escopo público. Ao criar uma rota nova: schema só entra em `shared/` se for usado por 2+ features; senão fica junto da própria feature. Nunca criar `lib/`/`utils/` genérico. Padrão completo (envelope de resposta, autenticação de serviço, convenção de pastas): `docs/PADRAO-RESPOSTA-V3.md` (raiz do workspace) e `AI-Friendly Architecture Specification.md` (raiz do workspace, racional da estrutura por feature). Ler só quando a tarefa envolver `v3/` — não carregar por padrão.
 
 ## Stack
 
