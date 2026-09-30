@@ -147,3 +147,52 @@ export const outputCountersSchema = z.object({
 });
 
 export const logTypeQuerySchema = z.enum(['alarme', 'falha', 'supervisao', 'operacao', 'bloqueio']);
+
+// -----------------------------------------------------------------------------
+// Comandos — acionam a central física
+// -----------------------------------------------------------------------------
+
+export const SIMPLE_COMMAND_ACTIONS = [
+    'silence',
+    'release',
+    'release-bip',
+    'release-siren',
+    'restart',
+    'brigade-siren',
+    'alarm-general',
+    'delay-siren',
+    'silence-bip',
+    'silence-siren',
+] as const;
+export const simpleCommandActionSchema = z.enum(SIMPLE_COMMAND_ACTIONS);
+
+// Ações de impacto alto (disparar alarme geral para todo o condomínio,
+// reiniciar a central) exigem confirmação explícita no corpo — um clique
+// acidental ou um retry automático não pode dispará-las.
+export const CONFIRM_REQUIRED_ACTIONS: readonly string[] = ['alarm-general', 'restart'];
+
+export const simpleCommandBodySchema = z
+    .object({ confirm: z.boolean().optional() })
+    .optional();
+
+const flag01 = z.number().int().min(0).max(1);
+
+export const blockCommandBodySchema = z.object({
+    tipoBloqueio: z.number().int().nonnegative(),
+    laco: z.number().int().nonnegative(),
+    numero: z.number().int().nonnegative(),
+    bloquear: flag01,
+});
+
+export const outputCommandBodySchema = z.object({
+    laco: z.number().int().nonnegative(),
+    numero: z.number().int().nonnegative(),
+    ativo: flag01,
+});
+
+export const commandResultSchema = z.object({
+    action: z.string(),
+    payload: z.record(z.string(), z.number()).optional(),
+    response: z.unknown(),
+    snapshot: cieStateSnapshotSchema,
+});

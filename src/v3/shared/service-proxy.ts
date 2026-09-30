@@ -22,6 +22,8 @@ export type ServiceCallOptions = {
     params?: Record<string, unknown>;
     body?: unknown;
     timeoutMs?: number;
+    /** Cabeçalhos extras (ex.: identidade do ator, para log no serviço interno). */
+    headers?: Record<string, string>;
 };
 
 export type ServiceCallResult<T> =
@@ -39,6 +41,7 @@ export async function callService<T>(options: ServiceCallOptions): Promise<Servi
             data: options.body,
             timeout: options.timeoutMs ?? 5000,
             headers: {
+                ...options.headers,
                 Authorization: `Bearer ${options.token}`,
             },
         });

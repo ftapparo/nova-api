@@ -29,7 +29,8 @@
     {
       "name": "CIE",
       "description": "Central de incêndio. Acesso: porteiro, síndico, admin e morador com unidade liberada (somente leitura)."
-    }
+    },
+    { "name": "CIE — Comandos", "description": "Comandos que acionam a central de incêndio (equipamento físico). Somente equipe." }
   ],
   "components": {
     "schemas": {
@@ -1693,6 +1694,416 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "502": { "description": "Falha ao consultar a central de incêndio." }
+        }
+      }
+    },
+    "/v3/api/cie/commands/{action}": {
+      "post": {
+        "tags": ["CIE — Comandos"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Comando de botão da central",
+        "description": "Aciona um botão da central. `alarm-general` (dispara o alarme geral) e `restart` (reinicia a central) exigem `{ \"confirm\": true }`.",
+        "operationId": "executeCieCommand",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["silence", "release", "release-bip", "release-siren", "restart", "brigade-siren", "alarm-general", "delay-siren", "silence-bip", "silence-siren"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirm": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comando executado; estado da central após o comando.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "type": "string",
+                          "example": "silence-bip"
+                        },
+                        "payload": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "integer"
+                          }
+                        },
+                        "response": {
+                          "description": "Resposta bruta da central."
+                        },
+                        "snapshot": {
+                          "$ref": "#/components/schemas/CieStateSnapshot"
+                        }
+                      },
+                      "required": ["action", "response", "snapshot"]
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ação inválida ou confirmação ausente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Apenas porteiro, síndico ou admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Comando rejeitado pela central.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Mais de 10 comandos por minuto nesta conta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Falha ao comunicar com a central.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/api/cie/commands/block": {
+      "post": {
+        "tags": ["CIE — Comandos"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Bloquear ou desbloquear dispositivo",
+        "operationId": "executeCieBlockCommand",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["tipoBloqueio", "laco", "numero", "bloquear"],
+                "properties": {
+                  "tipoBloqueio": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "laco": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "numero": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "bloquear": {
+                    "type": "integer",
+                    "enum": [0, 1],
+                    "description": "1 bloqueia, 0 desbloqueia."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comando executado; estado da central após o comando.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "type": "string",
+                          "example": "silence-bip"
+                        },
+                        "payload": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "integer"
+                          }
+                        },
+                        "response": {
+                          "description": "Resposta bruta da central."
+                        },
+                        "snapshot": {
+                          "$ref": "#/components/schemas/CieStateSnapshot"
+                        }
+                      },
+                      "required": ["action", "response", "snapshot"]
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Campos inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Apenas porteiro, síndico ou admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Comando rejeitado pela central.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Mais de 10 comandos por minuto nesta conta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Falha ao comunicar com a central.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/api/cie/commands/output": {
+      "post": {
+        "tags": ["CIE — Comandos"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Ativar ou desativar saída",
+        "operationId": "executeCieOutputCommand",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["laco", "numero", "ativo"],
+                "properties": {
+                  "laco": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "numero": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "ativo": {
+                    "type": "integer",
+                    "enum": [0, 1],
+                    "description": "1 ativa, 0 desativa."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comando executado; estado da central após o comando.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [true]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "type": "string",
+                          "example": "silence-bip"
+                        },
+                        "payload": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "integer"
+                          }
+                        },
+                        "response": {
+                          "description": "Resposta bruta da central."
+                        },
+                        "snapshot": {
+                          "$ref": "#/components/schemas/CieStateSnapshot"
+                        }
+                      },
+                      "required": ["action", "response", "snapshot"]
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Campos inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Apenas porteiro, síndico ou admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Comando rejeitado pela central.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Mais de 10 comandos por minuto nesta conta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Falha ao comunicar com a central.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
         }
       }
     }

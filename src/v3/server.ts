@@ -6,6 +6,7 @@ import logger from '../core/utils/logger';
 import { healthRoutes } from './health/health.routes';
 import { tagRoutes } from './tag/tag.routes';
 import { cieRoutes } from './cie/cie.routes';
+import { cieCommandRoutes } from './cie/cie.commands.routes';
 import { authRoutes } from './auth/auth.routes';
 import { residenceRoutes } from './residence/residence.routes';
 import { exhaustRoutes } from './exhaust/exhaust.routes';
@@ -82,6 +83,7 @@ export async function StartWebServerV3(): Promise<void> {
         instance.addHook('onRequest', enforceAuth);
         await tagRoutes(instance);
         await cieRoutes(instance);
+        await cieCommandRoutes(instance);
         await residenceRoutes(instance);
         await exhaustRoutes(instance);
     }, { prefix: '/v3/api' });

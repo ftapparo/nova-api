@@ -38,9 +38,9 @@ const resolveCieLogsTimeout = (): number => {
     return Number.isFinite(value) && value > 0 ? value : 15000;
 };
 
-// Central de incêndio: equipe e morador com unidade liberada. Hoje todas as
-// rotas são de leitura; rota de comando futura deve usar requireRole
-// (só equipe) — morador só lê (decisão de 28/09/2026).
+// Central de incêndio: equipe e morador com unidade liberada leem. Comandos
+// ficam em cie.commands.routes.ts, só equipe — morador só lê (decisão de
+// 28/09/2026).
 const cieReadAccess = requireRoleOrResident('porteiro', 'sindico', 'admin');
 
 export async function cieRoutes(app: FastifyInstance) {
