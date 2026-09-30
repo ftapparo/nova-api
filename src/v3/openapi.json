@@ -155,6 +155,10 @@
             "type": "string",
             "enum": ["closed", "opening", "open", "closing", "unknown"],
             "example": "closed"
+          },
+          "keepOpen": {
+            "type": "boolean",
+            "description": "true = portão travado aberto, sem fechamento automático."
           }
         },
         "required": ["state"]
@@ -604,6 +608,132 @@
           "meta": { "$ref": "#/components/schemas/ResponseMeta" }
         },
         "required": ["success", "data", "meta"]
+      },
+      "Gate": {
+        "type": "object",
+        "properties": {
+          "numeroDispositivo": {
+            "type": "integer",
+            "example": 9
+          },
+          "nome": {
+            "type": "string",
+            "example": "PORTÃO ENTRADA"
+          },
+          "sentido": {
+            "type": "string",
+            "example": "E"
+          },
+          "ativo": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "numeroDispositivo",
+          "nome",
+          "sentido",
+          "ativo"
+        ]
+      },
+      "GatesStatusData": {
+        "type": "object",
+        "properties": {
+          "updatedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "gates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "numeroDispositivo": {
+                  "type": "integer"
+                },
+                "nome": {
+                  "type": "string"
+                },
+                "sentido": {
+                  "type": "string"
+                },
+                "online": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "numeroDispositivo",
+                "nome",
+                "sentido",
+                "online"
+              ]
+            }
+          }
+        },
+        "required": [
+          "updatedAt",
+          "gates"
+        ]
+      },
+      "GateCommandData": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "open",
+              "close"
+            ]
+          },
+          "autoCloseSeconds": {
+            "type": "integer",
+            "nullable": true,
+            "example": 15
+          },
+          "gate": {
+            "$ref": "#/components/schemas/GateStateData"
+          }
+        },
+        "required": [
+          "action",
+          "autoCloseSeconds",
+          "gate"
+        ]
+      },
+      "GateRestartData": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "shutdownDelayMs": {
+            "type": "integer",
+            "example": 2000
+          }
+        },
+        "required": [
+          "message",
+          "shutdownDelayMs"
+        ]
+      },
+      "ClearCacheData": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "positive",
+              "negative",
+              "all"
+            ]
+          },
+          "stats": {
+            "$ref": "#/components/schemas/CacheStats"
+          }
+        },
+        "required": [
+          "type",
+          "stats"
+        ]
       }
     },
     "responses": {
@@ -1573,6 +1703,109 @@
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "502": { "description": "Falha ao consultar o serviço de controle de acesso." }
         }
+      },
+      "delete": {
+        "tags": [
+          "Tag"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Limpar cache de TAGs",
+        "description": "Força revalidação das TAGs no ERP. Síndico e admin; registrado em log.",
+        "operationId": "clearTagCache",
+        "parameters": [
+          {
+            "name": "numeroDispositivo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "positive",
+                "negative",
+                "all",
+                "whitelist",
+                "blacklist"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cache limpo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ClearCacheData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Apenas síndico ou admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Portão não encontrado ou inativo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Serviço do portão indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v3/api/cie/status": {
@@ -2096,6 +2329,671 @@
           },
           "502": {
             "description": "Falha ao comunicar com a central.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/api/tag/gates": {
+      "get": {
+        "tags": [
+          "Tag"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Portões cadastrados",
+        "description": "Portões de TAG cadastrados no ERP. `numeroDispositivo` é o identificador usado nas demais rotas de /tag. Porteiro, síndico e admin.",
+        "operationId": "listGates",
+        "responses": {
+          "200": {
+            "description": "Portões.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Gate"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Apenas porteiro, síndico ou admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Serviço do portão indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/api/tag/status": {
+      "get": {
+        "tags": [
+          "Tag"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Status dos portões",
+        "description": "Se cada serviço de portão responde, conforme a sondagem periódica da API (a cada minuto).",
+        "operationId": "getGatesStatus",
+        "responses": {
+          "200": {
+            "description": "Status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/GatesStatusData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Apenas porteiro, síndico ou admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/api/tag/gate/open": {
+      "post": {
+        "tags": [
+          "Tag"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Abrir portão",
+        "description": "Aciona o motor físico. Corpo sem `autoCloseTime`/`keepOpen` = fecha sozinho em 15 s. `keepOpen: true` (mantém aberto até fechar) só síndico e admin. Não repetir automaticamente.",
+        "operationId": "openGate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "numeroDispositivo": {
+                    "type": "integer",
+                    "example": 9
+                  },
+                  "autoCloseTime": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 120,
+                    "description": "Segundos até fechar sozinho."
+                  },
+                  "keepOpen": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  }
+                },
+                "required": [
+                  "numeroDispositivo"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comando enviado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/GateCommandData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Corpo ou parâmetros inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Apenas porteiro, síndico ou admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Portão não encontrado ou inativo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Portão não aceitou o comando (em movimento, antena desconectada). Não repetir automaticamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Muitos comandos (10 por minuto por conta) ou portão acionado há pouco. Respeite Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Serviço do portão indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/api/tag/gate/close": {
+      "post": {
+        "tags": [
+          "Tag"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Fechar portão",
+        "description": "Fecha imediatamente. Porteiro, síndico e admin.",
+        "operationId": "closeGate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "numeroDispositivo": {
+                    "type": "integer",
+                    "example": 9
+                  }
+                },
+                "required": [
+                  "numeroDispositivo"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comando enviado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/GateCommandData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Corpo ou parâmetros inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Apenas porteiro, síndico ou admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Portão não encontrado ou inativo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Portão não aceitou o comando (em movimento, antena desconectada). Não repetir automaticamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Muitos comandos (10 por minuto por conta) ou portão acionado há pouco. Respeite Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Serviço do portão indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/api/tag/gate/restart": {
+      "post": {
+        "tags": [
+          "Tag"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Reiniciar serviço do portão",
+        "description": "Reinicia o serviço que controla a antena (o container sobe de novo sozinho). Exige `confirm: true`. Síndico e admin.",
+        "operationId": "restartGate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "numeroDispositivo": {
+                    "type": "integer",
+                    "example": 9
+                  },
+                  "confirm": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  }
+                },
+                "required": [
+                  "numeroDispositivo",
+                  "confirm"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reinício agendado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/GateRestartData"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Corpo ou parâmetros inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Apenas síndico ou admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Portão não encontrado ou inativo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Portão não aceitou o comando (em movimento, antena desconectada). Não repetir automaticamente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Muitos comandos (10 por minuto por conta) ou portão acionado há pouco. Respeite Retry-After.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Serviço do portão indisponível.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/api/tag/cache/{tag}": {
+      "delete": {
+        "tags": [
+          "Tag"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Remover TAG do cache",
+        "description": "Síndico e admin; registrado em log.",
+        "operationId": "removeTagCacheItem",
+        "parameters": [
+          {
+            "name": "tag",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9A-Fa-f]{1,32}$"
+            }
+          },
+          {
+            "name": "numeroDispositivo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TAG removida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "tag": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "tag"
+                      ]
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Apenas síndico ou admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Portão inativo ou TAG fora do cache.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Serviço do portão indisponível.",
             "content": {
               "application/json": {
                 "schema": {

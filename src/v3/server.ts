@@ -5,6 +5,7 @@ import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fas
 import logger from '../core/utils/logger';
 import { healthRoutes } from './health/health.routes';
 import { tagRoutes } from './tag/tag.routes';
+import { tagCommandRoutes } from './tag/tag.commands.routes';
 import { cieRoutes } from './cie/cie.routes';
 import { cieCommandRoutes } from './cie/cie.commands.routes';
 import { authRoutes } from './auth/auth.routes';
@@ -82,6 +83,7 @@ export async function StartWebServerV3(): Promise<void> {
         instance.withTypeProvider<ZodTypeProvider>();
         instance.addHook('onRequest', enforceAuth);
         await tagRoutes(instance);
+        await tagCommandRoutes(instance);
         await cieRoutes(instance);
         await cieCommandRoutes(instance);
         await residenceRoutes(instance);
