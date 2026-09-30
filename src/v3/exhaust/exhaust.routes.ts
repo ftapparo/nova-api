@@ -2,12 +2,12 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import logger from '../../core/utils/logger';
-import { getExhaustStatus, turnOffExhaust, turnOnExhaust } from '../../core/services/exhaust.service';
+import { configureExhaustModule, getExhaustStatus, turnOffExhaust, turnOnExhaust } from '../../core/services/exhaust.service';
 import { successResponseSchema } from '../shared/response';
-import { requireAuth, type Actor } from '../shared/require-auth';
+import { requireAuth, requireRole, type Actor } from '../shared/require-auth';
 import { AttemptLimiter } from '../shared/attempt-limiter';
 import { getResidence } from '../residence/residence.service';
-import { exhaustParamsSchema, exhaustSchema, turnOnBodySchema, type Exhaust } from './exhaust.schema';
+import { configBodySchema, configParamsSchema, exhaustParamsSchema, exhaustSchema, turnOnBodySchema, type Exhaust } from './exhaust.schema';
 
 // =============================================================================
 // Exaustores das churrasqueiras (decisão de 28/09/2026): todos os papéis
@@ -35,7 +35,7 @@ const unitToExhaustId = (quadra: string, lote: string): string | null => {
     return `${tower}${final}`;
 };
 
-const resolveAllowedIds = async (actor: Actor): Promise<string[]> => {
+export const resolveAllowedIds = async (actor: Actor): Promise<string[]> => {
     if (actor.role && STAFF_ROLES.includes(actor.role)) return ALL_EXHAUST_IDS;
 
     const residence = await getResidence(actor.id);
@@ -46,7 +46,7 @@ const resolveAllowedIds = async (actor: Actor): Promise<string[]> => {
     return [...new Set(ids)];
 };
 
-const toExhaust = async (id: string): Promise<Exhaust> => {
+export const toExhaust = async (id: string): Promise<Exhaust> => {
     const status = await getExhaustStatus(id);
     const memory = status.memory;
     const module = status.moduleStatus;
@@ -141,5 +141,27 @@ export async function exhaustRoutes(app: FastifyInstance) {
         }
         logger.info(`[ApiV3] Exaustor ${id} desligado por ${actor.id}`);
         return reply.ok(await toExhaust(id));
+    });
+
+    // Configuração bruta do módulo (backlog Tasmota), equivalente a
+    // /v2/api/exhausts/config. Só admin: um comando errado desconfigura o
+    // relé de uma torre inteira.
+    typedApp.post('/exhausts/modules/:modulo/config', {
+        onRequest: [requireAuth, requireRole('admin')],
+        schema: {
+            params: configParamsSchema,
+            body: configBodySchema,
+            response: { 200: successResponseSchema(z.unknown()) },
+        },
+    }, async (request, reply) => {
+        const { modulo } = request.params;
+        try {
+            const result = await configureExhaustModule(modulo, request.body.comando);
+            logger.info(`[ApiV3] Módulo de exaustor ${modulo} configurado por ${request.actor!.id}`);
+            return reply.ok(result ?? null);
+        } catch (error) {
+            logger.error(`[ApiV3] Falha ao configurar módulo de exaustor ${modulo}:`, error);
+            return reply.fail({ type: 'upstream-error', detail: 'Falha ao configurar o módulo.', instance: request.url });
+        }
     });
 }
