@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { EventEmitter } from 'events';
 import fs from 'fs';
 import path from 'path';
 import logger from '../utils/logger';
@@ -74,6 +75,14 @@ type ExhaustState = {
  */
 const exhaustStates = new Map<string, ExhaustState>();
 
+/**
+ * Emite 'memory.changed' sempre que a memória dos exaustores é gravada
+ * (ligar, desligar, progresso do comando, varredura de expirados). Não
+ * altera o fluxo: quem escuta (WebSocket da v3) compara o estado por conta
+ * própria.
+ */
+export const exhaustEvents = new EventEmitter();
+
 type ExhaustMemoryFile = {
     version: number;
     updatedAt: string;
@@ -106,6 +115,7 @@ const persistExhaustMemory = (): void => {
     } catch (error) {
         logger.error(`[ExhaustService] Erro ao persistir memoria: ${String(error)}`);
     }
+    exhaustEvents.emit('memory.changed');
 };
 
 const toExhaustState = (state: Partial<ExhaustState>): ExhaustState | null => {

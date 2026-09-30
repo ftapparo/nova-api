@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import { EventEmitter } from 'events';
 import { listAvailableDoors, listAvailableGates } from '../repositories/control.repository';
 
 export type GateStatus = {
@@ -36,6 +37,12 @@ const CONTROL_TIMEOUT_MS = Number(process.env.CONTROL_TIMEOUT_MS || '5000');
 const TAG_CONTROL_HOST = process.env.TAG_CONTROL_HOST?.trim() || '192.168.0.250';
 const TAG_CONTROL_BASE_PORT = Number(process.env.TAG_CONTROL_BASE_PORT || '4000');
 const ACCESS_CONTROL_STATUS_INTERVAL_MS = 60_000;
+
+/**
+ * Emite 'status.updated' a cada ciclo concluído do monitoramento (60 s).
+ * Quem escuta (WebSocket da v3) decide o que mudou.
+ */
+export const accessControlEvents = new EventEmitter();
 
 let accessControlStatusCache: AccessControlStatusCache = {
     updatedAt: null,
@@ -165,6 +172,7 @@ const updateAccessControlStatusCache = async (): Promise<void> => {
             doors: doorsStatus,
             error: null,
         };
+        accessControlEvents.emit('status.updated');
     } catch (error: unknown) {
         console.error('[AccessControlService] Erro ao atualizar cache de status:', error);
         accessControlStatusCache = {
