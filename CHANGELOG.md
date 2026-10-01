@@ -7,6 +7,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ## [Unreleased]
 
 ### Adicionado
+- Histórico de comandos identifica o serviço que chamou: `servico:tag1`, `servico:tag2`, `servico:cie` (cabeçalho `x-service-name`, só informativo — quem autoriza é o `API_SERVICE_TOKEN`). Sem o cabeçalho, segue `servico`.
 - Exaustores (`src/v3/exhaust/`): campos `command` (`ligar`/`desligar`/`null`, direção do último comando — distingue ligando de desligando) e `maintenance` no `Exhaust`. Nova rota `PUT /v3/api/exhausts/:id/maintenance` (`{ maintenance }`, síndico/admin), gravada em `storage/exhaust/maintenance.json` (`exhaust.maintenance.ts`, sem alterar core/v2) e publicada em `exhaust.changed`. `POST /exhausts/:id/on` responde `409` com o exaustor em manutenção; reenviar `/on` com o exaustor ligado reinicia o prazo (comportamento já existente, agora documentado no `openapi.json` e no `APP-GUIDE.md`). O painel v2 não considera a manutenção.
 - `src/v3/APP-GUIDE.md`: guia de uso da v3 (auth, papéis, rotas por feature, WebSocket, regras práticas) para a sessão que desenvolve o app Android, ao lado do `openapi.json`.
 - Migração completa das rotas da v2 para a v3, sem tocar na v2. Todas no escopo protegido, com `requireAuth` estrito e papel por rota:
