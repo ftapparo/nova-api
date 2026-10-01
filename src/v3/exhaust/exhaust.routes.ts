@@ -7,7 +7,8 @@ import { successResponseSchema } from '../shared/response';
 import { requireAuth, requireRole, type Actor } from '../shared/require-auth';
 import { AttemptLimiter } from '../shared/attempt-limiter';
 import { getResidence } from '../residence/residence.service';
-import { configBodySchema, configParamsSchema, exhaustParamsSchema, exhaustSchema, turnOnBodySchema, type Exhaust } from './exhaust.schema';
+import { configBodySchema, configParamsSchema, exhaustParamsSchema, exhaustSchema, maintenanceBodySchema, turnOnBodySchema, type Exhaust } from './exhaust.schema';
+import { isInMaintenance, setMaintenance } from './exhaust.maintenance';
 
 // =============================================================================
 // Exaustores das churrasqueiras (decisão de 28/09/2026): todos os papéis
@@ -58,6 +59,8 @@ export const toExhaust = async (id: string): Promise<Exhaust> => {
         expiresAt: memory?.expiresAt ?? null,
         processStatus: memory?.processStatus ?? null,
         moduleOnline: Boolean(module && module.statusCode === 200 && !module.error),
+        command: memory?.pendingCommand === 'ligar' || memory?.pendingCommand === 'desligar' ? memory.pendingCommand : null,
+        maintenance: isInMaintenance(id),
     };
 };
 
@@ -111,8 +114,13 @@ export async function exhaustRoutes(app: FastifyInstance) {
         const actor = request.actor!;
         const { id } = request.params;
         if (!(await resolveAllowedIds(actor)).includes(id)) return forbiddenOrMissing(request, reply);
+        if (isInMaintenance(id)) {
+            return reply.fail({ type: 'conflict', detail: 'Exaustor em manutenção.', instance: request.url });
+        }
         if (!checkCommandLimit(request, reply, actor.id)) return;
 
+        // Com o exaustor já ligado, o core regrava o estado e recalcula o
+        // expiresAt: é assim que o app "reinicia o tempo" (relé continua ligado).
         try {
             await turnOnExhaust(id, request.body.minutes);
         } catch (error) {
@@ -140,6 +148,27 @@ export async function exhaustRoutes(app: FastifyInstance) {
             return sendCoreError(request, reply, error, 'desligar');
         }
         logger.info(`[ApiV3] Exaustor ${id} desligado por ${actor.id}`);
+        return reply.ok(await toExhaust(id));
+    });
+
+    // Manutenção: a equipe responsável pelo condomínio marca/desmarca. Não
+    // aciona relé, então não entra no limite de comandos.
+    typedApp.put('/exhausts/:id/maintenance', {
+        onRequest: [requireAuth, requireRole('sindico', 'admin')],
+        schema: {
+            params: exhaustParamsSchema,
+            body: maintenanceBodySchema,
+            response: { 200: successResponseSchema(exhaustSchema) },
+        },
+    }, async (request, reply) => {
+        const { id } = request.params;
+        try {
+            setMaintenance(id, request.body.maintenance);
+        } catch (error) {
+            logger.error(`[ApiV3] Falha ao gravar manutenção do exaustor ${id}:`, error);
+            return reply.fail({ type: 'internal-error', detail: 'Não foi possível salvar a manutenção.', instance: request.url });
+        }
+        logger.info(`[ApiV3] Exaustor ${id} ${request.body.maintenance ? 'em' : 'fora de'} manutenção por ${request.actor!.id}`);
         return reply.ok(await toExhaust(id));
     });
 

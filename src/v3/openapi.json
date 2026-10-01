@@ -583,9 +583,16 @@
             "enum": ["iniciando", "executado", "erro", null],
             "description": "Andamento do último comando."
           },
-          "moduleOnline": { "type": "boolean" }
+          "moduleOnline": { "type": "boolean" },
+          "command": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["ligar", "desligar", null],
+            "description": "Direção do último comando. Com processStatus=iniciando, distingue ligando de desligando."
+          },
+          "maintenance": { "type": "boolean", "description": "Marcado pela equipe (síndico/admin). Enquanto verdadeiro, POST /on responde 409." }
         },
-        "required": ["id", "tower", "final", "on", "expiresAt", "processStatus", "moduleOnline"]
+        "required": ["id", "tower", "final", "on", "expiresAt", "processStatus", "moduleOnline", "command", "maintenance"]
       },
       "AuthUser": {
         "type": "object",
@@ -1684,7 +1691,7 @@
       "post": {
         "tags": ["Exaustores"],
         "summary": "Ligar exaustor",
-        "description": "Sem minutes, fica ligado até ser desligado.",
+        "description": "Sem minutes, fica ligado até ser desligado. Reenviar com o exaustor já ligado reinicia o prazo (expiresAt recalculado a partir de agora); o relé continua ligado. 409 quando o exaustor está em manutenção.",
         "operationId": "turnOnExhaust",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -1731,6 +1738,10 @@
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": {
             "description": "Exaustor não encontrado ou fora da sua prumada.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "409": {
+            "description": "Exaustor em manutenção.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           },
           "429": {
@@ -1799,6 +1810,59 @@
           },
           "503": {
             "description": "Módulo do exaustor offline.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/v3/api/exhausts/{id}/maintenance": {
+      "put": {
+        "tags": ["Exaustores"],
+        "summary": "Marcar ou desmarcar manutenção (síndico/admin)",
+        "description": "Não aciona o relé. Enquanto em manutenção, POST /on responde 409. O painel v2 não considera esta marcação.",
+        "operationId": "setExhaustMaintenance",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Torre + final do apartamento, ex.: A4 (A-124). Aceita A4, A-4, A_4.",
+            "schema": { "type": "string", "example": "A4" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "properties": { "maintenance": { "type": "boolean" } }, "required": ["maintenance"] }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado atualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/Exhaust" },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Id ou corpo inválido.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Apenas síndico ou admin.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           }
         }

@@ -30,6 +30,10 @@ export const exhaustSchema = z.object({
     /** Andamento do último comando: iniciando | executado | erro. */
     processStatus: z.string().nullable(),
     moduleOnline: z.boolean(),
+    /** Direção do último comando: permite distinguir ligando de desligando. */
+    command: z.enum(['ligar', 'desligar']).nullable(),
+    /** Marcado pela equipe; enquanto verdadeiro, o app não permite ligar. */
+    maintenance: z.boolean(),
 });
 export type Exhaust = z.infer<typeof exhaustSchema>;
 
@@ -37,6 +41,8 @@ export type Exhaust = z.infer<typeof exhaustSchema>;
 // também aceita IP ou índice, o que deixaria a rota mandar comando para
 // qualquer endereço da rede.
 export const EXHAUST_MODULES = ['A_14', 'A_58', 'B_14', 'B_58', 'C_14', 'C_58', 'PWR_14', 'PWR_58'] as const;
+
+export const maintenanceBodySchema = z.object({ maintenance: z.boolean() });
 
 export const configParamsSchema = z.object({
     modulo: z.string().trim().transform((value) => value.toUpperCase()).pipe(z.enum(EXHAUST_MODULES)),

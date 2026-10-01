@@ -2,7 +2,7 @@
 
 Audience: the agent/developer building the Android app (Kotlin). This file explains what the backend offers today and how to use it. The OpenAPI spec next to this file (`openapi.json`, served live at `GET <V3_BASE_URL>/v3/apispec_1.json` and `/v3/swagger` while `SWAGGER_V3_ENABLED=true`) is the source of truth for exact field shapes — when they disagree, the spec wins.
 
-Last updated: 2026-09-30.
+Last updated: 2026-09-30 (exhaust `command`, `maintenance`, restart).
 
 ---
 
@@ -160,15 +160,19 @@ Paths are relative to `/v3/api`. "Command" = physical action: disable button whi
 | GET | `/exhausts` | — | `Exhaust[]` — already filtered to what this user may operate |
 | POST | `/exhausts/{id}/on` | `{ minutes? }` (1–1440; omit = stays on) | `Exhaust` |
 | POST | `/exhausts/{id}/off` | — | `Exhaust` |
+| PUT | `/exhausts/{id}/maintenance` | `{ maintenance }` | síndico/admin; marks/unmarks maintenance (no relay action) |
 | POST | `/exhausts/modules/{modulo}/config` | `{ comando }` | admin only; raw Tasmota backlog. `modulo` ∈ `A_14,A_58,B_14,B_58,C_14,C_58,PWR_14,PWR_58` |
 
 ```json
-{ "id": "A4", "tower": "A", "final": 4, "on": true, "expiresAt": 1790636017000, "processStatus": "executado", "moduleOnline": true }
+{ "id": "A4", "tower": "A", "final": 4, "on": true, "expiresAt": 1790636017000, "processStatus": "executado", "moduleOnline": true, "command": "ligar", "maintenance": false }
 ```
 
 - `id` = tower + last digit of the apartment (A-124 → `A4`). Do not compute access in the app — use the list.
 - `expiresAt` in epoch **milliseconds** (auto-off) or `null`. `processStatus`: `iniciando` | `executado` | `erro` | `null`.
 - `moduleOnline: false` → disable controls, "equipamento offline". 404 on a command → refresh the list. 503 → module offline.
+- `command`: direction of the last command (`ligar` | `desligar` | `null`). With `processStatus: "iniciando"` it tells "ligando" from "desligando" (`on` is already `false` while turning off).
+- `maintenance: true` → equipment unavailable for use; `POST /on` answers **409**. Only síndico/admin change it. The v2 web panel does not honor this flag.
+- **Restart timer**: sending `POST /on { minutes }` again while it is on recomputes `expiresAt` from now; the relay stays on.
 
 ### 5.2 Fire panel — CIE
 
