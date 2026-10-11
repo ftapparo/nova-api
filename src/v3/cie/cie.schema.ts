@@ -68,10 +68,25 @@ export const eventInfoSchema = z.object({
     severity: severitySchema,
 });
 
+export const placeSchema = z.object({
+    tower: z.string().nullable(),
+    towerLabel: z.string().nullable(),
+    floor: z.number().nullable(),
+    floorLabel: z.string().nullable(),
+    position: z.string().nullable(),
+    positionLabel: z.string().nullable(),
+    area: z.string().nullable(),
+});
+
 export const logDisplaySchema = z.object({
     title: z.string(),
-    description: z.string().nullable(),
-    location: z.string().nullable(),
+    device: z.string().nullable(),
+    deviceName: z.string().nullable(),
+    place: placeSchema.nullable(),
+    loop: z.number().nullable(),
+    address: z.number().nullable(),
+    zone: z.number().nullable(),
+    zoneName: z.string().nullable(),
 });
 
 export const panelSituationSchema = z.object({

@@ -180,7 +180,7 @@ Read (staff and active residents): `GET /cie/status`, `/cie/panel`, `/cie/alarms
 
 The backend already interprets every panel event — **do not interpret codes in the app**:
 
-- Every log/event item has `event` (`category`, `code`, `label`, `kind`, `severity`) and `display` (`title`, `description`, `location`). Show `display.title` / `display.description` / `display.location`; color by `event.severity` (`critical` | `warning` | `info` | `ok`). `eventType` is the raw code, kept only for bug reports.
+- Every log/event item has `event` (`category`, `code`, `label`, `kind`, `severity`) and `display` with **each piece in its own field**: `title` (event label), `device` (device type, e.g. "Sensor de Fumaça"), `deviceName` (name registered in the panel), `place` (`tower`/`towerLabel`, `floor`/`floorLabel` — 0 = Térreo —, `position`/`positionLabel` = A, B or C inside the floor, `area`; `null` when the name has no location), `loop`, `address`, `zone`, `zoneName`. Lay them out as you like; never parse `deviceName` or join/interpret codes yourself. Color by `event.severity` (`critical` | `warning` | `info` | `ok`). `eventType` is the raw code, kept only for bug reports.
 - `event.kind`: `ativacao` (something started: fire, new failure), `restauracao` (back to normal), `estado` (system summary), `informativo` (record only). `/cie/logs?kind=ativacao` lists only real occurrences.
 - `source`: `historico` (panel log) or `ativo` (active right now).
 - `/cie/panel` and `/cie/alarms/active` carry `situation` (`state`, `label`, `severity`, `silenced`) — use it as the screen headline ("Sistema em alarme", "Sistema normal", "Central sem comunicação").

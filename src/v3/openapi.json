@@ -387,13 +387,32 @@
       },
       "CieLogDisplay": {
         "type": "object",
-        "description": "Textos prontos para exibir.",
+        "description": "Cada dado do evento em um campo próprio, já interpretado. O cliente só escolhe o layout; não junta nem interpreta textos.",
         "properties": {
-          "title": { "type": "string", "example": "Disp. em Falha" },
-          "description": { "type": "string", "nullable": true, "example": "Acionador Manual – 12 ANDAR B T-A" },
-          "location": { "type": "string", "nullable": true, "example": "Laço 1 · Endereço 181 · Zona 2 – TORRE A" }
+          "title": { "type": "string", "example": "Alarme" },
+          "device": { "type": "string", "nullable": true, "example": "Sensor de Fumaça", "description": "Tipo do dispositivo." },
+          "deviceName": { "type": "string", "nullable": true, "example": "16 ANDAR B T-B", "description": "Nome cadastrado na central (em operações, o nome da regra)." },
+          "place": { "allOf": [{ "$ref": "#/components/schemas/CiePlace" }], "nullable": true },
+          "loop": { "type": "integer", "nullable": true, "example": 1 },
+          "address": { "type": "integer", "nullable": true, "example": 100 },
+          "zone": { "type": "integer", "nullable": true, "example": 4 },
+          "zoneName": { "type": "string", "nullable": true, "example": "TORRE B" }
         },
-        "required": ["title", "description", "location"]
+        "required": ["title", "device", "deviceName", "place", "loop", "address", "zone", "zoneName"]
+      },
+      "CiePlace": {
+        "type": "object",
+        "description": "Local interpretado do nome do dispositivo pela convenção do condomínio: \"16 ANDAR B T-B\" = torre B, 16º andar, posição B no andar; \"TERREO T-A\" = térreo da torre A; \"PRESSURIZA T-C\" = pressurização da torre C. null quando o nome não segue a convenção (ex.: \"ELEVADOR 1\").",
+        "properties": {
+          "tower": { "type": "string", "nullable": true, "example": "B" },
+          "towerLabel": { "type": "string", "nullable": true, "example": "Torre B" },
+          "floor": { "type": "integer", "nullable": true, "example": 16, "description": "0 = térreo." },
+          "floorLabel": { "type": "string", "nullable": true, "example": "16º andar" },
+          "position": { "type": "string", "nullable": true, "example": "B", "description": "Posição dentro do andar (A, B ou C)." },
+          "positionLabel": { "type": "string", "nullable": true, "example": "Posição B" },
+          "area": { "type": "string", "nullable": true, "example": "Pressurização" }
+        },
+        "required": ["tower", "towerLabel", "floor", "floorLabel", "position", "positionLabel", "area"]
       },
       "CieActiveCounters": {
         "type": "object",
