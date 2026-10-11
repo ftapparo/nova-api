@@ -412,7 +412,7 @@
         "properties": {
           "tower": { "type": "string", "nullable": true, "example": "B" },
           "towerLabel": { "type": "string", "nullable": true, "example": "Torre B" },
-          "floor": { "type": "integer", "nullable": true, "example": 16, "description": "0 = térreo." },
+          "floor": { "type": "integer", "nullable": true, "example": 16, "description": "0 = térreo; negativo = subsolo (garagem: -2 = Subsolo 2)." },
           "floorLabel": { "type": "string", "nullable": true, "example": "16º andar" },
           "position": { "type": "string", "nullable": true, "example": "B", "description": "Posição dentro do andar (A, B ou C)." },
           "positionLabel": { "type": "string", "nullable": true, "example": "Posição B" },
