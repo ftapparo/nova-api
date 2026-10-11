@@ -43,6 +43,89 @@ export const cieStateSnapshotSchema = z.object({
     reconnectAttempt: z.number(),
 });
 
+
+const deviceClassificationSchema = z.object({
+    typeCode: z.number().nullable(),
+    subtypeCode: z.number().nullable(),
+    typeLabel: z.string().nullable(),
+    subtypeLabel: z.string().nullable(),
+    resolvedLabel: z.string().nullable(),
+    source: z.enum(['codes', 'name', 'none']),
+});
+
+const logTypeValues = ['alarme', 'falha', 'supervisao', 'operacao', 'bloqueio'] as const;
+export const ACTIVE_TYPE_VALUES = ['alarme', 'falha', 'supervisao', 'bloqueio'] as const;
+export const EVENT_KIND_VALUES = ['ativacao', 'restauracao', 'estado', 'informativo'] as const;
+const severitySchema = z.enum(['critical', 'warning', 'info', 'ok']);
+
+// Evento já interpretado pelo nova-cie (tabela de códigos da central):
+// clientes exibem label/display, nunca interpretam eventType.
+export const eventInfoSchema = z.object({
+    category: z.enum(logTypeValues),
+    code: z.number().nullable(),
+    label: z.string(),
+    kind: z.enum(EVENT_KIND_VALUES),
+    severity: severitySchema,
+});
+
+export const logDisplaySchema = z.object({
+    title: z.string(),
+    description: z.string().nullable(),
+    location: z.string().nullable(),
+});
+
+export const panelSituationSchema = z.object({
+    state: z.enum(['offline', 'reiniciando', 'alarme', 'falha', 'supervisao', 'bloqueio', 'normal']),
+    label: z.string(),
+    severity: severitySchema,
+    silenced: z.boolean(),
+});
+
+export const normalizedCieLogSchema = z.object({
+    key: z.string(),
+    type: z.enum(logTypeValues),
+    id: z.number(),
+    zone: z.number().nullable(),
+    address: z.number().nullable(),
+    loop: z.number().nullable(),
+    deviceName: z.string().nullable(),
+    zoneName: z.string().nullable(),
+    deviceTypeCode: z.number().nullable(),
+    deviceTypeLabel: z.string().nullable(),
+    deviceClassification: deviceClassificationSchema.nullable(),
+    eventType: z.number().nullable(),
+    blocked: z.boolean().nullable(),
+    occurredAt: z.string(),
+    raw: z.unknown(),
+    createdAt: z.number(),
+    source: z.enum(['historico', 'ativo']),
+    event: eventInfoSchema,
+    display: logDisplaySchema,
+    number: z.number().nullable(),
+    firstEvent: z.boolean().nullable(),
+    origin: z.number().nullable(),
+    repeater: z.number().nullable(),
+    historyTotal: z.number().nullable(),
+});
+
+const countersSchema = z.object({
+    alarme: z.number(),
+    falha: z.number(),
+    supervisao: z.number(),
+    bloqueio: z.number(),
+});
+
+export const activeEventsDataSchema = z.object({
+    counters: countersSchema,
+    situation: panelSituationSchema,
+    events: z.object({
+        alarme: z.array(normalizedCieLogSchema).optional(),
+        falha: z.array(normalizedCieLogSchema).optional(),
+        supervisao: z.array(normalizedCieLogSchema).optional(),
+        bloqueio: z.array(normalizedCieLogSchema).optional(),
+    }),
+});
+
 export const panelDataSchema = z.object({
     online: z.boolean(),
     connected: z.boolean(),
@@ -62,36 +145,9 @@ export const panelDataSchema = z.object({
     dataHora: dataHoraSchema.nullable(),
     counters: statusSchema.shape.status.nullable(),
     leds: z.record(z.string(), z.boolean()).nullable(),
-    latestFailureEvent: z.unknown().nullable(),
-    latestAlarmEvent: z.unknown().nullable(),
-});
-
-const deviceClassificationSchema = z.object({
-    typeCode: z.number().nullable(),
-    subtypeCode: z.number().nullable(),
-    typeLabel: z.string().nullable(),
-    subtypeLabel: z.string().nullable(),
-    resolvedLabel: z.string().nullable(),
-    source: z.enum(['codes', 'name', 'none']),
-});
-
-export const normalizedCieLogSchema = z.object({
-    key: z.string(),
-    type: z.enum(['alarme', 'falha', 'supervisao', 'operacao', 'bloqueio']),
-    id: z.number(),
-    zone: z.number().nullable(),
-    address: z.number().nullable(),
-    loop: z.number().nullable(),
-    deviceName: z.string().nullable(),
-    zoneName: z.string().nullable(),
-    deviceTypeCode: z.number().nullable(),
-    deviceTypeLabel: z.string().nullable(),
-    deviceClassification: deviceClassificationSchema.nullable(),
-    eventType: z.number().nullable(),
-    blocked: z.boolean().nullable(),
-    occurredAt: z.string(),
-    raw: z.unknown(),
-    createdAt: z.number(),
+    latestFailureEvent: normalizedCieLogSchema.nullable(),
+    latestAlarmEvent: normalizedCieLogSchema.nullable(),
+    situation: panelSituationSchema,
 });
 
 export const alarmActiveSnapshotSchema = z.object({
@@ -103,6 +159,8 @@ export const alarmActiveSnapshotSchema = z.object({
         bloqueio: z.number(),
     }),
     latestAlarmLogs: z.array(normalizedCieLogSchema),
+    activeAlarms: z.array(normalizedCieLogSchema),
+    situation: panelSituationSchema,
 });
 
 export const logsListDataSchema = z.object({
@@ -146,7 +204,9 @@ export const outputCountersSchema = z.object({
     atuador: z.number(),
 });
 
-export const logTypeQuerySchema = z.enum(['alarme', 'falha', 'supervisao', 'operacao', 'bloqueio']);
+export const logTypeQuerySchema = z.enum(logTypeValues);
+export const activeTypeQuerySchema = z.enum(ACTIVE_TYPE_VALUES);
+export const eventKindQuerySchema = z.enum(EVENT_KIND_VALUES);
 
 // -----------------------------------------------------------------------------
 // Comandos — acionam a central física

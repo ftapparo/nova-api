@@ -351,10 +351,86 @@
           "dataHora": { "allOf": [{ "$ref": "#/components/schemas/DataHora" }], "nullable": true },
           "counters": { "allOf": [{ "$ref": "#/components/schemas/StatusCounters" }], "nullable": true },
           "leds": { "type": "object", "nullable": true, "additionalProperties": { "type": "boolean" } },
-          "latestFailureEvent": { "allOf": [{ "$ref": "#/components/schemas/NormalizedCieLog" }], "nullable": true },
-          "latestAlarmEvent": { "allOf": [{ "$ref": "#/components/schemas/NormalizedCieLog" }], "nullable": true }
+          "latestFailureEvent": { "allOf": [{ "$ref": "#/components/schemas/NormalizedCieLog" }], "nullable": true, "description": "Última falha real do histórico (event.kind = ativacao); restaurações não entram." },
+          "latestAlarmEvent": { "allOf": [{ "$ref": "#/components/schemas/NormalizedCieLog" }], "nullable": true, "description": "Último alarme de incêndio do histórico (event.kind = ativacao)." },
+          "situation": { "$ref": "#/components/schemas/CiePanelSituation" }
         },
-        "required": ["online", "connected", "restarting", "restartingUntil", "reconnecting", "reconnectAttempt", "lastError", "lastUpdated", "central", "dataHora", "counters", "leds", "latestFailureEvent", "latestAlarmEvent"]
+        "required": ["online", "connected", "restarting", "restartingUntil", "reconnecting", "reconnectAttempt", "lastError", "lastUpdated", "central", "dataHora", "counters", "leds", "latestFailureEvent", "latestAlarmEvent", "situation"]
+      },
+      "CiePanelSituation": {
+        "type": "object",
+        "description": "Situação geral da central pronta para exibição. Prioridade: reiniciando > offline > alarme > falha > supervisão > bloqueio > normal.",
+        "properties": {
+          "state": { "type": "string", "enum": ["offline", "reiniciando", "alarme", "falha", "supervisao", "bloqueio", "normal"] },
+          "label": { "type": "string", "example": "Sistema em falha" },
+          "severity": { "$ref": "#/components/schemas/CieSeverity" },
+          "silenced": { "type": "boolean", "description": "Central ou sirene silenciada (LEDs do painel)." }
+        },
+        "required": ["state", "label", "severity", "silenced"]
+      },
+      "CieSeverity": {
+        "type": "string",
+        "enum": ["critical", "warning", "info", "ok"],
+        "description": "critical = incêndio/sem comunicação; warning = falha, supervisão ou ação relevante; info = registro; ok = normal/restaurado."
+      },
+      "CieEventInfo": {
+        "type": "object",
+        "description": "Evento já interpretado pela tabela da central (categoria + código). O cliente não deve interpretar eventType por conta própria.",
+        "properties": {
+          "category": { "type": "string", "enum": ["alarme", "falha", "supervisao", "operacao", "bloqueio"] },
+          "code": { "type": "integer", "nullable": true, "example": 7 },
+          "label": { "type": "string", "example": "Disp. em Falha" },
+          "kind": { "type": "string", "enum": ["ativacao", "restauracao", "estado", "informativo"], "description": "ativacao = algo começou (incêndio, falha nova); restauracao = voltou ao normal; estado = resumo do sistema; informativo = registro sem ação." },
+          "severity": { "$ref": "#/components/schemas/CieSeverity" }
+        },
+        "required": ["category", "code", "label", "kind", "severity"]
+      },
+      "CieLogDisplay": {
+        "type": "object",
+        "description": "Textos prontos para exibir.",
+        "properties": {
+          "title": { "type": "string", "example": "Disp. em Falha" },
+          "description": { "type": "string", "nullable": true, "example": "Acionador Manual – 12 ANDAR B T-A" },
+          "location": { "type": "string", "nullable": true, "example": "Laço 1 · Endereço 181 · Zona 2 – TORRE A" }
+        },
+        "required": ["title", "description", "location"]
+      },
+      "CieActiveCounters": {
+        "type": "object",
+        "properties": {
+          "alarme": { "type": "integer" },
+          "falha": { "type": "integer" },
+          "supervisao": { "type": "integer" },
+          "bloqueio": { "type": "integer" }
+        },
+        "required": ["alarme", "falha", "supervisao", "bloqueio"]
+      },
+      "CieActiveEventsData": {
+        "type": "object",
+        "properties": {
+          "counters": { "$ref": "#/components/schemas/CieActiveCounters" },
+          "situation": { "$ref": "#/components/schemas/CiePanelSituation" },
+          "events": {
+            "type": "object",
+            "description": "Eventos ativos agora na central, por tipo (só o tipo pedido quando há filtro).",
+            "properties": {
+              "alarme": { "type": "array", "items": { "$ref": "#/components/schemas/NormalizedCieLog" } },
+              "falha": { "type": "array", "items": { "$ref": "#/components/schemas/NormalizedCieLog" } },
+              "supervisao": { "type": "array", "items": { "$ref": "#/components/schemas/NormalizedCieLog" } },
+              "bloqueio": { "type": "array", "items": { "$ref": "#/components/schemas/NormalizedCieLog" } }
+            }
+          }
+        },
+        "required": ["counters", "situation", "events"]
+      },
+      "CieActiveEventsResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "$ref": "#/components/schemas/CieActiveEventsData" },
+          "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+        },
+        "required": ["success", "data", "meta"]
       },
       "PanelResponse": {
         "type": "object",
@@ -391,30 +467,31 @@
           "deviceTypeCode": { "type": "integer", "nullable": true },
           "deviceTypeLabel": { "type": "string", "nullable": true },
           "deviceClassification": { "allOf": [{ "$ref": "#/components/schemas/DeviceClassification" }], "nullable": true },
-          "eventType": { "type": "integer", "nullable": true },
+          "eventType": { "type": "integer", "nullable": true, "description": "Código bruto da central. Use `event` para exibir." },
           "blocked": { "type": "boolean", "nullable": true },
           "occurredAt": { "type": "string", "format": "date-time" },
-          "createdAt": { "type": "integer" }
+          "createdAt": { "type": "integer" },
+          "source": { "type": "string", "enum": ["historico", "ativo"], "description": "historico = registro do log da central; ativo = evento ativo agora." },
+          "event": { "$ref": "#/components/schemas/CieEventInfo" },
+          "display": { "$ref": "#/components/schemas/CieLogDisplay" },
+          "number": { "type": "integer", "nullable": true, "description": "Posição na central (no histórico, 1 é o mais recente)." },
+          "firstEvent": { "type": "boolean", "nullable": true },
+          "origin": { "type": "integer", "nullable": true, "description": "Central de origem na interligação." },
+          "repeater": { "type": "integer", "nullable": true },
+          "historyTotal": { "type": "integer", "nullable": true, "description": "Total de registros daquele tipo no histórico da central." }
         },
-        "required": ["key", "type", "id", "zone", "address", "loop", "deviceName", "zoneName", "deviceTypeCode", "deviceTypeLabel", "deviceClassification", "eventType", "blocked", "occurredAt", "createdAt"]
+        "required": ["key", "type", "id", "zone", "address", "loop", "deviceName", "zoneName", "deviceTypeCode", "deviceTypeLabel", "deviceClassification", "eventType", "blocked", "occurredAt", "createdAt", "source", "event", "display", "number", "firstEvent", "origin", "repeater", "historyTotal"]
       },
       "AlarmActiveSnapshot": {
         "type": "object",
         "properties": {
           "isTriggered": { "type": "boolean" },
-          "counters": {
-            "type": "object",
-            "properties": {
-              "alarme": { "type": "integer" },
-              "falha": { "type": "integer" },
-              "supervisao": { "type": "integer" },
-              "bloqueio": { "type": "integer" }
-            },
-            "required": ["alarme", "falha", "supervisao", "bloqueio"]
-          },
-          "latestAlarmLogs": { "type": "array", "items": { "$ref": "#/components/schemas/NormalizedCieLog" } }
+          "counters": { "$ref": "#/components/schemas/CieActiveCounters" },
+          "latestAlarmLogs": { "type": "array", "description": "Últimos alarmes do histórico (não necessariamente ativos).", "items": { "$ref": "#/components/schemas/NormalizedCieLog" } },
+          "activeAlarms": { "type": "array", "description": "Alarmes ativos agora na central.", "items": { "$ref": "#/components/schemas/NormalizedCieLog" } },
+          "situation": { "$ref": "#/components/schemas/CiePanelSituation" }
         },
-        "required": ["isTriggered", "counters", "latestAlarmLogs"]
+        "required": ["isTriggered", "counters", "latestAlarmLogs", "activeAlarms", "situation"]
       },
       "AlarmActiveResponse": {
         "type": "object",
@@ -2068,7 +2145,7 @@
       "get": {
         "tags": ["CIE"],
         "summary": "Alarmes ativos",
-        "description": "Retorna se há alarme disparado no momento e os últimos registros de alarme.",
+        "description": "Retorna se há alarme disparado no momento, os alarmes ativos, os contadores, a situação geral e os últimos registros de alarme do histórico.",
         "operationId": "getCieActiveAlarms",
         "security": [{ "bearerAuth": [] }],
         "responses": {
@@ -2076,6 +2153,33 @@
             "description": "Estado de alarme atual.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AlarmActiveResponse" } } }
           },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "502": { "description": "Falha ao consultar a central de incêndio." }
+        }
+      }
+    },
+    "/v3/api/cie/events/active": {
+      "get": {
+        "tags": ["CIE"],
+        "summary": "Eventos ativos da central",
+        "description": "Eventos ativos agora na central (alarme, falha, supervisão e bloqueio), já interpretados (`event`, `display`). Equipe e moradores com unidade ativa.",
+        "operationId": "getCieActiveEvents",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "description": "Restringe a um tipo. Omitido retorna os quatro.",
+            "schema": { "type": "string", "enum": ["alarme", "falha", "supervisao", "bloqueio"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Eventos ativos.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CieActiveEventsResponse" } } }
+          },
+          "400": { "description": "Parâmetro inválido." },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "502": { "description": "Falha ao consultar a central de incêndio." }
         }
@@ -2094,6 +2198,13 @@
             "in": "query",
             "required": false,
             "schema": { "type": "string", "enum": ["alarme", "falha", "supervisao", "operacao", "bloqueio"] }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "Filtra pela natureza do evento (ex.: só ativações).",
+            "schema": { "type": "string", "enum": ["ativacao", "restauracao", "estado", "informativo"] }
           },
           {
             "name": "limit",

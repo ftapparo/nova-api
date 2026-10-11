@@ -176,7 +176,15 @@ Paths are relative to `/v3/api`. "Command" = physical action: disable button whi
 
 ### 5.2 Fire panel — CIE
 
-Read (staff and active residents): `GET /cie/status`, `/cie/panel`, `/cie/alarms/active`, `/cie/counters/blocks`, `/cie/counters/outputs`, `/cie/logs?type=&limit=&cursor=` (cursor pagination: use the cursor returned inside `data` of the previous page).
+Read (staff and active residents): `GET /cie/status`, `/cie/panel`, `/cie/alarms/active`, `/cie/events/active?type=`, `/cie/counters/blocks`, `/cie/counters/outputs`, `/cie/logs?type=&kind=&limit=&cursor=` (cursor pagination: use the cursor returned inside `data` of the previous page).
+
+The backend already interprets every panel event — **do not interpret codes in the app**:
+
+- Every log/event item has `event` (`category`, `code`, `label`, `kind`, `severity`) and `display` (`title`, `description`, `location`). Show `display.title` / `display.description` / `display.location`; color by `event.severity` (`critical` | `warning` | `info` | `ok`). `eventType` is the raw code, kept only for bug reports.
+- `event.kind`: `ativacao` (something started: fire, new failure), `restauracao` (back to normal), `estado` (system summary), `informativo` (record only). `/cie/logs?kind=ativacao` lists only real occurrences.
+- `source`: `historico` (panel log) or `ativo` (active right now).
+- `/cie/panel` and `/cie/alarms/active` carry `situation` (`state`, `label`, `severity`, `silenced`) — use it as the screen headline ("Sistema em alarme", "Sistema normal", "Central sem comunicação").
+- Active events now: `/cie/events/active` (`events.alarme|falha|supervisao|bloqueio`) and `activeAlarms` in `/cie/alarms/active`. `latestAlarmLogs` is history, not "active".
 
 Commands (staff only — hide for residents):
 
@@ -305,6 +313,7 @@ Upgrade refusals (HTTP status on the handshake): 401 invalid/used/expired ticket
 |---|---|---|
 | `connection.established` | all | `{ ok: true }` |
 | `cie.status.updated`, `cie.alarm.triggered`, `cie.failure.triggered`, `cie.log.received` | staff + active residents | CIE state/log payloads (same shapes as the `/cie/*` REST reads) |
+| `cie.active.updated` | staff + active residents | `{ type, items, counters }` — the full active list of one type (`alarme`, `falha`, `supervisao`, `bloqueio`) changed; replace that list |
 | `cie.connection.changed` | staff + active residents | panel ↔ CIE service connection state |
 | `exhaust.changed` | staff (all); residents only their prumada | `Exhaust` (same as REST) |
 | `gate.state.changed` | staff | `{ numeroDispositivo, state, keepOpen }` |

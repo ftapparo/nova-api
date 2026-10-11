@@ -5,9 +5,12 @@ import { successResponseSchema } from '../shared/response';
 import { callService, sendServiceResult } from '../shared/service-proxy';
 import { requireRoleOrResident } from '../residence/residence.guard';
 import {
+    activeEventsDataSchema,
+    activeTypeQuerySchema,
     alarmActiveSnapshotSchema,
     blockCountersSchema,
     cieStateSnapshotSchema,
+    eventKindQuerySchema,
     logsListDataSchema,
     logTypeQuerySchema,
     outputCountersSchema,
@@ -85,11 +88,29 @@ export async function cieRoutes(app: FastifyInstance) {
         sendServiceResult(reply, result);
     });
 
+    typedApp.get('/cie/events/active', {
+        onRequest: cieReadAccess,
+        schema: {
+            querystring: z.object({ type: activeTypeQuerySchema.optional() }),
+            response: { 200: successResponseSchema(activeEventsDataSchema) },
+        },
+    }, async (request, reply) => {
+        const result = await callService<z.infer<typeof activeEventsDataSchema>>({
+            baseUrl: resolveCieV3BaseUrl(),
+            token: resolveCieServiceToken(),
+            path: '/v3/api/cie/events/active',
+            params: request.query,
+            timeoutMs: resolveCieTimeout(),
+        });
+        sendServiceResult(reply, result);
+    });
+
     typedApp.get('/cie/logs', {
         onRequest: cieReadAccess,
         schema: {
             querystring: z.object({
                 type: logTypeQuerySchema.optional(),
+                kind: eventKindQuerySchema.optional(),
                 limit: z.coerce.number().optional(),
                 cursor: z.string().optional(),
             }),
