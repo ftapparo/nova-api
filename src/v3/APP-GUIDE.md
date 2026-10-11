@@ -184,7 +184,7 @@ The backend already interprets every panel event — **do not interpret codes in
 - `event.kind`: `ativacao` (something started: fire, new failure), `restauracao` (back to normal), `estado` (system summary), `informativo` (record only). `/cie/logs?kind=ativacao` lists only real occurrences.
 - `source`: `historico` (panel log) or `ativo` (active right now).
 - `/cie/panel` and `/cie/alarms/active` carry `situation` (`state`, `label`, `severity`, `silenced`) — use it as the screen headline ("Sistema em alarme", "Sistema normal", "Central sem comunicação").
-- Active events now: `/cie/events/active` (`events.alarme|falha|supervisao|bloqueio`) and `activeAlarms` in `/cie/alarms/active`. `latestAlarmLogs` is history, not "active".
+- Active events now: `/cie/events/active` (`events.alarme|falha|supervisao`; `events.bloqueio` is always empty — the panel does not provide that list, use `counters.bloqueio` and `/cie/counters/blocks`) and `activeAlarms` in `/cie/alarms/active`. `latestAlarmLogs` is history, not "active".
 
 Commands (staff only — hide for residents):
 

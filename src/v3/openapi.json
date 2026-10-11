@@ -412,7 +412,7 @@
           "situation": { "$ref": "#/components/schemas/CiePanelSituation" },
           "events": {
             "type": "object",
-            "description": "Eventos ativos agora na central, por tipo (só o tipo pedido quando há filtro).",
+            "description": "Eventos ativos agora na central, por tipo (só o tipo pedido quando há filtro). `bloqueio` vem sempre vazio: a central não fornece essa lista — use `counters.bloqueio` e `/cie/counters/blocks`.",
             "properties": {
               "alarme": { "type": "array", "items": { "$ref": "#/components/schemas/NormalizedCieLog" } },
               "falha": { "type": "array", "items": { "$ref": "#/components/schemas/NormalizedCieLog" } },
