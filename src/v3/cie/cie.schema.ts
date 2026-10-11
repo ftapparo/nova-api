@@ -76,13 +76,17 @@ export const placeSchema = z.object({
     position: z.string().nullable(),
     positionLabel: z.string().nullable(),
     area: z.string().nullable(),
+    areaDetail: z.string().nullable(),
 });
+
+export const ruleRefSchema = z.object({ id: z.number(), name: z.string().nullable() });
 
 export const logDisplaySchema = z.object({
     title: z.string(),
     device: z.string().nullable(),
     deviceName: z.string().nullable(),
     place: placeSchema.nullable(),
+    rule: ruleRefSchema.nullable(),
     loop: z.number().nullable(),
     address: z.number().nullable(),
     zone: z.number().nullable(),
@@ -184,6 +188,45 @@ export const logsListDataSchema = z.object({
     cursor: z.string().nullable(),
     nextCursor: z.string().nullable(),
     items: z.array(normalizedCieLogSchema),
+});
+
+// Cadastro da central (zonas, regras e dispositivos).
+const installationPointSchema = z.object({
+    zone: z.number().optional(),
+    loop: z.number().optional(),
+    address: z.number().optional(),
+});
+
+export const installationDataSchema = z.object({
+    model: z.string().nullable(),
+    firmware: z.string().nullable(),
+    installation: z.string().nullable(),
+    zones: z.array(z.object({
+        id: z.number(),
+        name: z.string().nullable(),
+        enabled: z.boolean(),
+        place: placeSchema.nullable(),
+    })),
+    rules: z.array(z.object({
+        id: z.number(),
+        name: z.string().nullable(),
+        enabled: z.boolean(),
+        inputs: z.array(installationPointSchema),
+        outputs: z.array(installationPointSchema),
+    })),
+    devices: z.array(z.object({
+        loop: z.number(),
+        address: z.number(),
+        name: z.string().nullable(),
+        device: z.string().nullable(),
+        type: z.number(),
+        subtype: z.number(),
+        zone: z.number().nullable(),
+        zoneName: z.string().nullable(),
+        enabled: z.boolean(),
+        localOutput: z.string().nullable(),
+        place: placeSchema.nullable(),
+    })),
 });
 
 const laçoCountersFields = {

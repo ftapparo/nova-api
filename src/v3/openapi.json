@@ -393,12 +393,18 @@
           "device": { "type": "string", "nullable": true, "example": "Sensor de Fumaça", "description": "Tipo do dispositivo." },
           "deviceName": { "type": "string", "nullable": true, "example": "16 ANDAR B T-B", "description": "Nome cadastrado na central (em operações, o nome da regra)." },
           "place": { "allOf": [{ "$ref": "#/components/schemas/CiePlace" }], "nullable": true },
+          "rule": {
+            "type": "object", "nullable": true,
+            "description": "Regra envolvida (operações como 49 Regra Acionada). O endereço do registro é o número da regra.",
+            "properties": { "id": { "type": "integer", "example": 7 }, "name": { "type": "string", "nullable": true, "example": "TORRE C" } },
+            "required": ["id", "name"]
+          },
           "loop": { "type": "integer", "nullable": true, "example": 1 },
           "address": { "type": "integer", "nullable": true, "example": 100 },
           "zone": { "type": "integer", "nullable": true, "example": 4 },
           "zoneName": { "type": "string", "nullable": true, "example": "TORRE B" }
         },
-        "required": ["title", "device", "deviceName", "place", "loop", "address", "zone", "zoneName"]
+        "required": ["title", "device", "deviceName", "place", "rule", "loop", "address", "zone", "zoneName"]
       },
       "CiePlace": {
         "type": "object",
@@ -410,9 +416,10 @@
           "floorLabel": { "type": "string", "nullable": true, "example": "16º andar" },
           "position": { "type": "string", "nullable": true, "example": "B", "description": "Posição dentro do andar (A, B ou C)." },
           "positionLabel": { "type": "string", "nullable": true, "example": "Posição B" },
-          "area": { "type": "string", "nullable": true, "example": "Pressurização" }
+          "area": { "type": "string", "nullable": true, "example": "Pressurização", "description": "Área fora dos andares: Pressurização, Garagem, Elevador, Estacionamentos, Central de incêndio." },
+          "areaDetail": { "type": "string", "nullable": true, "example": "Módulo liga", "description": "Complemento da área como cadastrado (ex.: \"Saída S2\", \"1\" do Elevador 1, \"2 C\" da Garagem 2 C)." }
         },
-        "required": ["tower", "towerLabel", "floor", "floorLabel", "position", "positionLabel", "area"]
+        "required": ["tower", "towerLabel", "floor", "floorLabel", "position", "positionLabel", "area", "areaDetail"]
       },
       "CieActiveCounters": {
         "type": "object",
@@ -423,6 +430,30 @@
           "bloqueio": { "type": "integer" }
         },
         "required": ["alarme", "falha", "supervisao", "bloqueio"]
+      },
+      "CieInstallation": {
+        "type": "object",
+        "description": "Cadastro da central (zonas, regras e dispositivos), gerado do arquivo .cie exportado pelo ProgramadorCIE.",
+        "properties": {
+          "model": { "type": "string", "nullable": true, "example": "CIE2500" },
+          "firmware": { "type": "string", "nullable": true },
+          "installation": { "type": "string", "nullable": true },
+          "zones": { "type": "array", "items": { "type": "object", "properties": {
+            "id": { "type": "integer" }, "name": { "type": "string", "nullable": true }, "enabled": { "type": "boolean" },
+            "place": { "allOf": [{ "$ref": "#/components/schemas/CiePlace" }], "nullable": true } } } },
+          "rules": { "type": "array", "items": { "type": "object", "properties": {
+            "id": { "type": "integer" }, "name": { "type": "string", "nullable": true }, "enabled": { "type": "boolean" },
+            "inputs": { "type": "array", "items": { "type": "object", "description": "{ zone } ou { loop, address }" } },
+            "outputs": { "type": "array", "items": { "type": "object", "description": "{ zone } ou { loop, address }" } } } } },
+          "devices": { "type": "array", "items": { "type": "object", "properties": {
+            "loop": { "type": "integer" }, "address": { "type": "integer" }, "name": { "type": "string", "nullable": true },
+            "device": { "type": "string", "nullable": true, "example": "Sensor de Fumaça" },
+            "type": { "type": "integer" }, "subtype": { "type": "integer" },
+            "zone": { "type": "integer", "nullable": true }, "zoneName": { "type": "string", "nullable": true },
+            "enabled": { "type": "boolean" }, "localOutput": { "type": "string", "nullable": true, "example": "S2" },
+            "place": { "allOf": [{ "$ref": "#/components/schemas/CiePlace" }], "nullable": true } } } }
+        },
+        "required": ["model", "firmware", "installation", "zones", "rules", "devices"]
       },
       "CieActiveEventsData": {
         "type": "object",
@@ -2174,6 +2205,23 @@
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "502": { "description": "Falha ao consultar a central de incêndio." }
+        }
+      }
+    },
+    "/v3/api/cie/installation": {
+      "get": {
+        "tags": ["CIE"],
+        "summary": "Cadastro da central",
+        "description": "Zonas, regras e dispositivos da central com o local de cada um já interpretado (torre, andar, posição, área).",
+        "operationId": "getCieInstallation",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Cadastro.",
+            "content": { "application/json": { "schema": { "type": "object", "properties": {
+              "success": { "type": "boolean" }, "data": { "$ref": "#/components/schemas/CieInstallation" } } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
         }
       }
     },

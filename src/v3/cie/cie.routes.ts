@@ -11,6 +11,7 @@ import {
     blockCountersSchema,
     cieStateSnapshotSchema,
     eventKindQuerySchema,
+    installationDataSchema,
     logsListDataSchema,
     logTypeQuerySchema,
     outputCountersSchema,
@@ -123,6 +124,19 @@ export async function cieRoutes(app: FastifyInstance) {
             path: '/v3/api/cie/logs',
             params: request.query,
             timeoutMs: resolveCieLogsTimeout(),
+        });
+        sendServiceResult(reply, result);
+    });
+
+    typedApp.get('/cie/installation', {
+        onRequest: cieReadAccess,
+        schema: { response: { 200: successResponseSchema(installationDataSchema) } },
+    }, async (_request, reply) => {
+        const result = await callService<z.infer<typeof installationDataSchema>>({
+            baseUrl: resolveCieV3BaseUrl(),
+            token: resolveCieServiceToken(),
+            path: '/v3/api/cie/installation',
+            timeoutMs: resolveCieTimeout(),
         });
         sendServiceResult(reply, result);
     });
