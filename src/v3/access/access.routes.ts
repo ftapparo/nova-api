@@ -25,6 +25,18 @@ const upperText = (allowed: readonly [string, ...string[]]) =>
     z.string().trim().transform((value) => value.toUpperCase()).pipe(z.enum(allowed));
 const text = z.string().trim().min(1);
 
+// Janela aceita para o horário informado da passagem: o TAG grava segundos
+// depois que o portão fecha. Limitar impede lançar passagens com data
+// arbitrária; 1 min no futuro tolera diferença de relógio entre servidores.
+const DATA_HORA_MAX_PAST_MS = 10 * 60_000;
+const DATA_HORA_MAX_FUTURE_MS = 60_000;
+const dataHora = z.iso.datetime({ offset: true })
+    .transform((value) => new Date(value))
+    .refine((value) => {
+        const deltaMs = value.getTime() - Date.now();
+        return deltaMs <= DATA_HORA_MAX_FUTURE_MS && deltaMs >= -DATA_HORA_MAX_PAST_MS;
+    }, 'Data e hora fora do intervalo aceito (até 10 minutos antes).');
+
 const registerBodySchema = z.object({
     dispositivo: z.coerce.number().int().positive(),
     pessoa: z.coerce.number().int(),
@@ -40,6 +52,7 @@ const registerBodySchema = z.object({
     formaAcesso: text,
     idAcesso: text,
     seqVeiculo: z.coerce.number().int(),
+    dataHora: dataHora.optional(),
 });
 
 const rowsSchema = successResponseSchema(z.array(z.record(z.string(), z.unknown())));

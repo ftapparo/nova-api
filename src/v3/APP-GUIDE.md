@@ -231,7 +231,7 @@ Each gate is identified by `numeroDispositivo` (from `GET /tag/gates`).
 |---|---|---|---|
 | GET | `/access/recent` | `?numeroDispositivo=&limit=` (≤ 50, default 10) | Latest passages: `[{ NOME, TORRE, APARTAMENTO, DATAHORA, DISPOSITIVO, SENTIDO, DESCRICAO, IDACESSO, VEICULO }]` |
 | GET | `/access/verify` | `?id=&numeroDispositivo=&sentido=E\|S` | ERP rows; `PERMITIDO = "S"` means allowed. `id` accepts plate, CPF, 10-digit TAG, numeric ID (≤ 8 digits) or formatted ID |
-| POST | `/access/register` | ERP fields taken from the verify row (see spec) | 201 — records a manual passage |
+| POST | `/access/register` | ERP fields taken from the verify row (see spec); optional `dataHora` (ISO 8601 with offset, up to 10 min in the past) | 201 — records a manual passage, at `dataHora` or now |
 
 Field names in these payloads are raw ERP columns (UPPERCASE) — map them in the repository, not in the UI.
 

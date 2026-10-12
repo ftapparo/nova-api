@@ -251,6 +251,9 @@ export const insertAccess = async (data: {
   formaAcesso: string;
   idAcesso: string;
   seqVeiculo: number;
+  // Momento real da passagem. O TAG grava no ERP depois que o portão fecha, com
+  // a TAG já confirmada; sem este campo a passagem ficaria com o horário da gravação.
+  dataHora?: Date;
 }) => {
   return executeTransaction(async (transaction) => {
     const txQuery = (sql: string, params: any[]) =>
@@ -272,7 +275,7 @@ export const insertAccess = async (data: {
     }
 
     // Comentario: usa timezone configuravel para gravar DATAHORA no horario local esperado.
-    const localISOTime = new Date().toLocaleString('sv-SE', { timeZone: APP_TIMEZONE });
+    const localISOTime = (data.dataHora ?? new Date()).toLocaleString('sv-SE', { timeZone: APP_TIMEZONE });
 
     const result1 = await txQuery(`
       INSERT INTO CIRCULACAODISP (

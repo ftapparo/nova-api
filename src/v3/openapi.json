@@ -4034,6 +4034,11 @@
                   },
                   "seqVeiculo": {
                     "type": "integer"
+                  },
+                  "dataHora": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Momento da passagem, ISO 8601 com fuso (ex.: 2026-10-12T07:15:32-03:00). Opcional: sem ele vale o horário do registro. Aceito de 10 minutos antes até 1 minuto depois do horário do servidor; fora disso, 400."
                   }
                 }
               }
