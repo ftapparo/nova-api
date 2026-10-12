@@ -15,7 +15,7 @@ export type CommandLogEntry = {
 
 const LOG_BASE_DIR = process.env.LOG_DIR || '/app/logs';
 const COMMAND_LOG_DIR = path.resolve(process.env.COMMAND_LOG_DIR || path.join(LOG_BASE_DIR, 'api-commands'));
-const RETENTION_DAYS = Number(process.env.COMMAND_LOG_RETENTION_DAYS || 7);
+const RETENTION_DAYS = Number(process.env.COMMAND_LOG_RETENTION_DAYS || 30);
 
 const toDateKey = (date = new Date()): string => date.toISOString().slice(0, 10);
 

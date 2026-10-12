@@ -6,6 +6,9 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 
 ## [Unreleased]
 
+### Alterado
+- Registro de comandos (`logs/api-commands/`, inclui a abertura de portão pelo painel, com quem pediu) passa a guardar 30 dias em vez de 7 (`COMMAND_LOG_RETENTION_DAYS`, padrão 30 no código e no `docker-compose.yml`). Com 7 dias, o histórico de aberturas manuais se perdia antes da análise de incidentes.
+
 ### Adicionado
 - `POST /v3/api/access/register` aceita `dataHora` opcional (ISO 8601 com fuso) e grava esse momento em `CIRCULACAODISP.DATAHORA`, no fuso de `APP_TIMEZONE`. Sem o campo, segue o horário da gravação, como antes. Aceito de 10 min antes até 1 min depois do horário do servidor; fora disso, `400`. Preparação para o `nova-tag` gravar a passagem depois que o portão fecha (com a TAG confirmada, descartando TAG de carro estacionado no alcance da antena) sem perder o horário real. `insertAccess` (core) ganha o parâmetro opcional; a v2 não muda.
 - Central de incêndio: proxy de `GET /v3/api/cie/installation` (zonas, regras e dispositivos com local) e campos `display.rule` e `display.place.areaDetail` no schema.
