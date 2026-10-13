@@ -32,13 +32,20 @@ const sendPdf = (reply: FastifyReply, doc: LegalDocument) =>
 export async function legalPageRoutes(app: FastifyInstance) {
     const typedApp = app.withTypeProvider<ZodTypeProvider>();
 
+    // Link colado com barra final ("/termos-de-uso/") daria 404. Redireciona
+    // para o endereço sem barra, o único publicado nas lojas. Location
+    // relativa: vale para novaresidence.com.br e www.
+    const registerPage = (publicPath: string, html: string) => {
+        app.get(publicPath, async (_request, reply) =>
+            reply.headers(PAGE_HEADERS).type('text/html; charset=utf-8').send(html));
+        app.get(`${publicPath}/`, async (_request, reply) => reply.redirect(publicPath, 301));
+    };
+
     // Exigida pela Google Play: como excluir a conta sem depender do app.
-    app.get('/excluir-conta', async (_request, reply) =>
-        reply.headers(PAGE_HEADERS).type('text/html; charset=utf-8').send(accountDeletionPage));
+    registerPage('/excluir-conta', accountDeletionPage);
 
     for (const doc of listCurrentDocuments()) {
-        app.get(doc.publicPath, async (_request, reply) =>
-            reply.headers(PAGE_HEADERS).type('text/html; charset=utf-8').send(doc.html));
+        registerPage(doc.publicPath, doc.html);
 
         app.get(`${doc.publicPath}/pdf`, async (_request, reply) => sendPdf(reply, doc));
 
