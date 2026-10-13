@@ -2,7 +2,9 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { successResponseSchema } from '../shared/response';
-import { extractBearerToken, requireAuth, requireRole } from '../shared/require-auth';
+import { extractBearerToken, requireAuth, requireRole, revokeAccountTokens } from '../shared/require-auth';
+import { deleteAccountData } from '../../core/repositories/account.repository';
+import { invalidatePerson } from '../residence/residence.service';
 import logger from '../../core/utils/logger';
 import { authUserSchema, createUserBodySchema, googleLoginBodySchema, listUsersQuerySchema, loginBodySchema, refreshBodySchema, sessionDataSchema, sessionUserSchema, signupBodySchema } from './auth.schema';
 import * as authService from './auth.service';
@@ -187,6 +189,35 @@ export async function authRoutes(app: FastifyInstance) {
             response: { 200: successResponseSchema(sessionUserSchema) },
         },
     }, async (request, reply) => reply.ok({ ...request.actor!, mustAcceptTerms: await mustAcceptTermsSafe(request.actor!.id) }));
+
+    // Exclusão da própria conta pelo app (exigência da Play e direito do titular na LGPD).
+    // Equipe não se exclui pelo app: sem conta de porteiro/síndico/admin a portaria
+    // pode ficar sem acesso — a administração remove essas contas.
+    typedApp.delete('/auth/me', {
+        onRequest: requireAuth,
+        schema: {
+            body: z.object({ confirm: z.literal(true) }),
+            response: { 200: successResponseSchema(z.null()) },
+        },
+    }, async (request, reply) => {
+        const actor = request.actor!;
+        if (actor.role && actor.role !== 'morador') {
+            return reply.fail({ type: 'forbidden', detail: 'Contas da equipe são removidas pela administração do condomínio.', instance: request.url });
+        }
+
+        let loginFailure: authService.AuthFailure | null = null;
+        const deleted = await deleteAccountData(actor.id, async () => {
+            const result = await authService.deleteUser(actor.id);
+            if (!result.ok) loginFailure = result.reason;
+            return result.ok;
+        });
+        if (!deleted) return sendAuthFailure(request, reply, loginFailure ?? 'unavailable');
+
+        revokeAccountTokens(actor.id);
+        if (deleted.personSeq !== null) invalidatePerson(deleted.personSeq);
+        logger.info(`[ApiV3] Conta ${actor.id} excluída pelo próprio usuário`);
+        return reply.ok(null);
+    });
 
     typedApp.post('/auth/users', {
         onRequest: [requireAuth, requireRole('sindico', 'admin')],

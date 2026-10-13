@@ -233,6 +233,20 @@ export const getUser = async (accountId: string): Promise<AuthResult<AuthUser> |
     }
 };
 
+/** Exclui a conta no GoTrue (identidades e refresh tokens vão junto). 404 = já não existe, tratado como sucesso. */
+export const deleteUser = async (accountId: string): Promise<AuthResult<null>> => {
+    try {
+        await axios.delete(`${resolveAuthUrl()}/admin/users/${encodeURIComponent(accountId)}`, {
+            timeout: resolveAuthTimeout(),
+            headers: adminHeaders(),
+        });
+        return { ok: true, data: null };
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) return { ok: true, data: null };
+        return { ok: false, reason: classifyError(error, 'admin/users/:id (delete)') };
+    }
+};
+
 /**
  * Atualiza senha e/ou app_metadata via API admin. O GoTrue mescla as chaves
  * de app_metadata (não substitui o objeto) e remove as que vierem null —

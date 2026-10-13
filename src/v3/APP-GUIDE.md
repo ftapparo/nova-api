@@ -80,6 +80,7 @@ All routes except `/health` and `/auth/*` public ones require `Authorization: Be
 | POST | `/auth/refresh` | `{ refreshToken }` | `SessionData` |
 | POST | `/auth/logout` | — (Bearer) | `null` |
 | GET | `/auth/me` | — | `AuthUser` + `mustAcceptTerms` |
+| DELETE | `/auth/me` | `{ confirm: true }` (Bearer) | `null` — deletes the own account; staff get 403 |
 | POST | `/auth/password/change` | `{ currentPassword, newPassword }` | `SessionData` |
 | POST | `/auth/password/recover` | `{ email }` | 202 `null` (always) |
 | POST | `/auth/password/recover/confirm` | `{ email, code, newPassword }` (6-digit code, 15 min) | `SessionData` |
@@ -328,6 +329,16 @@ Under `/v3/api`:
 - Google (and Apple, when it exists): above the button show "Ao continuar, você aceita o Termo de Uso e a Política de Privacidade" with both links, and **always** send `acceptedTermsVersion`. The API records it only on the first acceptance of that version.
 - `user.mustAcceptTerms: true` (session or `/auth/me`) → open the acceptance screen (older account, or a new Terms version) and call `POST /legal/terms/accept`. On 409, reload `GET /legal` and show the new version. The API does not block other routes for now.
 - Settings screen: links to both public pages.
+
+### 5.14 Delete own account
+
+`DELETE /auth/me` with `{ "confirm": true }` (show a confirmation step first). Deletes the login (GoTrue: password and Google identity) and the account's own data: link to the condo record, settings, push subscriptions and message reads. Keeps the Terms acceptance record and command logs (legitimate retention, Privacy Policy §11 and §14). The access token is rejected right after; clear the local session and go to the welcome screen.
+
+- Staff accounts (`porteiro`, `sindico`, `admin`) → 403: removed by the administration.
+- 503 → auth service unavailable, **nothing was deleted**; offer retry.
+- Public instructions page (Google Play requirement): `https://novaresidence.com.br/excluir-conta`.
+
+`/residence/me` → `person.cpfMasked` (`"•••.456.789-••"`, or `null`) for the personal data screen. The full CPF never leaves the API.
 
 ## 6. Real-time — WebSocket `/v3/ws`
 

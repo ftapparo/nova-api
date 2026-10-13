@@ -46,6 +46,7 @@ v3/
   vehicle/        veículos e TAG veicular (fluxo vehicles-v2); vehicle.service.ts tem as regras copiadas do controller v2
   command-log/    GET /commands/logs (v2 + v3 no mesmo arquivo)
   settings/       GET|PUT /me/settings (chave = conta do token)
+  (auth/)         DELETE /auth/me: exclusão da própria conta (morador); apaga login no GoTrue e dados da conta numa transação (core/repositories/account.repository.ts), revoga o access token em memória (shared/require-auth.ts → revokeAccountTokens); mantém legal_acceptance e logs
   message/        comunicados do condomínio (app: home 08d, lista 17, detalhe 18): leitura por equipe ou morador com unidade liberada, leitura registrada por conta (`condo_message_read`), publicação/arquivamento por síndico/admin; sem push
   legal/          Termo de Uso e Política de Privacidade: páginas HTML e PDFs públicos na raiz (/termos-de-uso, /politica-de-privacidade — fora de /v3/api, links das lojas), catálogo GET /legal e aceite do Termo (`legal_acceptance`, hash do PDF oficial); arquivos em `legal/` na raiz do projeto, catálogo de versões em legal.documents.ts
   push/           Web Push: chave, inscrições, envio (síndico/admin ou token de serviço do CIE)

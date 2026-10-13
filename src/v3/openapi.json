@@ -684,7 +684,8 @@
           "person": {
             "type": "object",
             "nullable": true,
-            "properties": { "sequencia": { "type": "integer" }, "nome": { "type": "string" } }
+            "properties": { "sequencia": { "type": "integer" }, "nome": { "type": "string" },
+                                                                "cpfMasked": { "type": "string", "nullable": true, "description": "CPF mascarado (\"•••.456.789-••\"); nulo se ausente ou inválido no cadastro." } }
           },
           "units": { "type": "array", "items": { "$ref": "#/components/schemas/ResidenceUnit" } }
         },
@@ -1742,6 +1743,104 @@
       }
     },
     "/v3/api/auth/me": {
+      "delete": {
+        "tags": [
+          "Auth"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Excluir a própria conta",
+        "description": "Exclui a conta de login (GoTrue) e os dados só dela: vínculo com o cadastro, preferências, inscrições de push e leituras de comunicados. Mantém o aceite do Termo e os logs de comando (conservação legítima, Política 11 e 14). O access token da conta é recusado a partir daí. Contas da equipe (porteiro, síndico, admin) recebem 403: a administração as remove. Página pública com as instruções: `/excluir-conta`.",
+        "operationId": "deleteOwnAccount",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "confirm"
+                ],
+                "properties": {
+                  "confirm": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conta excluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "nullable": true
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Confirmação ausente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Conta da equipe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível; nada foi excluído.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "get": {
         "tags": ["Auth"],
         "summary": "Usuário autenticado",

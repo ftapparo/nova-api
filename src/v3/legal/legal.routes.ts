@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { successResponseSchema } from '../shared/response';
 import { requireAuth } from '../shared/require-auth';
 import { currentTermsVersion, getTermsStatus, recordTermsAcceptance, type TermsStatus } from './legal.acceptance';
-import { findDocumentVersion, listCurrentDocuments, publicUrl, type LegalDocument } from './legal.documents';
+import { accountDeletionPage, findDocumentVersion, listCurrentDocuments, publicUrl, type LegalDocument } from './legal.documents';
 import { acceptTermsBodySchema, documentVersionParamsSchema, legalDocumentSchema, termsStatusSchema } from './legal.schema';
 
 // =============================================================================
@@ -31,6 +31,10 @@ const sendPdf = (reply: FastifyReply, doc: LegalDocument) =>
 /** Rotas na raiz (sem prefixo): /termos-de-uso, /politica-de-privacidade e os PDFs. */
 export async function legalPageRoutes(app: FastifyInstance) {
     const typedApp = app.withTypeProvider<ZodTypeProvider>();
+
+    // Exigida pela Google Play: como excluir a conta sem depender do app.
+    app.get('/excluir-conta', async (_request, reply) =>
+        reply.headers(PAGE_HEADERS).type('text/html; charset=utf-8').send(accountDeletionPage));
 
     for (const doc of listCurrentDocuments()) {
         app.get(doc.publicPath, async (_request, reply) =>

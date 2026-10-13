@@ -67,7 +67,7 @@ export const deleteLink = async (accountId: string): Promise<boolean> => {
 // Firebird
 // -----------------------------------------------------------------------------
 
-export type PersonRecord = { sequencia: number; nome: string };
+export type PersonRecord = { sequencia: number; nome: string; cpf: string | null };
 
 export type PersonUnitRecord = {
     unitSeq: number;
@@ -86,9 +86,9 @@ const isYes = (value: unknown): boolean => String(value ?? '').trim().toUpperCas
 const text = (value: unknown): string => String(value ?? '').trim();
 
 export const findPerson = async (personSeq: number): Promise<PersonRecord | null> => {
-    const rows = await executeQuery('SELECT SEQUENCIA, NOME FROM PESSOAS WHERE SEQUENCIA = ?', [personSeq]);
+    const rows = await executeQuery('SELECT SEQUENCIA, NOME, CPF FROM PESSOAS WHERE SEQUENCIA = ?', [personSeq]);
     const row = rows?.[0];
-    return row ? { sequencia: Number(row.SEQUENCIA), nome: text(row.NOME) } : null;
+    return row ? { sequencia: Number(row.SEQUENCIA), nome: text(row.NOME), cpf: text(row.CPF) || null } : null;
 };
 
 /**

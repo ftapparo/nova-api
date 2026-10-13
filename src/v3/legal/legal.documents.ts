@@ -42,12 +42,13 @@ const markdown = new MarkdownIt({ html: false, linkify: true });
 const escapeHtml = (value: string) =>
     value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
 
-const renderPage = (entry: CatalogEntry, body: string): string => `<!DOCTYPE html>
+// Cabeçalho, estilo e moldura comuns às páginas públicas (documentos e exclusão de conta).
+const renderShell = (title: string, inner: string): string => `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHtml(entry.title)} — Nova Residence</title>
+<title>${escapeHtml(title)} — Nova Residence</title>
 <style>
 :root { color-scheme: light dark; --bg: #ffffff; --fg: #1f2933; --muted: #52606d; --line: #d9e2ec; --accent: #1d4ed8; }
 @media (prefers-color-scheme: dark) { :root { --bg: #111827; --fg: #e5e7eb; --muted: #9ca3af; --line: #374151; --accent: #93c5fd; } }
@@ -65,13 +66,15 @@ footer { margin-top: 40px; color: var(--muted); font-size: 0.875rem; }
 </head>
 <body>
 <main>
-<a class="official" href="${entry.publicPath}/pdf">Baixar documento oficial (PDF) — versão ${escapeHtml(entry.version)}</a>
-${body}
-<footer>Versão ${escapeHtml(entry.version)} · vigente desde ${escapeHtml(entry.effectiveDate.split('-').reverse().join('/'))} · <a href="${entry.publicPath}/pdf">documento oficial em PDF</a></footer>
-</main>
+${inner}</main>
 </body>
 </html>
 `;
+
+const renderPage = (entry: CatalogEntry, body: string): string => renderShell(entry.title, `<a class="official" href="${entry.publicPath}/pdf">Baixar documento oficial (PDF) — versão ${escapeHtml(entry.version)}</a>
+${body}
+<footer>Versão ${escapeHtml(entry.version)} · vigente desde ${escapeHtml(entry.effectiveDate.split('-').reverse().join('/'))} · <a href="${entry.publicPath}/pdf">documento oficial em PDF</a></footer>
+`);
 
 const load = (entry: CatalogEntry): LegalDocument => {
     const base = path.join(LEGAL_DIR, entry.document, entry.version);
@@ -79,6 +82,15 @@ const load = (entry: CatalogEntry): LegalDocument => {
     const html = renderPage(entry, markdown.render(readFileSync(`${base}.md`, 'utf8')));
     return { ...entry, pdf, html, sha256: createHash('sha256').update(pdf).digest('hex') };
 };
+
+/**
+ * Página pública de exclusão de conta (Google Play: URL acessível sem o app). Não é documento
+ * versionado nem aceito: só instruções, alinhadas ao DELETE /v3/api/auth/me.
+ */
+export const accountDeletionPage: string = renderShell(
+    'Excluir conta',
+    markdown.render(readFileSync(path.join(LEGAL_DIR, 'excluir-conta', 'pagina.md'), 'utf8')),
+);
 
 // Carregado no import (subida da API): arquivo do catálogo faltando derruba
 // a subida na hora, em vez de aparecer só quando alguém tentar aceitar.

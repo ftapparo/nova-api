@@ -24,7 +24,7 @@ import type { Residence, ResidenceUnit } from './residence.schema';
 // ainda reflete em poucos minutos uma alteração feita pelo zelador direto
 // no Firebird (que não avisa a API).
 const CACHE_TTL_MS = 2 * 60 * 1000;
-const unitsCache = new Map<number, { units: ResidenceUnit[]; nome: string; expiresAt: number }>();
+const unitsCache = new Map<number, { units: ResidenceUnit[]; nome: string; cpfMasked: string | null; expiresAt: number }>();
 
 const resolveBlockReason = (record: PersonUnitRecord): ResidenceUnit['blockedReason'] => {
     if (!record.mor) return 'nao-morador';
@@ -52,6 +52,15 @@ export const toResidenceUnit = (record: PersonUnitRecord): ResidenceUnit => {
     };
 };
 
+/**
+ * "•••.456.789-••": só os 6 dígitos do meio, como na publicação de dados
+ * pessoais recomendada pela ANPD. O CPF inteiro nunca sai da API para o app.
+ */
+export const maskCpf = (cpf: string | null): string | null => {
+    const digits = (cpf ?? '').replace(/\D/g, '');
+    return digits.length === 11 ? `•••.${digits.slice(3, 6)}.${digits.slice(6, 9)}-••` : null;
+};
+
 const loadPerson = async (personSeq: number) => {
     const cached = unitsCache.get(personSeq);
     if (cached && cached.expiresAt > Date.now()) return cached;
@@ -62,6 +71,7 @@ const loadPerson = async (personSeq: number) => {
     ]);
     const entry = {
         nome: person?.nome ?? '',
+        cpfMasked: maskCpf(person?.cpf ?? null),
         units: records.map(toResidenceUnit),
         expiresAt: Date.now() + CACHE_TTL_MS,
     };
@@ -77,12 +87,12 @@ export const getResidence = async (accountId: string): Promise<Residence> => {
         return { status: 'pendente', blocked: true, person: null, units: [] };
     }
 
-    const { nome, units } = await loadPerson(link.personSeq);
+    const { nome, cpfMasked, units } = await loadPerson(link.personSeq);
     const hasActiveUnit = units.some((unit) => !unit.blocked);
     return {
         status: units.length > 0 ? 'ativo' : 'sem-unidade',
         blocked: !hasActiveUnit,
-        person: { sequencia: link.personSeq, nome },
+        person: { sequencia: link.personSeq, nome, cpfMasked },
         units,
     };
 };

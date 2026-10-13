@@ -70,6 +70,23 @@ const decodeSegment = (segment: string): Record<string, unknown> | null => {
     }
 };
 
+// Contas excluídas (DELETE /auth/me): o access token já emitido continua com
+// assinatura válida até expirar (GOTRUE_JWT_EXP=900). Guardar o id por um
+// pouco mais que isso recusa esse token já na validação local. Em memória:
+// a API roda em um único processo; uma reinicialização também derruba o
+// mapa, mas aí o token só passaria pelas rotas sem dado da conta (o vínculo
+// e as preferências já foram apagados).
+const REVOKED_FOR_MS = 16 * 60_000;
+const revokedAccounts = new Map<string, number>();
+
+export function revokeAccountTokens(accountId: string) {
+    const now = Date.now();
+    for (const [id, until] of revokedAccounts) if (until <= now) revokedAccounts.delete(id);
+    revokedAccounts.set(accountId, now + REVOKED_FOR_MS);
+}
+
+const isRevoked = (accountId: string) => (revokedAccounts.get(accountId) ?? 0) > Date.now();
+
 /**
  * Verifica assinatura, algoritmo, expiração e audiência do token. Retorna
  * o ator ou null — o motivo da recusa nunca vai para o cliente.
@@ -106,6 +123,7 @@ export function verifyAccessToken(token: string): Actor | null {
     if (!audienceOk) return null;
 
     if (typeof payload.sub !== 'string' || !payload.sub) return null;
+    if (isRevoked(payload.sub)) return null;
 
     const appMetadata = (payload.app_metadata ?? {}) as Record<string, unknown>;
     return {

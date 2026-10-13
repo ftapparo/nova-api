@@ -23,7 +23,12 @@ export const residenceSchema = z.object({
     status: z.enum(RESIDENCE_STATUSES),
     /** true quando nenhuma unidade está liberada — app todo desativado. */
     blocked: z.boolean(),
-    person: z.object({ sequencia: z.number().int(), nome: z.string() }).nullable(),
+    person: z.object({
+        sequencia: z.number().int(),
+        nome: z.string(),
+        /** CPF mascarado ("•••.456.789-••") para a tela de dados pessoais; nulo se ausente ou inválido no cadastro. */
+        cpfMasked: z.string().nullable(),
+    }).nullable(),
     units: z.array(residenceUnitSchema),
 });
 export type Residence = z.infer<typeof residenceSchema>;
