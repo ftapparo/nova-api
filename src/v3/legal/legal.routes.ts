@@ -18,12 +18,19 @@ import { acceptTermsBodySchema, documentVersionParamsSchema, legalDocumentSchema
 const PAGE_HEADERS = {
     'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; frame-ancestors 'none'",
     'X-Content-Type-Options': 'nosniff',
-    'Cache-Control': 'public, max-age=3600',
+    // O endereço sem versão muda de conteúdo quando sai versão nova, e o app registra o aceite da versão
+    // vigente: uma cópia guardada mostraria o texto anterior para ser aceito. no-cache obriga a
+    // conferir com o servidor a cada abertura.
+    'Cache-Control': 'no-cache',
 };
 
-const sendPdf = (reply: FastifyReply, doc: LegalDocument) =>
+// /<documento>/<versão>/pdf nunca muda de conteúdo.
+const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable';
+
+const sendPdf = (reply: FastifyReply, doc: LegalDocument, cacheControl = PAGE_HEADERS['Cache-Control']) =>
     reply
         .headers(PAGE_HEADERS)
+        .header('Cache-Control', cacheControl)
         .header('Content-Type', 'application/pdf')
         .header('Content-Disposition', `inline; filename="${doc.document}-${doc.version}.pdf"`)
         .send(doc.pdf);
@@ -55,7 +62,7 @@ export async function legalPageRoutes(app: FastifyInstance) {
         }, async (request, reply) => {
             const version = findDocumentVersion(doc.document, request.params.version);
             if (!version) return reply.fail({ type: 'not-found', detail: 'Versão do documento não encontrada.', instance: request.url });
-            return sendPdf(reply, version);
+            return sendPdf(reply, version, IMMUTABLE_CACHE);
         });
     }
 }
