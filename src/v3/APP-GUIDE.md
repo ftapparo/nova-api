@@ -74,12 +74,12 @@ All routes except `/health` and `/auth/*` public ones require `Authorization: Be
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| POST | `/auth/signup` | `{ email, password }` (≥ 8) | 201 `SessionData` |
+| POST | `/auth/signup` | `{ email, password, acceptedTermsVersion }` (≥ 8) | 201 `SessionData` |
 | POST | `/auth/login` | `{ email, password }` | `SessionData` |
-| POST | `/auth/google` | `{ idToken, nonce? }` | `SessionData` |
+| POST | `/auth/google` | `{ idToken, nonce?, acceptedTermsVersion? }` | `SessionData` |
 | POST | `/auth/refresh` | `{ refreshToken }` | `SessionData` |
 | POST | `/auth/logout` | — (Bearer) | `null` |
-| GET | `/auth/me` | — | `AuthUser` |
+| GET | `/auth/me` | — | `AuthUser` + `mustAcceptTerms` |
 | POST | `/auth/password/change` | `{ currentPassword, newPassword }` | `SessionData` |
 | POST | `/auth/password/recover` | `{ email }` | 202 `null` (always) |
 | POST | `/auth/password/recover/confirm` | `{ email, code, newPassword }` (6-digit code, 15 min) | `SessionData` |
@@ -88,7 +88,7 @@ All routes except `/health` and `/auth/*` public ones require `Authorization: Be
 {
   "accessToken": "eyJ…", "refreshToken": "kxco2lm2n5hd", "tokenType": "bearer",
   "expiresIn": 900, "expiresAt": 1790636017,
-  "user": { "id": "uuid", "email": "morador@gmail.com", "role": null, "mustChangePassword": false }
+  "user": { "id": "uuid", "email": "morador@gmail.com", "role": null, "mustChangePassword": false, "mustAcceptTerms": false }
 }
 ```
 
@@ -302,6 +302,32 @@ Today only **Web Push (VAPID)** exists: `GET /push/public-key`, `POST /push/subs
 - `unreadCount` ignores filter and page: use it for the bell badge. Home: `GET /messages?limit=5`.
 - 403 for accounts without an unblocked unit and without a staff role (pending link). 404 = not visible (archived, expired, scheduled).
 - No push for messages: residents only get push for fire alarms.
+
+### 5.13 Terms of Use and Privacy Policy (public)
+
+Public pages, no token, outside `/v3/api` so store links never change with the API version:
+
+| URL | Returns |
+|---|---|
+| `https://novaresidence.com.br/termos-de-uso` | HTML (mobile reading copy, link to the PDF) |
+| `https://novaresidence.com.br/politica-de-privacidade` | HTML |
+| `…/termos-de-uso/pdf` · `…/politica-de-privacidade/pdf` | Official PDF, current version |
+| `…/termos-de-uso/{version}/pdf` | Official PDF of an older version |
+
+Under `/v3/api`:
+
+| Method | Path | Auth | Body | Returns |
+|---|---|---|---|---|
+| GET | `/legal` | — | — | `[{ document, title, version, effectiveDate, sha256, htmlUrl, pdfUrl }]` |
+| GET | `/legal/acceptance` | Bearer | — | `{ termsVersion, acceptedVersion, acceptedAt, mustAcceptTerms }` |
+| POST | `/legal/terms/accept` | Bearer | `{ version }` | Same as above; idempotent; 409 = `version` is no longer current |
+
+- The **PDF is the official document**; the server stores its SHA-256 with every acceptance. Never send a hash from the app.
+- Only the Terms of Use are accepted. The Privacy Policy is shown/linked, never "accepted".
+- Signup: show both links and a checkbox; send `acceptedTermsVersion` = `version` of `termo-de-uso` from `GET /legal`. Not current → 400 `validationErrors[/acceptedTermsVersion]`, account not created.
+- Google (and Apple, when it exists): above the button show "Ao continuar, você aceita o Termo de Uso e a Política de Privacidade" with both links, and **always** send `acceptedTermsVersion`. The API records it only on the first acceptance of that version.
+- `user.mustAcceptTerms: true` (session or `/auth/me`) → open the acceptance screen (older account, or a new Terms version) and call `POST /legal/terms/accept`. On 409, reload `GET /legal` and show the new version. The API does not block other routes for now.
+- Settings screen: links to both public pages.
 
 ## 6. Real-time — WebSocket `/v3/ws`
 

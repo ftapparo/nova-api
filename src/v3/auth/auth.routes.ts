@@ -4,10 +4,11 @@ import { z } from 'zod';
 import { successResponseSchema } from '../shared/response';
 import { extractBearerToken, requireAuth, requireRole } from '../shared/require-auth';
 import logger from '../../core/utils/logger';
-import { authUserSchema, createUserBodySchema, googleLoginBodySchema, listUsersQuerySchema, loginBodySchema, refreshBodySchema, sessionDataSchema, signupBodySchema } from './auth.schema';
+import { authUserSchema, createUserBodySchema, googleLoginBodySchema, listUsersQuerySchema, loginBodySchema, refreshBodySchema, sessionDataSchema, sessionUserSchema, signupBodySchema } from './auth.schema';
 import * as authService from './auth.service';
 import { passwordRoutes } from './auth.password.routes';
 import { loginByIp, loginFailuresByEmail, normalizeEmailKey, resolveClientIp, signupByIp } from './auth.rate-limit';
+import { currentTermsVersion, mustAcceptTermsSafe, recordTermsAcceptance } from '../legal/legal.acceptance';
 
 // Login/refresh/logout delegados ao Supabase Auth. /login, /google e /refresh são
 // públicos por natureza; /logout e /me exigem access token válido sempre,
@@ -95,11 +96,29 @@ export async function authRoutes(app: FastifyInstance) {
         // o uso do 409 para descobrir quais e-mails têm conta.
         signupByIp.hit(ip);
 
-        const { email, password } = request.body;
+        const { email, password, acceptedTermsVersion } = request.body;
+        // Sem aceite da versão vigente, nem cria a conta.
+        if (acceptedTermsVersion !== currentTermsVersion()) {
+            return reply.fail({
+                type: 'validation-error',
+                detail: 'Aceite a versão vigente do Termo de Uso.',
+                instance: request.url,
+                validationErrors: [{ path: '/acceptedTermsVersion', message: 'Versão do Termo de Uso desatualizada.' }],
+            });
+        }
+
         const created = await authService.createUser({ email, password, role: null });
         if (!created.ok) return sendCreateUserFailure(request, reply, created);
 
         logger.info(`[ApiV3] Conta criada por cadastro público: ${created.data.id}`);
+
+        // Antes do login, para a sessão já sair com mustAcceptTerms=false. Se
+        // falhar, a conta fica criada e o app pede o aceite de novo no login.
+        try {
+            await recordTermsAcceptance(request, created.data.id, 'signup');
+        } catch (error) {
+            logger.error(`[ApiV3] Falha ao gravar aceite do Termo no cadastro de ${created.data.id}:`, error);
+        }
 
         // Já devolve a sessão, para o app não precisar de um segundo passo.
         const session = await authService.login(email, password);
@@ -123,7 +142,18 @@ export async function authRoutes(app: FastifyInstance) {
 
         const result = await authService.loginWithGoogle(request.body.idToken, request.body.nonce);
         if (!result.ok) return sendAuthFailure(request, reply, result.reason);
-        return reply.ok(result.data);
+
+        // Só depois do login: o id da conta (nova ou existente) vem do GoTrue.
+        const session = result.data;
+        if (session.user.mustAcceptTerms && request.body.acceptedTermsVersion === currentTermsVersion()) {
+            try {
+                await recordTermsAcceptance(request, session.user.id, 'google');
+                session.user.mustAcceptTerms = false;
+            } catch (error) {
+                logger.error(`[ApiV3] Falha ao gravar aceite do Termo no login Google de ${session.user.id}:`, error);
+            }
+        }
+        return reply.ok(session);
     });
 
     typedApp.post('/auth/refresh', {
@@ -154,9 +184,9 @@ export async function authRoutes(app: FastifyInstance) {
         onRequest: requireAuth,
         config: { allowPendingPasswordChange: true },
         schema: {
-            response: { 200: successResponseSchema(authUserSchema) },
+            response: { 200: successResponseSchema(sessionUserSchema) },
         },
-    }, async (request, reply) => reply.ok(request.actor!));
+    }, async (request, reply) => reply.ok({ ...request.actor!, mustAcceptTerms: await mustAcceptTermsSafe(request.actor!.id) }));
 
     typedApp.post('/auth/users', {
         onRequest: [requireAuth, requireRole('sindico', 'admin')],

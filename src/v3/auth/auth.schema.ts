@@ -20,13 +20,20 @@ export const authUserSchema = z.object({
     mustChangePassword: z.boolean(),
 });
 
+// Usuário da sessão e de /auth/me. Fora de authUserSchema porque a listagem
+// de contas (equipe) não consulta aceite.
+export const sessionUserSchema = authUserSchema.extend({
+    /** Termo de Uso vigente ainda não aceito: o app abre a tela de aceite. */
+    mustAcceptTerms: z.boolean(),
+});
+
 export const sessionDataSchema = z.object({
     accessToken: z.string(),
     refreshToken: z.string(),
     tokenType: z.literal('bearer'),
     expiresIn: z.number().int(),
     expiresAt: z.number().int(),
-    user: authUserSchema,
+    user: sessionUserSchema,
 });
 export type SessionData = z.infer<typeof sessionDataSchema>;
 export type AuthUser = z.infer<typeof authUserSchema>;
@@ -40,7 +47,11 @@ export const createUserBodySchema = z.object({
 
 // Cadastro público: sem `role` no corpo de propósito — o papel é sempre
 // definido pela API, nunca pelo cliente.
-export const signupBodySchema = createUserBodySchema.omit({ role: true });
+// acceptedTermsVersion: versão do Termo de Uso mostrada no cadastro; a API
+// confere com a vigente e grava o aceite com o hash do PDF oficial.
+export const signupBodySchema = createUserBodySchema.omit({ role: true }).extend({
+    acceptedTermsVersion: z.string().min(1).max(20),
+});
 
 export const listUsersQuerySchema = z.object({
     page: z.coerce.number().int().positive().default(1),
@@ -53,6 +64,9 @@ export const googleLoginBodySchema = z.object({
     // Só quando o app gerou nonce no login do Google (iOS costuma). Enviar
     // um nonce que não está no token faz o GoTrue recusar.
     nonce: z.string().min(1).max(256).optional(),
+    // O app não sabe se é o primeiro acesso: mostra o aviso do Termo antes
+    // do botão e sempre envia a versão. Gravada só se for a vigente.
+    acceptedTermsVersion: z.string().min(1).max(20).optional(),
 });
 
 const newPasswordSchema = z.string().min(8).max(256);

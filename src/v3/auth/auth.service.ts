@@ -2,6 +2,7 @@ import { createHmac } from 'node:crypto';
 import axios from 'axios';
 import logger from '../../core/utils/logger';
 import { toAppRole, type AppRole } from '../shared/require-auth';
+import { mustAcceptTermsSafe } from '../legal/legal.acceptance';
 import type { AuthUser, SessionData } from './auth.schema';
 
 // =============================================================================
@@ -38,13 +39,13 @@ const toAuthUser = (user: GoTrueUser | undefined): AuthUser => ({
     mustChangePassword: user?.app_metadata?.must_change_password === true,
 });
 
-const toSessionData = (session: GoTrueSession): SessionData => ({
+const toSessionData = (session: GoTrueSession, mustAcceptTerms: boolean): SessionData => ({
     accessToken: session.access_token,
     refreshToken: session.refresh_token,
     tokenType: 'bearer',
     expiresIn: session.expires_in,
     expiresAt: session.expires_at ?? Math.floor(Date.now() / 1000) + session.expires_in,
-    user: toAuthUser(session.user),
+    user: { ...toAuthUser(session.user), mustAcceptTerms },
 });
 
 // O GoTrue responde 400 tanto para senha errada quanto para usuário
@@ -88,7 +89,10 @@ const postForSession = async (
             params,
             timeout: resolveAuthTimeout(),
         });
-        return { ok: true, data: toSessionData(data) };
+        // Toda sessão (login, Google, refresh, troca de senha) já diz se falta
+        // aceitar o Termo vigente.
+        const mustAcceptTerms = data.user?.id ? await mustAcceptTermsSafe(data.user.id) : false;
+        return { ok: true, data: toSessionData(data, mustAcceptTerms) };
     } catch (error) {
         return { ok: false, reason: classifyError(error, operation) };
     }

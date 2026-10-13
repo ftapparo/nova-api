@@ -18,6 +18,7 @@ import { doorRoutes } from './door/door.routes';
 import { vehicleRoutes } from './vehicle/vehicle.routes';
 import { settingsRoutes } from './settings/settings.routes';
 import { messageRoutes } from './message/message.routes';
+import { legalPageRoutes, legalRoutes } from './legal/legal.routes';
 import { pushRoutes } from './push/push.routes';
 import { wsRoutes } from './ws/ws.routes';
 import { startWsGateway } from './ws/ws.gateway';
@@ -80,11 +81,17 @@ export async function StartWebServerV3(): Promise<void> {
         });
     }
 
-    // Rotas públicas: health e o próprio fluxo de autenticação.
+    // Termo de Uso e Política de Privacidade: públicos e sem prefixo de
+    // versão, para os links publicados nas lojas não mudarem com a API.
+    await app.register(legalPageRoutes);
+
+    // Rotas públicas: health, o próprio fluxo de autenticação e o catálogo
+    // dos documentos legais (o aceite usa requireAuth explícito).
     await app.register(async (instance) => {
         instance.withTypeProvider<ZodTypeProvider>();
         await healthRoutes(instance);
         await authRoutes(instance);
+        await legalRoutes(instance);
     }, { prefix: '/v3/api' });
 
     // Rotas de negócio: o hook vale para todo este escopo encapsulado, então

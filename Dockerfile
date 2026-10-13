@@ -35,6 +35,10 @@ RUN apk add --no-cache \
 
 COPY --from=builder /app/dist ./dist
 
+# Termo de Uso e Política de Privacidade (PDF oficial + .md): lidos em
+# runtime por src/v3/legal/ — o tsc não copia esses arquivos para dist/.
+COPY legal ./legal
+
 # .env NAO e copiado para a imagem: gravaria segredos numa camada visivel a
 # qualquer "docker history". As variaveis chegam em runtime, via Environment
 # variables da stack no Portainer.

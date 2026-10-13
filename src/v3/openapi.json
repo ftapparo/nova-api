@@ -60,6 +60,10 @@
       "description": "Comunicados da administração para moradores e equipe."
     },
     {
+      "name": "Documentos legais",
+      "description": "Termo de Uso e Política de Privacidade (públicos) e aceite do Termo. Páginas HTML e PDFs ficam fora de /v3/api: GET /termos-de-uso, /politica-de-privacidade, /<documento>/pdf e /<documento>/<versão>/pdf, sem token."
+    },
+    {
       "name": "Notificações",
       "description": "Web Push."
     },
@@ -748,9 +752,62 @@
           "tokenType": { "type": "string", "enum": ["bearer"] },
           "expiresIn": { "type": "integer", "description": "Segundos até o access token expirar.", "example": 900 },
           "expiresAt": { "type": "integer", "description": "Expiração do access token (Unix epoch, segundos)." },
-          "user": { "$ref": "#/components/schemas/AuthUser" }
+          "user": { "$ref": "#/components/schemas/SessionUser" }
         },
         "required": ["accessToken", "refreshToken", "tokenType", "expiresIn", "expiresAt", "user"]
+      },
+      "SessionUser": {
+        "allOf": [
+          { "$ref": "#/components/schemas/AuthUser" },
+          {
+            "type": "object",
+            "properties": {
+              "mustAcceptTerms": { "type": "boolean", "description": "Termo de Uso vigente ainda não aceito pela conta: abrir a tela de aceite (POST /v3/api/legal/terms/accept)." }
+            },
+            "required": ["mustAcceptTerms"]
+          }
+        ]
+      },
+      "SessionUserResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "$ref": "#/components/schemas/SessionUser" },
+          "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+        },
+        "required": ["success", "data", "meta"]
+      },
+      "LegalDocument": {
+        "type": "object",
+        "properties": {
+          "document": { "type": "string", "enum": ["termo-de-uso", "politica-de-privacidade"] },
+          "title": { "type": "string", "example": "Termo de Uso" },
+          "version": { "type": "string", "example": "1.0" },
+          "effectiveDate": { "type": "string", "format": "date", "example": "2026-10-13" },
+          "sha256": { "type": "string", "description": "SHA-256 do PDF oficial." },
+          "htmlUrl": { "type": "string", "example": "https://novaresidence.com.br/termos-de-uso" },
+          "pdfUrl": { "type": "string", "example": "https://novaresidence.com.br/termos-de-uso/pdf" }
+        },
+        "required": ["document", "title", "version", "effectiveDate", "sha256", "htmlUrl", "pdfUrl"]
+      },
+      "TermsStatus": {
+        "type": "object",
+        "properties": {
+          "termsVersion": { "type": "string", "description": "Versão vigente do Termo de Uso.", "example": "1.0" },
+          "acceptedVersion": { "type": "string", "nullable": true, "description": "Última versão aceita pela conta." },
+          "acceptedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "mustAcceptTerms": { "type": "boolean" }
+        },
+        "required": ["termsVersion", "acceptedVersion", "acceptedAt", "mustAcceptTerms"]
+      },
+      "TermsStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "enum": [true] },
+          "data": { "$ref": "#/components/schemas/TermsStatus" },
+          "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+        },
+        "required": ["success", "data", "meta"]
       },
       "SessionResponse": {
         "type": "object",
@@ -1241,7 +1298,7 @@
       "post": {
         "tags": ["Auth"],
         "summary": "Cadastro público",
-        "description": "Cria a conta e já devolve a sessão. A conta nasce sem papel e sem acesso (pendente) até um admin vinculá-la ao cadastro do condomínio — ver /residence. Limite: 5 cadastros por IP por hora (429 com Retry-After).",
+        "description": "Cria a conta e já devolve a sessão. A conta nasce sem papel e sem acesso (pendente) até um admin vinculá-la ao cadastro do condomínio — ver /residence. Exige acceptedTermsVersion igual à versão vigente do Termo de Uso (GET /v3/api/legal); senão 400, sem criar a conta. O aceite é gravado com o hash do PDF oficial. Limite: 5 cadastros por IP por hora (429 com Retry-After).",
         "operationId": "authSignup",
         "requestBody": {
           "required": true,
@@ -1251,9 +1308,10 @@
                 "type": "object",
                 "properties": {
                   "email": { "type": "string", "format": "email" },
-                  "password": { "type": "string", "minLength": 8 }
+                  "password": { "type": "string", "minLength": 8 },
+                  "acceptedTermsVersion": { "type": "string", "description": "Versão do Termo de Uso aceita na tela de cadastro.", "example": "1.0" }
                 },
-                "required": ["email", "password"]
+                "required": ["email", "password", "acceptedTermsVersion"]
               }
             }
           }
@@ -1390,7 +1448,8 @@
                 "type": "object",
                 "properties": {
                   "idToken": { "type": "string", "description": "id_token emitido pelo Google Sign-In." },
-                  "nonce": { "type": "string", "description": "NÃO enviar, a menos que o app tenha gerado um nonce no login do Google — um nonce ausente do token faz o login ser recusado." }
+                  "nonce": { "type": "string", "description": "NÃO enviar, a menos que o app tenha gerado um nonce no login do Google — um nonce ausente do token faz o login ser recusado." },
+                  "acceptedTermsVersion": { "type": "string", "description": "Versão do Termo de Uso informada no aviso antes do botão do Google. Sempre enviar: a API grava o aceite só se for a vigente e a conta ainda não a aceitou.", "example": "1.0" }
                 },
                 "required": ["idToken"],
                 "example": { "idToken": "eyJhbGciOiJSUzI1NiIs..." }
@@ -1686,13 +1745,13 @@
       "get": {
         "tags": ["Auth"],
         "summary": "Usuário autenticado",
-        "description": "Dados do usuário extraídos do access token.",
+        "description": "Dados do usuário extraídos do access token, mais mustAcceptTerms (consulta o aceite do Termo de Uso).",
         "operationId": "authMe",
         "security": [{ "bearerAuth": [] }],
         "responses": {
           "200": {
             "description": "Usuário atual.",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthUserResponse" } } }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionUserResponse" } } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" }
         }
@@ -5949,6 +6008,74 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/v3/api/legal": {
+      "get": {
+        "tags": ["Documentos legais"],
+        "summary": "Documentos vigentes",
+        "description": "Público, sem token. Versão, data de vigência, hash do PDF oficial e links públicos (HTML e PDF) do Termo de Uso e da Política de Privacidade.",
+        "operationId": "listLegalDocuments",
+        "responses": {
+          "200": {
+            "description": "Documentos vigentes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/LegalDocument" } },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/api/legal/acceptance": {
+      "get": {
+        "tags": ["Documentos legais"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Situação do aceite do Termo",
+        "description": "Versão vigente, última versão aceita pela conta e se falta aceitar.",
+        "operationId": "getTermsAcceptance",
+        "responses": {
+          "200": { "description": "Situação do aceite.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TermsStatusResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v3/api/legal/terms/accept": {
+      "post": {
+        "tags": ["Documentos legais"],
+        "security": [{ "bearerAuth": [] }],
+        "summary": "Aceitar o Termo de Uso",
+        "description": "Para conta criada antes do aceite ou versão nova do Termo (mustAcceptTerms: true). Idempotente. Grava versão, hash do PDF oficial, data/hora, IP e User-Agent.",
+        "operationId": "acceptTerms",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "version": { "type": "string", "description": "Versão mostrada ao usuário.", "example": "1.0" } },
+                "required": ["version"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Aceite gravado.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TermsStatusResponse" } } } },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": {
+            "description": "version não é a vigente: o Termo mudou. Recarregar GET /v3/api/legal e mostrar a versão nova.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           }
         }
       }
