@@ -46,6 +46,7 @@ v3/
   vehicle/        veículos e TAG veicular (fluxo vehicles-v2); vehicle.service.ts tem as regras copiadas do controller v2
   command-log/    GET /commands/logs (v2 + v3 no mesmo arquivo)
   settings/       GET|PUT /me/settings (chave = conta do token)
+  message/        comunicados do condomínio (app: home 08d, lista 17, detalhe 18): leitura por equipe ou morador com unidade liberada, leitura registrada por conta (`condo_message_read`), publicação/arquivamento por síndico/admin; sem push
   push/           Web Push: chave, inscrições, envio (síndico/admin ou token de serviço do CIE)
   ws/             WebSocket /v3/ws para clientes: ws-tickets (ticket de uso único), ws-broker (filtro por público), ws-upstream (cliente dos /v3/ws de TAG/CIE), ws.gateway (liga fontes → broker), ws.routes (POST /ws/ticket)
   shared/         response.ts, reply-helpers.ts (envelope de resposta), service-proxy.ts (chamada autenticada a TAG/CIE), attempt-limiter.ts (limite de tentativas em memória, usado por auth/ e exhaust/), service-auth.ts (API_SERVICE_TOKEN só em rota com config.allowServiceToken), command-audit.ts (comandos da v3 no log da v2, com ator do token), require-auth.ts (validação local do JWT do usuário, hooks requireAuth/requireRole/enforceAuth; papéis morador/porteiro/sindico/admin)

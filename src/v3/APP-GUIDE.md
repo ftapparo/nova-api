@@ -283,6 +283,26 @@ Today only **Web Push (VAPID)** exists: `GET /push/public-key`, `POST /push/subs
 
 ---
 
+### 5.12 Condo messages (everyone with an unblocked unit, and staff)
+
+| Method | Path | Body / query | Returns |
+|---|---|---|---|
+| GET | `/messages` | `?filter=all\|unread&limit=20&offset=0` (limit ≤ 50) | `{ items: CondoMessage[], unreadCount }` + `meta.pagination` (total of the filter) |
+| GET | `/messages/{id}` | — | `CondoMessage` |
+| POST | `/messages/{id}/read` | — | `CondoMessage` with `read: true` (idempotent; call when the detail opens) |
+| POST | `/messages` | `{ category, label?, title, body, publishedAt?, expiresAt? }` | 201 `CondoMessage` — síndico/admin |
+| DELETE | `/messages/{id}` | — | `null` — síndico/admin; archives (record kept) |
+
+```json
+{ "id": 12, "category": "manutencao", "label": "Manutenção programada", "title": "Manutenção da bomba de recalque hoje à tarde", "body": "A equipe técnica…", "publishedAt": "2026-10-13T13:30:00.000Z", "expiresAt": null, "read": false }
+```
+
+- `category`: `manutencao` | `comunicado` | `aviso` | `urgente` — the app picks icon/color. `label` is the free tag shown on the card and the detail; `null` → show the category name.
+- Only visible messages are returned: published (`publishedAt` ≤ now), not archived, not expired. Newest first.
+- `unreadCount` ignores filter and page: use it for the bell badge. Home: `GET /messages?limit=5`.
+- 403 for accounts without an unblocked unit and without a staff role (pending link). 404 = not visible (archived, expired, scheduled).
+- No push for messages: residents only get push for fire alarms.
+
 ## 6. Real-time — WebSocket `/v3/ws`
 
 Replaces polling for fire panel, gates, exhaust fans and devices.

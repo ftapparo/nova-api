@@ -17,6 +17,7 @@ import { commandLogRoutes } from './command-log/command-log.routes';
 import { doorRoutes } from './door/door.routes';
 import { vehicleRoutes } from './vehicle/vehicle.routes';
 import { settingsRoutes } from './settings/settings.routes';
+import { messageRoutes } from './message/message.routes';
 import { pushRoutes } from './push/push.routes';
 import { wsRoutes } from './ws/ws.routes';
 import { startWsGateway } from './ws/ws.gateway';
@@ -108,6 +109,7 @@ export async function StartWebServerV3(): Promise<void> {
         await doorRoutes(instance);
         await vehicleRoutes(instance);
         await settingsRoutes(instance);
+        await messageRoutes(instance);
         await pushRoutes(instance);
         await wsRoutes(instance);
     }, { prefix: '/v3/api' });
