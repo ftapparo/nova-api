@@ -59,6 +59,8 @@ main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
 h1 { font-size: 1.5rem; line-height: 1.3; margin: 0 0 16px; }
 h2 { font-size: 1.15rem; margin: 32px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
 hr { border: 0; border-top: 1px solid var(--line); margin: 24px 0; }
+/* O "---" depois do cabeçalho do documento já separa a primeira seção: sem segunda linha. */
+hr + h2 { margin-top: 0; padding-top: 0; border-top: 0; }
 a { color: var(--accent); overflow-wrap: anywhere; }
 p, li { overflow-wrap: break-word; }
 footer { margin-top: 40px; color: var(--muted); font-size: 0.875rem; }

@@ -10,6 +10,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 - Registro de comandos (`logs/api-commands/`, inclui a abertura de portão pelo painel, com quem pediu) passa a guardar 30 dias em vez de 7 (`COMMAND_LOG_RETENTION_DAYS`, padrão 30 no código e no `docker-compose.yml`). Com 7 dias, o histórico de aberturas manuais se perdia antes da análise de incidentes.
 
 ### Corrigido
+- Páginas do Termo de Uso e da Política de Privacidade: a primeira seção mostrava duas linhas seguidas com um vão vazio (o `---` depois do cabeçalho mais a borda superior do título; o CSS agora omite a borda quando o título vem logo após o separador), e os itens 1.1 do Termo e 2.1 e 9.1 da Política quebravam linha no meio da frase (quebras forçadas herdadas da conversão do PDF, removidas do `.md`). O PDF oficial e o hash gravado nos aceites não mudam.
 - Páginas públicas com barra final (`/termos-de-uso/`, `/politica-de-privacidade/`, `/excluir-conta/`) davam 404. Agora redirecionam (301, `Location` relativa, vale com e sem `www`) para o endereço sem barra, o único publicado nas lojas.
 
 ### Adicionado
