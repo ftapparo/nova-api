@@ -20,6 +20,7 @@ import { settingsRoutes } from './settings/settings.routes';
 import { messageRoutes } from './message/message.routes';
 import { legalPageRoutes, legalRoutes } from './legal/legal.routes';
 import { pushRoutes } from './push/push.routes';
+import { notificationRoutes } from './notification/notification.routes';
 import { wsRoutes } from './ws/ws.routes';
 import { startWsGateway } from './ws/ws.gateway';
 import { enforceUserOrService } from './shared/service-auth';
@@ -118,6 +119,7 @@ export async function StartWebServerV3(): Promise<void> {
         await settingsRoutes(instance);
         await messageRoutes(instance);
         await pushRoutes(instance);
+        await notificationRoutes(instance);
         await wsRoutes(instance);
     }, { prefix: '/v3/api' });
 

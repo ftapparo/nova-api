@@ -48,6 +48,8 @@ export const createMessageBodySchema = z.object({
     carouselTtlHours: carouselTtlHoursSchema.optional(),
     /** Fixado: fica no carrossel até ser desafixado. */
     pinned: z.boolean().optional(),
+    /** Push no app quando o comunicado ficar visível (padrão true). */
+    notify: z.boolean().optional(),
 }).refine(
     (body) => !body.expiresAt || new Date(body.expiresAt) > new Date(body.publishedAt ?? Date.now()),
     { message: 'A validade precisa ser posterior à publicação.', path: ['expiresAt'] },

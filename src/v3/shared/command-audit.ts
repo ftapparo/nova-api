@@ -10,9 +10,10 @@ import { appendCommandLog, type CommandLogEntry } from '../../core/services/comm
 
 const COMMAND_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-// Escritas que não são comando: ticket do WS, preferências e inscrição de
-// push (sincronizadas a cada login — encheriam o histórico da portaria).
-const IGNORED_PREFIXES = ['/v3/api/ws/', '/v3/api/me/', '/v3/api/push/subscriptions'];
+// Escritas que não são comando: ticket do WS, preferências, inscrição de
+// push do painel e registro de aparelho do app (sincronizadas a cada login
+// ou abertura — encheriam o histórico da portaria).
+const IGNORED_PREFIXES = ['/v3/api/ws/', '/v3/api/me/', '/v3/api/push/subscriptions', '/v3/api/notifications/'];
 
 /** Emite 'logged' com cada entrada gravada — consumido pelo WebSocket da v3. */
 export const commandLogEvents = new EventEmitter();

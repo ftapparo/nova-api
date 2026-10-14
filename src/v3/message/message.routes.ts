@@ -19,7 +19,8 @@ import {
 // Comunicados do condomínio (app Android: home 08d, lista 17, detalhe 18).
 // Leitura: equipe ou morador com unidade liberada — conta recém-criada e sem
 // vínculo não lê comunicados internos. Publicação e arquivamento: síndico e
-// admin. Sem push: morador só recebe push de alarme de incêndio.
+// admin. Comunicado com notify (padrão) gera push no app quando fica visível
+// (message.notifications.ts; decisão de 13/10/2026).
 // O carrossel da home (/messages/carousel) tem permanência própria: TTL em
 // horas a partir da publicação (padrão 24; 0 = sai ao ser lido) e fixado
 // (fica até ser desafixado, sempre com TTL 0), ordenado pela prioridade da
@@ -108,6 +109,7 @@ export async function messageRoutes(app: FastifyInstance) {
             expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
             carouselTtlHours: body.pinned ? 0 : body.carouselTtlHours ?? messageRepository.DEFAULT_CAROUSEL_TTL_HOURS,
             pinned: body.pinned ?? false,
+            notify: body.notify ?? true,
             createdBy: request.actor!.id,
         });
         logger.info(`[ApiV3] Comunicado ${message.id} publicado por ${request.actor!.id}`);

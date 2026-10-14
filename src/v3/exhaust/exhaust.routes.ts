@@ -9,6 +9,7 @@ import { AttemptLimiter } from '../shared/attempt-limiter';
 import { getResidence } from '../residence/residence.service';
 import { configBodySchema, configParamsSchema, exhaustParamsSchema, exhaustSchema, maintenanceBodySchema, turnOnBodySchema, type Exhaust } from './exhaust.schema';
 import { isInMaintenance, setMaintenance } from './exhaust.maintenance';
+import { recordExhaustActivation, recordExhaustTurnedOff } from './exhaust.notifications';
 
 // =============================================================================
 // Exaustores das churrasqueiras (decisão de 28/09/2026): todos os papéis
@@ -127,6 +128,8 @@ export async function exhaustRoutes(app: FastifyInstance) {
             return sendCoreError(request, reply, error, 'ligar');
         }
         logger.info(`[ApiV3] Exaustor ${id} ligado por ${actor.id}${request.body.minutes ? ` (${request.body.minutes} min)` : ''}`);
+        // Quem ligou ou reiniciou passa a ser o único a receber os avisos deste ciclo.
+        await recordExhaustActivation(id, actor.id);
         return reply.ok(await toExhaust(id));
     });
 
@@ -148,6 +151,7 @@ export async function exhaustRoutes(app: FastifyInstance) {
             return sendCoreError(request, reply, error, 'desligar');
         }
         logger.info(`[ApiV3] Exaustor ${id} desligado por ${actor.id}`);
+        await recordExhaustTurnedOff(id, actor.id);
         return reply.ok(await toExhaust(id));
     });
 

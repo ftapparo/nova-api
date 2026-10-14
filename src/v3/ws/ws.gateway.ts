@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import type http from 'node:http';
 import logger from '../../core/utils/logger';
 import { listAvailableGates } from '../../core/repositories/control.repository';
@@ -29,6 +30,14 @@ import { UpstreamSocket } from './ws-upstream';
 // =============================================================================
 
 const STAFF_ROLES = ['porteiro', 'sindico', 'admin'];
+
+/**
+ * Mesmos eventos da central que vão para os clientes, para consumidores
+ * dentro da API (push do app, cie/cie.notifications.ts), sem abrir uma
+ * segunda conexão com o nova-cie. Emite 'event' ({ event, data }, já com o
+ * nome renomeado) e 'connection' (boolean: a API está ligada ao nova-cie).
+ */
+export const cieUpstreamEvents = new EventEmitter();
 
 const isStaff = (audience: WsAudience) => audience.staff;
 const isStaffOrResident = (audience: WsAudience) => audience.staff || audience.resident;
@@ -69,9 +78,15 @@ const connectCie = (broker: ApiWsBroker) => {
         name: 'cie',
         url: resolveCieWsUrl(),
         token,
-        onMessage: ({ event, data }) => broker.publish(renameCieEvent(event), data, isStaffOrResident),
-        onConnectionChange: (connected) =>
-            broker.publish('upstream.connection.changed', { service: 'cie', connected }, isStaffOrResident),
+        onMessage: ({ event, data }) => {
+            const name = renameCieEvent(event);
+            broker.publish(name, data, isStaffOrResident);
+            cieUpstreamEvents.emit('event', { event: name, data });
+        },
+        onConnectionChange: (connected) => {
+            broker.publish('upstream.connection.changed', { service: 'cie', connected }, isStaffOrResident);
+            cieUpstreamEvents.emit('connection', connected);
+        },
     }).start();
 };
 

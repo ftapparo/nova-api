@@ -65,7 +65,11 @@
     },
     {
       "name": "Notificações",
-      "description": "Web Push."
+      "description": "Web Push do painel web. O app usa \"Notificações do app\"."
+    },
+    {
+      "name": "Notificações do app",
+      "description": "Push nativo do app (FCM no Android; rotas iOS reservadas). Separado do Web Push do painel."
     },
     {
       "name": "Tempo real",
@@ -1112,6 +1116,99 @@
           },
           "exists": {
             "type": "boolean"
+          }
+        }
+      },
+      "NotificationDeviceBody": {
+        "type": "object",
+        "required": [
+          "installationId",
+          "token",
+          "notificationsEnabled"
+        ],
+        "properties": {
+          "installationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Gerado pelo app na instalação; continua o mesmo quando o token FCM troca."
+          },
+          "token": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 4096,
+            "description": "Token de registro do FCM."
+          },
+          "appVersion": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "osVersion": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "deviceModel": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "notificationsEnabled": {
+            "type": "boolean",
+            "description": "Permissão de notificação do sistema. false = o servidor não envia a este aparelho."
+          },
+          "alarmChannelEnabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Canal do alarme de incêndio não bloqueado (só diagnóstico)."
+          }
+        }
+      },
+      "NotificationDevice": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "android",
+              "ios"
+            ]
+          },
+          "installationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "notificationsEnabled": {
+            "type": "boolean"
+          },
+          "alarmChannelEnabled": {
+            "type": "boolean"
+          },
+          "registeredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "NotificationPreferences": {
+        "type": "object",
+        "properties": {
+          "exhaustExpiring": {
+            "type": "boolean",
+            "description": "Aviso \"faltam X minutos\" antes do desligamento automático (só para quem ligou ou reiniciou por último)."
+          },
+          "exhaustExpiringMinutes": {
+            "type": "integer",
+            "description": "X, fixo no servidor (NOTIFY_EXHAUST_EXPIRING_MINUTES, padrão 15)."
+          },
+          "exhaustOff": {
+            "type": "boolean",
+            "description": "Aviso de exaustor desligado."
+          },
+          "messages": {
+            "type": "boolean",
+            "description": "Comunicado novo."
+          },
+          "cieStaffAlerts": {
+            "type": "boolean",
+            "description": "Alertas da central além do alarme (falha, supervisão, reinício, sem comunicação, bloqueio, normalização). Só vale para a equipe."
           }
         }
       },
@@ -5879,6 +5976,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Fixado: fica no carrossel até ser desafixado. Com pinned = true, carouselTtlHours precisa ser 0 ou omitido."
+                  },
+                  "notify": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Envia push (message.published) aos aparelhos de quem lê comunicados quando o comunicado ficar visível, inclusive o agendado."
                   }
                 }
               }
@@ -6774,6 +6876,490 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v3/api/notifications/devices/android": {
+      "put": {
+        "tags": [
+          "Notificações do app"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Registrar aparelho Android",
+        "description": "Registra ou atualiza o aparelho desta instalação para receber push (FCM). Chamar após o login (com mustChangePassword e mustAcceptTerms resolvidos), a cada abertura do app, em onNewToken e quando a permissão ou o canal do alarme mudarem. O mesmo aparelho com outra conta passa para a conta do token; um token reaproveitado pelo FCM sai de qualquer outra instalação. 30 registros por hora por conta.",
+        "operationId": "registerAndroidDevice",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationDeviceBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aparelho registrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/NotificationDevice"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados de entrada inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "description": "Muitas tentativas (ver Retry-After).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/api/notifications/devices/android/{installationId}": {
+      "delete": {
+        "tags": [
+          "Notificações do app"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Remover aparelho Android",
+        "description": "Para de enviar push a esta instalação. Chamar no logout, antes de /auth/logout. Idempotente: aparelho inexistente ou de outra conta também responde 200.",
+        "operationId": "deleteAndroidDevice",
+        "parameters": [
+          {
+            "name": "installationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID da instalação, o mesmo enviado no registro."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "nullable": true,
+                      "example": null
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v3/api/notifications/devices/ios": {
+      "put": {
+        "tags": [
+          "Notificações do app"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Registrar aparelho iOS (reservado)",
+        "description": "Reservado para o app iOS: aceita o mesmo corpo do Android e responde data: null sem gravar nada até o envio APNs existir.",
+        "operationId": "registerIosDevice",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationDeviceBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aceito, nada gravado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "nullable": true,
+                      "example": null
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Dados de entrada inválidos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v3/api/notifications/devices/ios/{installationId}": {
+      "delete": {
+        "tags": [
+          "Notificações do app"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Remover aparelho iOS (reservado)",
+        "description": "Reservado para o app iOS: responde data: null sem efeito.",
+        "operationId": "deleteIosDevice",
+        "parameters": [
+          {
+            "name": "installationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID da instalação, o mesmo enviado no registro."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aceito, nada removido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "nullable": true,
+                      "example": null
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v3/api/notifications/preferences": {
+      "get": {
+        "tags": [
+          "Notificações do app"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Ler preferências de notificação",
+        "description": "Preferências da conta do token; sem registro, todas ligadas. O alarme de incêndio não é desligável aqui (o controle é do canal no aparelho).",
+        "operationId": "getNotificationPreferences",
+        "responses": {
+          "200": {
+            "description": "Preferências.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/NotificationPreferences"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Notificações do app"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Alterar preferências de notificação",
+        "description": "Altera só os campos enviados (ao menos um). exhaustExpiringMinutes é fixo no servidor e não é aceito aqui.",
+        "operationId": "updateNotificationPreferences",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exhaustExpiring": {
+                    "type": "boolean"
+                  },
+                  "exhaustOff": {
+                    "type": "boolean"
+                  },
+                  "messages": {
+                    "type": "boolean"
+                  },
+                  "cieStaffAlerts": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preferências salvas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/NotificationPreferences"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Nenhuma preferência informada ou valor inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v3/api/notifications/test": {
+      "post": {
+        "tags": [
+          "Notificações do app"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Enviar notificação de teste",
+        "description": "Envia um push de teste (type: test, channel: general) aos aparelhos da própria conta. 3 testes a cada 10 min por conta.",
+        "operationId": "sendTestNotification",
+        "responses": {
+          "200": {
+            "description": "Resultado do envio.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "targets": {
+                          "type": "integer",
+                          "description": "Aparelhos selecionados."
+                        },
+                        "sent": {
+                          "type": "integer"
+                        },
+                        "failed": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "description": "Muitas tentativas (ver Retry-After).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Envio de notificações desativado no servidor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }

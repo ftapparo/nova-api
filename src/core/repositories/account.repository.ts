@@ -2,7 +2,8 @@ import { pool } from '../utils/db';
 
 // =============================================================================
 // Exclusão da própria conta (Play/LGPD). Remove o que é só da conta: vínculo
-// com o cadastro, preferências, inscrições de push e leituras de comunicados.
+// com o cadastro, preferências, inscrições de push (painel e app), leituras
+// de comunicados e a posse de exaustor ligado.
 //
 // Ficam, por conservação legítima (Termo 6.4 e 20.3, Política 11.2 e 14.2):
 // legal_acceptance (prova do aceite do Termo) e os logs de comando, com os
@@ -31,6 +32,9 @@ export const deleteAccountData = async (
         await client.query('DELETE FROM user_settings WHERE user_id = $1', [accountId]);
         await client.query('DELETE FROM push_subscriptions WHERE user_id = $1', [accountId]);
         await client.query('DELETE FROM condo_message_read WHERE account_id = $1', [accountId]);
+        await client.query('DELETE FROM notification_device WHERE account_id = $1', [accountId]);
+        await client.query('DELETE FROM notification_preference WHERE account_id = $1', [accountId]);
+        await client.query('DELETE FROM exhaust_activation WHERE account_id = $1', [accountId]);
 
         if (!(await deleteLogin())) {
             await client.query('ROLLBACK');

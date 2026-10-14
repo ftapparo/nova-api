@@ -143,8 +143,8 @@ Right after login and on app resume, call `GET /residence/me`:
 | Command history | — | ✓ | ✓ | ✓ |
 | Accounts and links, list users | — | — | ✓ | ✓ |
 | Staff password reset | — | residents | residents + porteiros | anyone |
-| Push broadcast | — | — | ✓ | ✓ |
-| Own settings, push subscription, WebSocket | ✓ | ✓ | ✓ | ✓ |
+| Web Push broadcast (web panel) | — | — | ✓ | ✓ |
+| Own settings, device registration and push preferences, WebSocket | ✓ | ✓ | ✓ | ✓ |
 
 Hide what the user cannot use, but always handle 403/404 — the server decides.
 
@@ -174,6 +174,7 @@ Paths are relative to `/v3/api`. "Command" = physical action: disable button whi
 - `command`: direction of the last command (`ligar` | `desligar` | `null`). With `processStatus: "iniciando"` it tells "ligando" from "desligando" (`on` is already `false` while turning off).
 - `maintenance: true` → equipment unavailable for use; `POST /on` answers **409**. Only síndico/admin change it. The v2 web panel does not honor this flag.
 - **Restart timer**: sending `POST /on { minutes }` again while it is on recomputes `expiresAt` from now; the relay stays on.
+- **Push**: whoever turned it on or restarted the timer last through the app owns the current cycle and is the only one who gets "faltam X minutos" and "desligado" (§5.11). Turning it off yourself through the app sends nothing.
 
 ### 5.2 Fire panel — CIE
 
@@ -276,11 +277,49 @@ Typical flow (same as the web panel): CPF query → list owner vehicles → plat
 
 `GET /me/settings` → `{ updatedAt, items: { key: string }, exists }` · `PUT /me/settings` `{ items, updatedAt? }`. Up to 50 string values; `updatedAt` is client epoch ms — on sync, the larger one wins. Good for UI preferences that should follow the user across devices (theme, shortcuts).
 
-### 5.11 Notifications
+### 5.11 Notifications — native push (FCM)
 
-Today only **Web Push (VAPID)** exists: `GET /push/public-key`, `POST /push/subscriptions` `{ subscription: { endpoint, keys: { p256dh, auth } }, meta? }`, `DELETE /push/subscriptions` `{ endpoint }`, `POST /push/send` (síndico/admin broadcast).
+The app uses **only** `/notifications/*`. `/push/*` is the web panel's Web Push (VAPID) and is not for the app.
 
-**Native push (FCM) is not available yet** — do not build the Android push flow against these routes. Until FCM exists, the app gets live events only while it has the WebSocket open (next section). Fire alarms reach the building staff through the web panel push.
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| PUT | `/notifications/devices/android` | `{ installationId, token, appVersion?, osVersion?, deviceModel?, notificationsEnabled, alarmChannelEnabled? }` | `{ platform, installationId, notificationsEnabled, alarmChannelEnabled, registeredAt }` |
+| DELETE | `/notifications/devices/android/{installationId}` | — | `null` (idempotent; only removes this account's device) |
+| PUT / DELETE | `/notifications/devices/ios`, `/notifications/devices/ios/{installationId}` | same body | `null` — **reserved**: nothing is stored until the iOS app exists |
+| GET | `/notifications/preferences` | — | `{ exhaustExpiring, exhaustExpiringMinutes, exhaustOff, messages, cieStaffAlerts }` |
+| PUT | `/notifications/preferences` | `{ exhaustExpiring?, exhaustOff?, messages?, cieStaffAlerts? }` (at least one) | same as GET |
+| POST | `/notifications/test` | — | `{ targets, sent, failed }` — a test push to this account's devices; 503 when push is disabled on the server |
+
+**Registering the device**
+- `installationId`: a UUID the app generates once per installation and keeps; `token`: the FCM registration token. Register after login (when `mustChangePassword` and `mustAcceptTerms` are resolved — the password rule answers 403 here too), on each app start, in `onNewToken`, and when the notification permission or the fire-alarm channel changes.
+- Same device, different account (logout + login): the row moves to the new account. A token reused by FCM leaves any other installation.
+- **Logout**: call `DELETE …/android/{installationId}` **before** `/auth/logout` (it needs the access token). `DELETE /auth/me` removes the devices on the server.
+- Limits: 30 registrations per hour and 3 tests per 10 min per account (429 + `Retry-After`).
+- `notificationsEnabled: false` → the server sends nothing to that device. `alarmChannelEnabled` is stored for diagnosis only.
+
+**Payload (Android).** Data-only message — the app builds the notification, picks the channel and discards the push when there is no session on the device. All values are strings:
+
+```json
+{ "type": "cie.alarm", "title": "Alarme de incêndio", "body": "Alarme acionado: Torre B · 8º andar. Siga as orientações de segurança.", "channel": "cie_alarm", "target": "fire", "sentAt": "2026-10-13T22:38:37.423Z", "dispatchId": "41" }
+```
+
+Extra fields: `exhaustId` (exhaust types), `messageId` and `category` (`message.published`). `target` = screen the tap opens: `fire` | `exhaust` | `message` | `home`.
+
+| `type` | Who receives | FCM priority | `channel` |
+|---|---|---|---|
+| `cie.alarm` | staff + residents with an unblocked unit | high | `cie_alarm` (alarm sound) |
+| `cie.alarm.cleared`, `cie.failure`, `cie.supervision`, `cie.restarting`, `cie.offline` | staff only | normal | `cie_status` |
+| `cie.blocked`, `cie.normalized` | staff only | normal | `cie_info` (low importance) |
+| `exhaust.expiring` | owner of the current cycle only | high | `exhaust` |
+| `exhaust.off`, `exhaust.off.unconfirmed` | owner of the current cycle only | normal | `exhaust` |
+| `message.published` | staff + residents with an unblocked unit | normal (`urgente`: high) | `messages` |
+| `test` | the account that asked | normal | `general` |
+
+- The app must create these channel ids. `cie_alarm` has an alarm sound (`USAGE_ALARM`); a channel's sound cannot change after creation.
+- Fire alarm: one push per alarm episode (a counter dropping for less than 30 s is not a new episode). Residents get **only** `cie.alarm` from the panel. The alarm ignores preferences: the device channel is the user's control.
+- `exhaust.expiring` goes out `NOTIFY_EXHAUST_EXPIRING_MINUTES` (server, default 15) before the auto-off. **Owner of the cycle** = the account of the last `POST /exhausts/{id}/on` through the app (turn on or restart timer); earlier accounts stop receiving as soon as someone else restarts. If the timer was changed outside the app (v2 web panel), nobody is notified.
+- `message.published`: when a message with `notify: true` (default) becomes visible, including scheduled ones when their time comes.
+- `ttl`: alarm 30 min, exhaust until the auto-off (1 h for "off"), messages up to 3 days, staff alerts 6 h. Delivery is not guaranteed in real time (battery savers): never promise an immediate warning in the UI.
 
 ---
 
@@ -292,7 +331,7 @@ Today only **Web Push (VAPID)** exists: `GET /push/public-key`, `POST /push/subs
 | GET | `/messages/carousel` | — | `{ items: CondoMessage[], unreadCount }` — home carousel of this account (≤ 5, already filtered and ordered) |
 | GET | `/messages/{id}` | — | `CondoMessage` |
 | POST | `/messages/{id}/read` | — | `CondoMessage` with `read: true` (idempotent; call when the detail opens) |
-| POST | `/messages` | `{ category, label?, title, body, publishedAt?, expiresAt?, carouselTtlHours?, pinned? }` | 201 `CondoMessage` — síndico/admin |
+| POST | `/messages` | `{ category, label?, title, body, publishedAt?, expiresAt?, carouselTtlHours?, pinned?, notify? }` | 201 `CondoMessage` — síndico/admin; `notify` (default true) sends push |
 | PATCH | `/messages/{id}` | `{ pinned?, carouselTtlHours? }` | `CondoMessage` — síndico/admin; pin/unpin or change the carousel TTL |
 | DELETE | `/messages/{id}` | — | `null` — síndico/admin; archives (record kept) |
 
@@ -308,7 +347,7 @@ Today only **Web Push (VAPID)** exists: `GET /push/public-key`, `POST /push/subs
   - `pinned`: stays in the carousel until the síndico unpins it. A pinned message always has TTL 0, so after unpinning it leaves for those who already read it and, for the others, when they read it.
   - Order: category priority first (`urgente` > `aviso` > `manutencao` > `comunicado`), pinned first within the category, then newest. At most 5 items.
 - 403 for accounts without an unblocked unit and without a staff role (pending link). 404 = not visible (archived, expired, scheduled).
-- No push for messages: residents only get push for fire alarms.
+- Push: a message published with `notify: true` (default in `POST /messages`) sends `message.published` (§5.11) when it becomes visible. Residents can turn it off in `/notifications/preferences`.
 
 ### 5.13 Terms of Use and Privacy Policy (public)
 
@@ -338,7 +377,7 @@ Under `/v3/api`:
 
 ### 5.14 Delete own account
 
-`DELETE /auth/me` with `{ "confirm": true }` (show a confirmation step first). Deletes the login (GoTrue: password and Google identity) and the account's own data: link to the condo record, settings, push subscriptions and message reads. Keeps the Terms acceptance record and command logs (legitimate retention, Privacy Policy §11 and §14). The access token is rejected right after; clear the local session and go to the welcome screen.
+`DELETE /auth/me` with `{ "confirm": true }` (show a confirmation step first). Deletes the login (GoTrue: password and Google identity) and the account's own data: link to the condo record, settings, push subscriptions, registered devices and push preferences, and message reads. Keeps the Terms acceptance record and command logs (legitimate retention, Privacy Policy §11 and §14). The access token is rejected right after; clear the local session and go to the welcome screen.
 
 - Staff accounts (`porteiro`, `sindico`, `admin`) → 403: removed by the administration.
 - 503 → auth service unavailable, **nothing was deleted**; offer retry.
@@ -419,4 +458,4 @@ Put this in one place (e.g. `core/realtime`) exposing a `Flow` of typed events; 
 - Numbers: `expiresAt` of the session = epoch seconds; exhaust `expiresAt` = epoch milliseconds.
 - Use `numeroDispositivo` for gates everywhere (REST and WebSocket).
 - `GET /health` is public and cheap — use it for connectivity checks, not authenticated routes.
-- Not available yet (do not build against it): native push (FCM/APNs), resident self-service for vehicles/gates, dashboard aggregate endpoint, account deletion (`DELETE /auth/me`).
+- Not available yet (do not build against it): iOS push (APNs; the `/notifications/devices/ios` routes are placeholders), resident self-service for vehicles/gates, dashboard aggregate endpoint.

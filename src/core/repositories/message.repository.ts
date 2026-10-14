@@ -154,14 +154,16 @@ export const createMessage = async (input: {
     expiresAt: Date | null;
     carouselTtlHours: number;
     pinned: boolean;
+    /** Gera push no app quando o comunicado ficar visível (migração 006). */
+    notify: boolean;
     createdBy: string;
 }): Promise<CondoMessage> => {
     const { rows } = await pool.query<Omit<MessageRow, 'read'>>(
-        `INSERT INTO condo_message (category, label, title, body, published_at, expires_at, carousel_ttl_hours, pinned, created_by)
-         VALUES ($1, $2, $3, $4, COALESCE($5, now()), $6, $7, $8, $9)
+        `INSERT INTO condo_message (category, label, title, body, published_at, expires_at, carousel_ttl_hours, pinned, notify, created_by)
+         VALUES ($1, $2, $3, $4, COALESCE($5, now()), $6, $7, $8, $9, $10)
          RETURNING id, category, label, title, body, published_at, expires_at, carousel_ttl_hours, pinned`,
         [input.category, input.label, input.title, input.body, input.publishedAt, input.expiresAt,
-            input.carouselTtlHours, input.pinned, input.createdBy],
+            input.carouselTtlHours, input.pinned, input.notify, input.createdBy],
     );
     return toMessage({ ...rows[0], read: false });
 };
@@ -191,4 +193,21 @@ export const archiveMessage = async (id: number, archivedBy: string): Promise<bo
         [id, archivedBy],
     );
     return (result.rowCount ?? 0) > 0;
+};
+
+/**
+ * Comunicados com push pedido que já estão visíveis e ainda não foram
+ * avisados (sem envio com a chave message.published:<id>). Inclui os
+ * agendados quando a hora chega. A janela de 24 h evita avisar comunicado
+ * antigo se o envio ficou parado por muito tempo.
+ */
+export const listMessagesPendingNotification = async (): Promise<Omit<CondoMessage, 'read'>[]> => {
+    const { rows } = await pool.query<Omit<MessageRow, 'read'>>(
+        `SELECT m.id, m.category, m.label, m.title, m.body, m.published_at, m.expires_at, m.carousel_ttl_hours, m.pinned
+         FROM condo_message m
+         WHERE ${VISIBLE} AND m.notify AND m.published_at > now() - interval '24 hours'
+           AND NOT EXISTS (SELECT 1 FROM notification_dispatch d WHERE d.dedupe_key = 'message.published:' || m.id)
+         ORDER BY m.published_at`,
+    );
+    return rows.map((row) => toMessage({ ...row, read: false }));
 };

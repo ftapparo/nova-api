@@ -4,6 +4,7 @@ import { StartWebServerV3 } from './v3/server';
 import { closeConnection } from './core/services/firebird.service';
 import { startExhaustService } from './core/services/exhaust.service';
 import { startAccessControlService } from './core/services/access-control.service';
+import { startNotificationJobs } from './v3/notification/notification.jobs';
 
 // Carrega variáveis de ambiente do arquivo .env
 const dotenvResult = dotenv.config();
@@ -60,6 +61,14 @@ async function StartService(): Promise<void> {
         // Inicializa o serviço dos exaustores
         await startExhaustService();
         console.log('[Server] Serviço de exaustores inicializado.');
+
+        // Push do app (v3): depende da memória dos exaustores já carregada.
+        // Falha aqui não derruba a API.
+        try {
+            startNotificationJobs();
+        } catch (pushErr) {
+            console.error('[Server] Falha ao iniciar os avisos do app (nao fatal):', pushErr);
+        }
 
         // Inicializa o serviço dos controle de acesso
         await startAccessControlService();

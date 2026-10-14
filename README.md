@@ -127,7 +127,8 @@ O código separa a lógica de negócio (agnóstica de framework HTTP) da camada 
 ### Persistência e Integrações
 - **node-firebird** - Banco do ERP Freedom PROANSI
 - **pg** - Cliente PostgreSQL (configurações de usuário, push)
-- **web-push** - Notificações Web Push (VAPID)
+- **web-push** - Notificações Web Push (VAPID) do painel
+- **firebase-admin** - Push nativo do app (FCM), só na v3 (`src/v3/notification/`)
 - **puppeteer** - Scraping de fallback para consulta de placas
 - **axios** - Cliente HTTP para integrações externas (nova-tag, nova-cie)
 - **cors** - Controle de CORS
@@ -184,6 +185,7 @@ Copie `.env.example` para `.env` e ajuste. Principais grupos de variáveis:
 - **Segurança**: `CORS_ALLOWED_ORIGINS`, `SWAGGER_ENABLED`, `BODY_LIMIT`, `RATE_LIMIT_GENERAL_MAX`, `RATE_LIMIT_POLLING_MAX`, `RATE_LIMIT_COMMAND_MAX`
 - **Consulta de veículos**: `VEHICLE_LOOKUP_*` (ver seção [Vehicle Lookup](#vehicle-lookup))
 - **Web Push**: `WEB_PUSH_VAPID_PUBLIC_KEY`, `WEB_PUSH_VAPID_PRIVATE_KEY`, `WEB_PUSH_VAPID_SUBJECT`
+- **Push do app (FCM, v3)**: `FCM_ENABLED`, `FCM_SERVICE_ACCOUNT_JSON` (JSON da conta de serviço em base64), `NOTIFY_EXHAUST_EXPIRING_MINUTES` (padrão 15), `NOTIFY_CIE_OFFLINE_MINUTES` (padrão 5)
 - **Exaustores**: `EXHAUST_*_HOST`, `EXHAUST_MEMORY_DIR`, `EXHAUST_SWEEP_INTERVAL_MS`
 - **Central de incêndio**: `CIE_GATEWAY_BASE_URL` (padrão: `http://192.168.0.250:4021/v1/api`), `CIE_GATEWAY_TIMEOUT_MS`
 
