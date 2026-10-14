@@ -2159,7 +2159,7 @@
       "post": {
         "tags": ["Exaustores"],
         "summary": "Ligar exaustor",
-        "description": "Sem minutes, fica ligado até ser desligado. Reenviar com o exaustor já ligado reinicia o prazo (expiresAt recalculado a partir de agora); o relé continua ligado. 409 quando o exaustor está em manutenção.",
+        "description": "Sem minutes, fica ligado até ser desligado. Reenviar com o exaustor já ligado reinicia o prazo (expiresAt recalculado a partir de agora); o relé continua ligado. 409 quando o exaustor está em manutenção. Morador precisa enviar `location` e estar na área do condomínio (círculo configurado no servidor, `EXHAUST_GEOFENCE_*`); aceita quando o círculo de precisão toca a área. A equipe (porteiro, síndico, admin) é isenta e não precisa enviar. Recusa = 403 com `title` estável: \"Localização necessária\", \"Localização simulada\", \"Localização imprecisa\" ou \"Fora da área do condomínio\". As coordenadas não são gravadas nem registradas.",
         "operationId": "turnOnExhaust",
         "security": [{ "bearerAuth": [] }],
         "parameters": [
@@ -2177,7 +2177,20 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": { "minutes": { "type": "integer", "minimum": 1, "maximum": 1440 } }
+                "properties": {
+                  "minutes": { "type": "integer", "minimum": 1, "maximum": 1440 },
+                  "location": {
+                    "type": "object",
+                    "description": "Localização do aparelho no momento do comando. Obrigatória para morador; ignorada para a equipe.",
+                    "properties": {
+                      "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+                      "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+                      "accuracy": { "type": "number", "exclusiveMinimum": 0, "maximum": 100000, "description": "Raio de precisão em metros." },
+                      "mock": { "type": "boolean", "description": "Localização simulada no aparelho." }
+                    },
+                    "required": ["latitude", "longitude", "accuracy", "mock"]
+                  }
+                }
               }
             }
           }
@@ -2200,10 +2213,14 @@
             }
           },
           "400": {
-            "description": "Id ou tempo inválido.",
+            "description": "Id, tempo ou localização inválidos.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Morador fora da área ou sem localização válida. `title` estável: \"Localização necessária\", \"Localização simulada\", \"Localização imprecisa\" ou \"Fora da área do condomínio\". Nada foi enviado ao relé.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
           "404": {
             "description": "Exaustor não encontrado ou fora da sua prumada.",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
@@ -2213,7 +2230,7 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           },
           "429": {
-            "description": "Mais de 10 comandos por minuto nesta conta.",
+            "description": "Mais de 10 comandos por minuto nesta conta (tentativas recusadas pela localização também contam).",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           },
           "502": {
@@ -2221,7 +2238,7 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           },
           "503": {
-            "description": "Módulo do exaustor offline.",
+            "description": "Módulo do exaustor offline, ou área do condomínio não configurada no servidor (\"Verificação de localização indisponível.\").",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           }
         }

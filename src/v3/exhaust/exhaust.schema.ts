@@ -17,6 +17,19 @@ export const turnOnBodySchema = z
         // Opcional: sem tempo, fica ligado até alguém desligar (mesmo
         // comportamento da v2). Teto de 24 h só para não aceitar lixo.
         minutes: z.number().int().positive().max(1440).optional(),
+        // Localização do aparelho no momento do comando (decisão de
+        // 13/10/2026): exigida do morador, ignorada para a equipe. Só valida
+        // a presença no condomínio; nunca é gravada nem registrada em log.
+        location: z
+            .object({
+                latitude: z.number().min(-90).max(90),
+                longitude: z.number().min(-180).max(180),
+                /** Raio de precisão em metros, como o Android informa. */
+                accuracy: z.number().positive().max(100000),
+                /** Localização simulada (opções do desenvolvedor). */
+                mock: z.boolean(),
+            })
+            .optional(),
     })
     .default({});
 

@@ -2,7 +2,7 @@
 
 Audience: the agent/developer building the Android app (Kotlin). This file explains what the backend offers today and how to use it. The OpenAPI spec next to this file (`openapi.json`, served live at `GET <V3_BASE_URL>/v3/apispec_1.json` and `/v3/swagger` while `SWAGGER_V3_ENABLED=true`) is the source of truth for exact field shapes — when they disagree, the spec wins.
 
-Last updated: 2026-09-30 (exhaust `command`, `maintenance`, restart).
+Last updated: 2026-10-14 (exhaust `location` and condo area check).
 
 ---
 
@@ -62,7 +62,7 @@ Branch on `error.type` (closed set), never on `detail` text:
 | `urn:nova-api:upstream-error` | 502/503/504 | Device/service unavailable — offer manual retry |
 | `urn:nova-api:internal-error` | 500 | Generic error |
 
-Two stable `title`s carry meaning (documented, safe to compare): `"Troca de senha obrigatória"` (403) and `"Confirmação necessária"` (409, vehicle TAG swap). Include `meta.requestId` in bug reports.
+Stable `title`s that carry meaning (documented, safe to compare): `"Troca de senha obrigatória"` (403), `"Confirmação necessária"` (409, vehicle TAG swap) and the exhaust location refusals (403, §5.1): `"Localização necessária"`, `"Localização simulada"`, `"Localização imprecisa"`, `"Fora da área do condomínio"`. Include `meta.requestId` in bug reports.
 
 A suggested Kotlin mapping: one `sealed class ApiError` in `core/network`, built from `type` + `status` + `detail` + `validationErrors` + `Retry-After`; features only see typed results.
 
@@ -159,7 +159,7 @@ Paths are relative to `/v3/api`. "Command" = physical action: disable button whi
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | GET | `/exhausts` | — | `Exhaust[]` — already filtered to what this user may operate |
-| POST | `/exhausts/{id}/on` | `{ minutes? }` (1–1440; omit = stays on) | `Exhaust` |
+| POST | `/exhausts/{id}/on` | `{ minutes?, location? }` (1–1440; omit = stays on; `location` required for residents) | `Exhaust` |
 | POST | `/exhausts/{id}/off` | — | `Exhaust` |
 | PUT | `/exhausts/{id}/maintenance` | `{ maintenance }` | síndico/admin; marks/unmarks maintenance (no relay action) |
 | POST | `/exhausts/modules/{modulo}/config` | `{ comando }` | admin only; raw Tasmota backlog. `modulo` ∈ `A_14,A_58,B_14,B_58,C_14,C_58,PWR_14,PWR_58` |
@@ -174,6 +174,7 @@ Paths are relative to `/v3/api`. "Command" = physical action: disable button whi
 - `command`: direction of the last command (`ligar` | `desligar` | `null`). With `processStatus: "iniciando"` it tells "ligando" from "desligando" (`on` is already `false` while turning off).
 - `maintenance: true` → equipment unavailable for use; `POST /on` answers **409**. Only síndico/admin change it. The v2 web panel does not honor this flag.
 - **Restart timer**: sending `POST /on { minutes }` again while it is on recomputes `expiresAt` from now; the relay stays on.
+- **Location (residents)**: turning on and restarting require `location: { latitude, longitude, accuracy, mock }` read at the moment of the tap (foreground only). The server compares it with the condo area (a circle in `EXHAUST_GEOFENCE_*`, never in the app) and accepts when the accuracy circle touches the area and `accuracy` ≤ `EXHAUST_GEOFENCE_MAX_ACCURACY_M` (default 100 m). Refusals are **403** with a stable `title`: `"Localização necessária"` (missing), `"Localização simulada"` (`mock: true`), `"Localização imprecisa"`, `"Fora da área do condomínio"` — nothing reaches the relay, so the command is not uncertain; do not treat these 403s as lost access. Staff (`porteiro`, `sindico`, `admin`) are exempt and send nothing. Area not configured on the server → 503 "Verificação de localização indisponível.". Refused attempts count toward the 10/min limit. Coordinates are only compared — never stored or logged. Turning off never needs location.
 - **Push**: whoever turned it on or restarted the timer last through the app owns the current cycle and is the only one who gets "faltam X minutos" and "desligado" (§5.11). Turning it off yourself through the app sends nothing.
 
 ### 5.2 Fire panel — CIE

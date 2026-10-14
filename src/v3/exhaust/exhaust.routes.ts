@@ -10,6 +10,7 @@ import { getResidence } from '../residence/residence.service';
 import { configBodySchema, configParamsSchema, exhaustParamsSchema, exhaustSchema, maintenanceBodySchema, turnOnBodySchema, type Exhaust } from './exhaust.schema';
 import { isInMaintenance, setMaintenance } from './exhaust.maintenance';
 import { recordExhaustActivation, recordExhaustTurnedOff } from './exhaust.notifications';
+import { checkLocation, LOCATION_REJECTIONS, resolveGeofence } from './exhaust.geofence';
 
 // =============================================================================
 // Exaustores das churrasqueiras (decisão de 28/09/2026): todos os papéis
@@ -37,8 +38,10 @@ const unitToExhaustId = (quadra: string, lote: string): string | null => {
     return `${tower}${final}`;
 };
 
+const isStaff = (actor: Actor) => Boolean(actor.role && STAFF_ROLES.includes(actor.role));
+
 export const resolveAllowedIds = async (actor: Actor): Promise<string[]> => {
-    if (actor.role && STAFF_ROLES.includes(actor.role)) return ALL_EXHAUST_IDS;
+    if (isStaff(actor)) return ALL_EXHAUST_IDS;
 
     const residence = await getResidence(actor.id);
     const ids = residence.units
@@ -118,7 +121,26 @@ export async function exhaustRoutes(app: FastifyInstance) {
         if (isInMaintenance(id)) {
             return reply.fail({ type: 'conflict', detail: 'Exaustor em manutenção.', instance: request.url });
         }
+        // Depois do limite: tentativas recusadas também contam, para não
+        // sondar a borda da área à vontade.
         if (!checkCommandLimit(request, reply, actor.id)) return;
+
+        // Morador só liga dentro do condomínio; a equipe opera de qualquer
+        // lugar. Sem área configurada, recusa (fail closed). As coordenadas
+        // nunca entram em log: só o resultado da verificação.
+        const staff = isStaff(actor);
+        if (!staff) {
+            const fence = resolveGeofence();
+            if (!fence) {
+                logger.error('[ApiV3] Área do condomínio não configurada (EXHAUST_GEOFENCE_*); comando de morador recusado');
+                return reply.fail({ type: 'upstream-error', status: 503, detail: 'Verificação de localização indisponível.', instance: request.url });
+            }
+            const check = checkLocation(request.body.location, fence);
+            if (check !== 'inside') {
+                logger.info(`[ApiV3] Exaustor ${id}: comando de ${actor.id} recusado (localização: ${check})`);
+                return reply.fail({ type: 'forbidden', ...LOCATION_REJECTIONS[check], instance: request.url });
+            }
+        }
 
         // Com o exaustor já ligado, o core regrava o estado e recalcula o
         // expiresAt: é assim que o app "reinicia o tempo" (relé continua ligado).
@@ -127,7 +149,7 @@ export async function exhaustRoutes(app: FastifyInstance) {
         } catch (error) {
             return sendCoreError(request, reply, error, 'ligar');
         }
-        logger.info(`[ApiV3] Exaustor ${id} ligado por ${actor.id}${request.body.minutes ? ` (${request.body.minutes} min)` : ''}`);
+        logger.info(`[ApiV3] Exaustor ${id} ligado por ${actor.id}${request.body.minutes ? ` (${request.body.minutes} min)` : ''} (localização: ${staff ? 'isenta' : 'dentro'})`);
         // Quem ligou ou reiniciou passa a ser o único a receber os avisos deste ciclo.
         await recordExhaustActivation(id, actor.id);
         return reply.ok(await toExhaust(id));
