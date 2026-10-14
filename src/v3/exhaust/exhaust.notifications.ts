@@ -29,6 +29,12 @@ export const exhaustExpiringMinutes = (): number => {
     return Number.isInteger(value) && value > 0 ? value : 15;
 };
 
+/**
+ * "Torre A, final 4". O id "A4" confunde com o apartamento A-4 (o exaustor atende a prumada inteira:
+ * A-114, A-124…), e o app não mostra esse id em lugar nenhum.
+ */
+export const describeExhaust = (exhaustId: string) => `Torre ${exhaustId.slice(0, 1)}, final ${exhaustId.slice(1)}`;
+
 const sameCycle = (recorded: Date | null, expiresAt: number | null) =>
     recorded === null ? expiresAt === null : expiresAt !== null && recorded.getTime() === expiresAt;
 
@@ -83,7 +89,7 @@ const notifyExpiring = async (exhaustId: string, expiresAt: number) => {
         audience: { kind: 'accounts', accountIds: [activation.accountId] },
         preference: 'exhaustExpiring',
         title: 'Exaustor da churrasqueira',
-        body: `Faltam ${minutes} minuto${minutes === 1 ? '' : 's'} para o exaustor ${exhaustId} desligar. `
+        body: `Faltam ${minutes} minuto${minutes === 1 ? '' : 's'} para desligar o exaustor da ${describeExhaust(exhaustId)}. `
             + 'Se ainda estiver usando, reinicie o tempo no app.',
         channel: 'exhaust',
         // Precisa chegar no horário mesmo com o aparelho em economia de bateria.
@@ -111,8 +117,8 @@ const notifyOff = async (exhaustId: string, cycleExpiresAt: number | null, confi
         preference: 'exhaustOff',
         title: confirmed ? 'Exaustor desligado' : 'Não foi possível confirmar o desligamento',
         body: confirmed
-            ? `O exaustor ${exhaustId} foi desligado.`
-            : `Exaustor ${exhaustId}: atualize o estado antes de tentar novamente.`,
+            ? `O exaustor da ${describeExhaust(exhaustId)} foi desligado.`
+            : `Exaustor da ${describeExhaust(exhaustId)}: atualize o estado antes de tentar novamente.`,
         channel: 'exhaust',
         priority: 'normal',
         ttlSeconds: 60 * 60,
