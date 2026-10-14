@@ -7,6 +7,7 @@ O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/).
 ## [Unreleased]
 
 ### Alterado
+- Termo de Uso e Política de Privacidade passam à versão 1.1 (vigência 13/10/2026): validação de localização do dispositivo para comandos da central de incêndio e para ligar exaustores, e permissões de notificações comuns e alertas prioritários de incêndio. A 1.0 continua publicada em `/<documento>/1.0/pdf` (aceites já gravados apontam para o hash dela). Contas que aceitaram a 1.0 recebem `mustAcceptTerms: true` até aceitar a 1.1. No `.md` da 1.1, quebras forçadas no meio da frase (item 1.1 do Termo, itens 2.1 e 9.1 da Política) foram removidas, como na 1.0; o texto não muda.
 - Registro de comandos (`logs/api-commands/`, inclui a abertura de portão pelo painel, com quem pediu) passa a guardar 30 dias em vez de 7 (`COMMAND_LOG_RETENTION_DAYS`, padrão 30 no código e no `docker-compose.yml`). Com 7 dias, o histórico de aberturas manuais se perdia antes da análise de incidentes.
 
 ### Corrigido
