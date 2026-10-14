@@ -20,11 +20,8 @@ WORKDIR /app
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 
-COPY package*.json ./
-
-RUN npm install --only=production && \
-    npm cache clean --force
-
+# Chromium antes do npm: mudanca no package.json nao invalida esta camada,
+# entao o cache evita baixar e instalar o Chromium a cada deploy.
 RUN apk add --no-cache \
     chromium \
     nss \
@@ -32,6 +29,11 @@ RUN apk add --no-cache \
     harfbuzz \
     ca-certificates \
     ttf-freefont
+
+COPY package*.json ./
+
+RUN npm install --only=production && \
+    npm cache clean --force
 
 COPY --from=builder /app/dist ./dist
 

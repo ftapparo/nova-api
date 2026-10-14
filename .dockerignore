@@ -1,4 +1,12 @@
-# Adicione este arquivo ao .gitignore se necessário
+# Fora do contexto de build: o Dockerfile so copia package*.json, tsconfig,
+# src/ e legal/; o resto so deixa o build mais lento ou vaza segredos.
+node_modules/
+dist/
+.git/
+.env
+.env.*
+storage/
+infra/
 
 # Logs do PM2
 logs/
