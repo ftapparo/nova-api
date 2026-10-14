@@ -39,6 +39,11 @@ const STAFF_ROLES = ['porteiro', 'sindico', 'admin'];
  */
 export const cieUpstreamEvents = new EventEmitter();
 
+// O socket pode conectar antes de um consumidor começar a escutar 'connection'
+// (o push sobe depois dos exaustores): quem chega depois lê o estado atual aqui.
+let cieUpstreamConnected = false;
+export const isCieUpstreamConnected = () => cieUpstreamConnected;
+
 const isStaff = (audience: WsAudience) => audience.staff;
 const isStaffOrResident = (audience: WsAudience) => audience.staff || audience.resident;
 
@@ -84,6 +89,7 @@ const connectCie = (broker: ApiWsBroker) => {
             cieUpstreamEvents.emit('event', { event: name, data });
         },
         onConnectionChange: (connected) => {
+            cieUpstreamConnected = connected;
             broker.publish('upstream.connection.changed', { service: 'cie', connected }, isStaffOrResident);
             cieUpstreamEvents.emit('connection', connected);
         },

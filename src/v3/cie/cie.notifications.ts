@@ -1,6 +1,6 @@
 import logger from '../../core/utils/logger';
 import * as notificationRepository from '../../core/repositories/notification.repository';
-import { cieUpstreamEvents } from '../ws/ws.gateway';
+import { cieUpstreamEvents, isCieUpstreamConnected } from '../ws/ws.gateway';
 import { notifySafely, type AppNotification, type NotificationKind } from '../notification/notification.service';
 
 // =============================================================================
@@ -243,7 +243,13 @@ export const startCieNotifications = (): void => {
         return;
     }
 
+    // O gateway pode ter conectado antes deste monitor subir; sem isto, o "sem
+    // contato" dispararia 5 min depois de cada deploy (visto em 14/10/2026).
+    upstreamConnected = isCieUpstreamConnected();
+
     cieUpstreamEvents.on('event', ({ event, data }: { event: string; data: unknown }) => {
+        // Evento recebido prova que a API está ligada ao nova-cie.
+        upstreamConnected = true;
         try {
             if (event === 'cie.status.updated') {
                 onStatus((data ?? {}) as StatusSnapshot);
