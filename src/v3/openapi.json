@@ -730,7 +730,8 @@
             "enum": ["ligar", "desligar", null],
             "description": "Direção do último comando. Com processStatus=iniciando, distingue ligando de desligando."
           },
-          "maintenance": { "type": "boolean", "description": "Marcado pela equipe (síndico/admin). Enquanto verdadeiro, POST /on responde 409." }
+          "maintenance": { "type": "boolean", "description": "Marcado pela equipe (síndico/admin). Enquanto verdadeiro, POST /on responde 409." },
+          "simulated": { "type": "boolean", "description": "Exaustor de demonstração da unidade fictícia de revisão das lojas (EXHAUST_DEMO_UNITS): funciona como o real, mas nenhum comando chega ao relé e a localização não é verificada. Ausente nos exaustores reais." }
         },
         "required": ["id", "tower", "final", "on", "expiresAt", "processStatus", "moduleOnline", "command", "maintenance"]
       },

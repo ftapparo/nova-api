@@ -7,7 +7,8 @@ import { successResponseSchema } from '../shared/response';
 import { requireAuth, requireRole, type Actor } from '../shared/require-auth';
 import { AttemptLimiter } from '../shared/attempt-limiter';
 import { getResidence } from '../residence/residence.service';
-import { configBodySchema, configParamsSchema, exhaustParamsSchema, exhaustSchema, maintenanceBodySchema, turnOnBodySchema, type Exhaust } from './exhaust.schema';
+import { configBodySchema, configParamsSchema, exhaustParamsSchema, exhaustSchema, maintenanceBodySchema, realExhaustParamsSchema, turnOnBodySchema, type Exhaust } from './exhaust.schema';
+import { demoExhaustIdForUnit, demoToExhaust, demoTurnOff, demoTurnOn, isDemoExhaust } from './exhaust.demo';
 import { isInMaintenance, setMaintenance } from './exhaust.maintenance';
 import { recordExhaustActivation, recordExhaustTurnedOff } from './exhaust.notifications';
 import { checkLocation, LOCATION_REJECTIONS, resolveGeofence } from './exhaust.geofence';
@@ -30,11 +31,16 @@ const STAFF_ROLES = ['porteiro', 'sindico', 'admin'];
 // rate limit de comando da v2 (commandsOnly).
 const commandsByAccount = new AttemptLimiter(10, 60 * 1000);
 
-/** Unidade do Firebird → exaustor, ou null se não mapear (ex.: lote sem final 1-8). */
+/**
+ * Unidade do Firebird → exaustor, ou null se não mapear (ex.: lote sem final
+ * 1-8). Unidade de demonstração (EXHAUST_DEMO_UNITS) → exaustor simulado.
+ */
 const unitToExhaustId = (quadra: string, lote: string): string | null => {
     const tower = quadra.trim().toUpperCase();
     const final = lote.trim().match(/(\d)\D*$/)?.[1];
-    if (!final || !(TOWERS as readonly string[]).includes(tower) || Number(final) < 1 || Number(final) > 8) return null;
+    if (!final || !(TOWERS as readonly string[]).includes(tower) || Number(final) < 1 || Number(final) > 8) {
+        return demoExhaustIdForUnit(quadra, lote);
+    }
     return `${tower}${final}`;
 };
 
@@ -52,6 +58,7 @@ export const resolveAllowedIds = async (actor: Actor): Promise<string[]> => {
 };
 
 export const toExhaust = async (id: string): Promise<Exhaust> => {
+    if (isDemoExhaust(id)) return demoToExhaust(id);
     const status = await getExhaustStatus(id);
     const memory = status.memory;
     const module = status.moduleStatus;
@@ -129,7 +136,9 @@ export async function exhaustRoutes(app: FastifyInstance) {
         // lugar. Sem área configurada, recusa (fail closed). As coordenadas
         // nunca entram em log: só o resultado da verificação.
         const staff = isStaff(actor);
-        if (!staff) {
+        const simulated = isDemoExhaust(id);
+        // O simulado não aciona equipamento: a área não se aplica, e o revisor da loja testa de onde estiver.
+        if (!staff && !simulated) {
             const fence = resolveGeofence();
             if (!fence) {
                 logger.error('[ApiV3] Área do condomínio não configurada (EXHAUST_GEOFENCE_*); comando de morador recusado');
@@ -145,11 +154,12 @@ export async function exhaustRoutes(app: FastifyInstance) {
         // Com o exaustor já ligado, o core regrava o estado e recalcula o
         // expiresAt: é assim que o app "reinicia o tempo" (relé continua ligado).
         try {
-            await turnOnExhaust(id, request.body.minutes);
+            if (simulated) await demoTurnOn(id, request.body.minutes);
+            else await turnOnExhaust(id, request.body.minutes);
         } catch (error) {
             return sendCoreError(request, reply, error, 'ligar');
         }
-        logger.info(`[ApiV3] Exaustor ${id} ligado por ${actor.id}${request.body.minutes ? ` (${request.body.minutes} min)` : ''} (localização: ${staff ? 'isenta' : 'dentro'})`);
+        logger.info(`[ApiV3] Exaustor ${id} ligado por ${actor.id}${request.body.minutes ? ` (${request.body.minutes} min)` : ''} (localização: ${simulated ? 'simulado' : staff ? 'isenta' : 'dentro'})`);
         // Quem ligou ou reiniciou passa a ser o único a receber os avisos deste ciclo.
         await recordExhaustActivation(id, actor.id);
         return reply.ok(await toExhaust(id));
@@ -171,7 +181,8 @@ export async function exhaustRoutes(app: FastifyInstance) {
         // sai 1 s depois de a memória mudar, antes de esta rota terminar).
         await recordExhaustTurnedOff(id, actor.id);
         try {
-            await turnOffExhaust(id);
+            if (isDemoExhaust(id)) await demoTurnOff(id);
+            else await turnOffExhaust(id);
         } catch (error) {
             return sendCoreError(request, reply, error, 'desligar');
         }
@@ -184,7 +195,7 @@ export async function exhaustRoutes(app: FastifyInstance) {
     typedApp.put('/exhausts/:id/maintenance', {
         onRequest: [requireAuth, requireRole('sindico', 'admin')],
         schema: {
-            params: exhaustParamsSchema,
+            params: realExhaustParamsSchema,
             body: maintenanceBodySchema,
             response: { 200: successResponseSchema(exhaustSchema) },
         },

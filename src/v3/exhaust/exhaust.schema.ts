@@ -10,7 +10,17 @@ export const exhaustIdSchema = z
     .regex(/^[ABCabc][-_]?[1-8]$/, 'Use torre A/B/C e final 1-8, ex.: A4')
     .transform((value) => `${value[0].toUpperCase()}${value[value.length - 1]}`);
 
-export const exhaustParamsSchema = z.object({ id: exhaustIdSchema });
+// Também aceita o exaustor simulado da unidade de demonstração (ex.: XYZ0,
+// ver exhaust.demo.ts). Quem decide se o id vale para a conta é a rota.
+const commandIdSchema = z
+    .string()
+    .trim()
+    .regex(/^([ABCabc][-_]?[1-8]|[A-Za-z]{1,5}[0-9])$/, 'Use torre A/B/C e final 1-8, ex.: A4')
+    .transform((value) => value.toUpperCase().replace(/[-_]/g, ''));
+
+export const exhaustParamsSchema = z.object({ id: commandIdSchema });
+/** Só exaustores reais (manutenção e configuração mexem em equipamento). */
+export const realExhaustParamsSchema = z.object({ id: exhaustIdSchema });
 
 export const turnOnBodySchema = z
     .object({
@@ -47,6 +57,8 @@ export const exhaustSchema = z.object({
     command: z.enum(['ligar', 'desligar']).nullable(),
     /** Marcado pela equipe; enquanto verdadeiro, o app não permite ligar. */
     maintenance: z.boolean(),
+    /** Exaustor de demonstração (conta de revisão das lojas): nenhum comando chega ao relé. */
+    simulated: z.boolean().optional(),
 });
 export type Exhaust = z.infer<typeof exhaustSchema>;
 

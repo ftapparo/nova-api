@@ -1,5 +1,6 @@
 import logger from '../../core/utils/logger';
 import { exhaustEvents, getExhaustMemory } from '../../core/services/exhaust.service';
+import { demoExhaustEvents, getDemoMemory, isDemoExhaust, listDemoExhaustIds } from './exhaust.demo';
 import * as notificationRepository from '../../core/repositories/notification.repository';
 import { notifySafely } from '../notification/notification.service';
 
@@ -24,6 +25,10 @@ import { notifySafely } from '../notification/notification.service';
 const TICK_MS = 20_000;
 const ALL_EXHAUST_IDS = [...'ABC'].flatMap((tower) => [1, 2, 3, 4, 5, 6, 7, 8].map((final) => `${tower}${final}`));
 
+// O exaustor simulado da conta de revisão (exhaust.demo.ts) gera os mesmos avisos que o real.
+const memoryOf = (exhaustId: string) => (isDemoExhaust(exhaustId) ? getDemoMemory(exhaustId) : getExhaustMemory(exhaustId));
+const watchedIds = () => [...ALL_EXHAUST_IDS, ...listDemoExhaustIds()];
+
 // Lida dentro da função: imports resolvem antes do dotenv.config().
 export const exhaustExpiringMinutes = (): number => {
     const value = Number(process.env.NOTIFY_EXHAUST_EXPIRING_MINUTES);
@@ -34,7 +39,7 @@ export const exhaustExpiringMinutes = (): number => {
  * "Torre A, final 4". O id "A4" confunde com o apartamento A-4 (o exaustor atende a prumada inteira:
  * A-114, A-124…), e o app não mostra esse id em lugar nenhum.
  */
-export const describeExhaust = (exhaustId: string) => `Torre ${exhaustId.slice(0, 1)}, final ${exhaustId.slice(1)}`;
+export const describeExhaust = (exhaustId: string) => `Torre ${exhaustId.slice(0, -1)}, final ${exhaustId.slice(-1)}`;
 
 const sameCycle = (recorded: Date | null, expiresAt: number | null) =>
     recorded === null ? expiresAt === null : expiresAt !== null && recorded.getTime() === expiresAt;
@@ -42,7 +47,7 @@ const sameCycle = (recorded: Date | null, expiresAt: number | null) =>
 /** Chamado depois de um /on bem-sucedido: quem ligou ou reiniciou passa a ser o dono do ciclo. */
 export const recordExhaustActivation = async (exhaustId: string, accountId: string): Promise<void> => {
     try {
-        const expiresAt = getExhaustMemory(exhaustId)?.expiresAt ?? null;
+        const expiresAt = memoryOf(exhaustId)?.expiresAt ?? null;
         await notificationRepository.upsertExhaustActivation(exhaustId, accountId, expiresAt === null ? null : new Date(expiresAt));
     } catch (error) {
         // Sem o registro o dono só deixa de receber os avisos; o comando já foi executado.
@@ -62,7 +67,7 @@ export const recordExhaustTurnedOff = async (exhaustId: string, accountId: strin
 type Phase = 'on' | 'off' | 'off-error' | 'transition';
 
 const phaseOf = (exhaustId: string): { phase: Phase; expiresAt: number | null } => {
-    const memory = getExhaustMemory(exhaustId);
+    const memory = memoryOf(exhaustId);
     // O core apaga a memória quando o desligamento é confirmado.
     if (!memory) return { phase: 'off', expiresAt: null };
     if (memory.pendingCommand === 'ligar' && memory.processStatus === 'executado') return { phase: 'on', expiresAt: memory.expiresAt };
@@ -133,7 +138,7 @@ const tick = async () => {
     const now = Date.now();
     const activations = new Map((await notificationRepository.listExhaustActivations()).map((item) => [item.exhaustId, item]));
 
-    for (const exhaustId of ALL_EXHAUST_IDS) {
+    for (const exhaustId of watchedIds()) {
         const activation = activations.get(exhaustId);
         if (!activation) continue;
         const { phase, expiresAt } = phaseOf(exhaustId);
@@ -208,6 +213,7 @@ export const startExhaustNotifications = (): void => {
         .finally(() => {
             void run();
             exhaustEvents.on('memory.changed', schedule);
+            demoExhaustEvents.on('changed', schedule);
             setInterval(() => void run(), TICK_MS).unref();
         });
 };

@@ -4,6 +4,7 @@ import logger from '../../core/utils/logger';
 import { listAvailableGates } from '../../core/repositories/control.repository';
 import { accessControlEvents, getAccessControlStatusCache } from '../../core/services/access-control.service';
 import { exhaustEvents } from '../../core/services/exhaust.service';
+import { demoExhaustEvents, listDemoExhaustIds } from '../exhaust/exhaust.demo';
 import type { CommandLogEntry } from '../../core/services/command-log.service';
 import { commandLogEvents } from '../shared/command-audit';
 import type { Actor } from '../shared/require-auth';
@@ -138,7 +139,7 @@ const watchExhausts = (broker: ApiWsBroker) => {
     // executado); agrupa em 300 ms e publica só o que mudou.
     const flush = async () => {
         pending = null;
-        const ids = [...'ABC'].flatMap((tower) => [1, 2, 3, 4, 5, 6, 7, 8].map((final) => `${tower}${final}`));
+        const ids = [...[...'ABC'].flatMap((tower) => [1, 2, 3, 4, 5, 6, 7, 8].map((final) => `${tower}${final}`)), ...listDemoExhaustIds()];
         const exhausts: Exhaust[] = await Promise.all(ids.map(toExhaust));
         for (const exhaust of exhausts) {
             const key = JSON.stringify(exhaust);
@@ -158,6 +159,7 @@ const watchExhausts = (broker: ApiWsBroker) => {
     };
 
     exhaustEvents.on('memory.changed', schedule);
+    demoExhaustEvents.on('changed', schedule);
     schedule();
 };
 
