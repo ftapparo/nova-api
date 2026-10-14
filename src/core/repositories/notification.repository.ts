@@ -275,11 +275,20 @@ export const listExhaustActivations = async (): Promise<ExhaustActivation[]> => 
     return rows.map((row) => ({ exhaustId: row.exhaust_id, accountId: row.account_id, expiresAt: row.expires_at }));
 };
 
-/** Encerra o ciclo. Com [accountId], só apaga se o dono ainda for essa conta. */
-export const deleteExhaustActivation = async (exhaustId: string, accountId?: string): Promise<boolean> => {
-    const result = accountId
-        ? await pool.query('DELETE FROM exhaust_activation WHERE exhaust_id = $1 AND account_id = $2', [exhaustId, accountId])
-        : await pool.query('DELETE FROM exhaust_activation WHERE exhaust_id = $1', [exhaustId]);
+/**
+ * Encerra o ciclo. Com [accountId], só apaga se o dono ainda for essa conta; com
+ * [expiresAt] também, só se o registro ainda for o mesmo ciclo (um /on pode ter
+ * gravado outro entre a leitura e a exclusão).
+ */
+export const deleteExhaustActivation = async (exhaustId: string, accountId?: string, expiresAt?: Date | null): Promise<boolean> => {
+    const result = accountId === undefined
+        ? await pool.query('DELETE FROM exhaust_activation WHERE exhaust_id = $1', [exhaustId])
+        : expiresAt === undefined
+            ? await pool.query('DELETE FROM exhaust_activation WHERE exhaust_id = $1 AND account_id = $2', [exhaustId, accountId])
+            : await pool.query(
+                'DELETE FROM exhaust_activation WHERE exhaust_id = $1 AND account_id = $2 AND expires_at IS NOT DISTINCT FROM $3',
+                [exhaustId, accountId, expiresAt],
+            );
     return (result.rowCount ?? 0) > 0;
 };
 

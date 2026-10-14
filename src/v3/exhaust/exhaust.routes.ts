@@ -145,13 +145,15 @@ export async function exhaustRoutes(app: FastifyInstance) {
         if (!(await resolveAllowedIds(actor)).includes(id)) return forbiddenOrMissing(request, reply);
         if (!checkCommandLimit(request, reply, actor.id)) return;
 
+        // Antes do comando: quem é dono e desliga não recebe "desligado" (o aviso
+        // sai 1 s depois de a memória mudar, antes de esta rota terminar).
+        await recordExhaustTurnedOff(id, actor.id);
         try {
             await turnOffExhaust(id);
         } catch (error) {
             return sendCoreError(request, reply, error, 'desligar');
         }
         logger.info(`[ApiV3] Exaustor ${id} desligado por ${actor.id}`);
-        await recordExhaustTurnedOff(id, actor.id);
         return reply.ok(await toExhaust(id));
     });
 

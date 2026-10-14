@@ -1,5 +1,5 @@
 import logger from '../../core/utils/logger';
-import { getExhaustMemory } from '../../core/services/exhaust.service';
+import { exhaustEvents, getExhaustMemory } from '../../core/services/exhaust.service';
 import * as notificationRepository from '../../core/repositories/notification.repository';
 import { notifySafely } from '../notification/notification.service';
 
@@ -17,7 +17,8 @@ import { notifySafely } from '../notification/notification.service';
 // quem está usando a churrasqueira. Quando o exaustor desliga, o registro é
 // apagado; um acionamento futuro nunca herda o dono anterior.
 //
-// Lê só a memória do core (sem tocar no módulo físico) a cada 20 s.
+// Lê só a memória do core (sem tocar no módulo físico): 1 s depois de cada
+// mudança dela e, por garantia, a cada 20 s (o "faltam X minutos" depende do relógio).
 // =============================================================================
 
 const TICK_MS = 20_000;
@@ -49,7 +50,7 @@ export const recordExhaustActivation = async (exhaustId: string, accountId: stri
     }
 };
 
-/** Chamado depois de um /off pelo app: se foi o próprio dono, não há o que avisar. */
+/** Chamado antes de um /off pelo app: se é o próprio dono, não há o que avisar. */
 export const recordExhaustTurnedOff = async (exhaustId: string, accountId: string): Promise<void> => {
     try {
         await notificationRepository.deleteExhaustActivation(exhaustId, accountId);
@@ -69,24 +70,20 @@ const phaseOf = (exhaustId: string): { phase: Phase; expiresAt: number | null } 
     return { phase: 'transition', expiresAt: memory.expiresAt };
 };
 
-/** expiresAt do ciclo de cada exaustor visto ligado, até o desligamento ser confirmado. */
-const cycles = new Map<string, number | null>();
-// Evita uma consulta ao banco por tick enquanto o exaustor está na janela do aviso.
+// Evita repetir o mesmo aviso a cada passada (a dedupe_key no banco segura reinícios da API).
 const sentKeys = new Set<string>();
 
-const notifyExpiring = async (exhaustId: string, expiresAt: number) => {
+const notifyExpiring = async (exhaustId: string, expiresAt: number, accountId: string) => {
     const key = `exhaust.expiring:${exhaustId}:${expiresAt}`;
     if (sentKeys.has(key)) return;
-    const activation = await notificationRepository.findExhaustActivation(exhaustId);
     sentKeys.add(key);
-    if (!activation || !sameCycle(activation.expiresAt, expiresAt)) return;
 
     const remainingMs = expiresAt - Date.now();
     const minutes = Math.max(1, Math.ceil(remainingMs / 60_000));
     await notifySafely({
         kind: 'exhaust.expiring',
         dedupeKey: key,
-        audience: { kind: 'accounts', accountIds: [activation.accountId] },
+        audience: { kind: 'accounts', accountIds: [accountId] },
         preference: 'exhaustExpiring',
         title: 'Exaustor da churrasqueira',
         body: `Faltam ${minutes} minuto${minutes === 1 ? '' : 's'} para desligar o exaustor da ${describeExhaust(exhaustId)}. `
@@ -101,19 +98,17 @@ const notifyExpiring = async (exhaustId: string, expiresAt: number) => {
     });
 };
 
-const notifyOff = async (exhaustId: string, cycleExpiresAt: number | null, confirmed: boolean) => {
+const notifyOff = async (activation: notificationRepository.ExhaustActivation, confirmed: boolean) => {
+    const { exhaustId, accountId } = activation;
     const kind = confirmed ? 'exhaust.off' : 'exhaust.off.unconfirmed';
-    const cycleKey = `${kind}:${exhaustId}:${cycleExpiresAt ?? 'sem-prazo'}`;
-    if (sentKeys.has(cycleKey)) return;
-    sentKeys.add(cycleKey);
-
-    const activation = await notificationRepository.findExhaustActivation(exhaustId);
-    if (!activation || !sameCycle(activation.expiresAt, cycleExpiresAt)) return;
+    const key = `${kind}:${exhaustId}:${activation.expiresAt?.getTime() ?? 'sem-prazo'}:${accountId}`;
+    if (sentKeys.has(key)) return;
+    sentKeys.add(key);
 
     await notifySafely({
         kind,
-        dedupeKey: `${cycleKey}:${activation.accountId}`,
-        audience: { kind: 'accounts', accountIds: [activation.accountId] },
+        dedupeKey: key,
+        audience: { kind: 'accounts', accountIds: [accountId] },
         preference: 'exhaustOff',
         title: confirmed ? 'Exaustor desligado' : 'Não foi possível confirmar o desligamento',
         body: confirmed
@@ -128,26 +123,35 @@ const notifyOff = async (exhaustId: string, cycleExpiresAt: number | null, confi
     });
 };
 
+/**
+ * Cada passada compara a memória do core com o registro do dono. O registro é
+ * a fonte do ciclo: não depende de a passada ter visto o exaustor ligado, então
+ * ligar e desligar em poucos segundos também avisa (visto em 14/10/2026).
+ */
 const tick = async () => {
     const windowMs = exhaustExpiringMinutes() * 60_000;
     const now = Date.now();
+    const activations = new Map((await notificationRepository.listExhaustActivations()).map((item) => [item.exhaustId, item]));
 
     for (const exhaustId of ALL_EXHAUST_IDS) {
+        const activation = activations.get(exhaustId);
+        if (!activation) continue;
         const { phase, expiresAt } = phaseOf(exhaustId);
 
         if (phase === 'on') {
-            cycles.set(exhaustId, expiresAt);
-            if (expiresAt !== null && expiresAt - now <= windowMs && expiresAt > now) {
-                await notifyExpiring(exhaustId, expiresAt);
+            if (!sameCycle(activation.expiresAt, expiresAt)) {
+                // Tempo mudado por fora do app (painel v2): não se sabe quem está usando, ninguém recebe.
+                // A condição no banco evita apagar um registro novo gravado por um /on concorrente.
+                await notificationRepository.deleteExhaustActivation(exhaustId, activation.accountId, activation.expiresAt);
+            } else if (expiresAt !== null && expiresAt - now <= windowMs && expiresAt > now) {
+                await notifyExpiring(exhaustId, expiresAt, activation.accountId);
             }
-        } else if (phase === 'off-error' && cycles.has(exhaustId)) {
-            // Mantém o ciclo: se a nova tentativa do core desligar, o "desligado" ainda sai.
-            await notifyOff(exhaustId, cycles.get(exhaustId) ?? null, false);
-        } else if (phase === 'off' && cycles.has(exhaustId)) {
-            const cycleExpiresAt = cycles.get(exhaustId) ?? null;
-            cycles.delete(exhaustId);
-            await notifyOff(exhaustId, cycleExpiresAt, true);
-            await notificationRepository.deleteExhaustActivation(exhaustId);
+        } else if (phase === 'off-error') {
+            // Mantém o registro: se a nova tentativa do core desligar, o "desligado" ainda sai.
+            await notifyOff(activation, false);
+        } else if (phase === 'off') {
+            await notifyOff(activation, true);
+            await notificationRepository.deleteExhaustActivation(exhaustId, activation.accountId, activation.expiresAt);
         }
     }
 
@@ -156,7 +160,7 @@ const tick = async () => {
 
 /**
  * Remove registros de exaustores que já estão desligados (desligaram com a
- * API parada): o ciclo acabou e não deve ser herdado.
+ * API parada): o ciclo acabou e não deve ser herdado nem avisado agora.
  */
 const dropFinishedCycles = async () => {
     for (const activation of await notificationRepository.listExhaustActivations()) {
@@ -169,8 +173,12 @@ const dropFinishedCycles = async () => {
 /** Sobe o laço dos avisos do exaustor. Depende da memória do core já carregada (startExhaustService). */
 export const startExhaustNotifications = (): void => {
     let running = false;
+    let again = false;
     const run = async () => {
-        if (running) return;
+        if (running) {
+            again = true;
+            return;
+        }
         running = true;
         try {
             await tick();
@@ -178,13 +186,28 @@ export const startExhaustNotifications = (): void => {
             logger.error('[ApiV3 Push] Falha no laço de avisos do exaustor:', error);
         } finally {
             running = false;
+            if (again) {
+                again = false;
+                void run();
+            }
         }
+    };
+
+    // Cada comando grava a memória várias vezes em sequência; uma passada 1 s depois da última basta.
+    let pending: NodeJS.Timeout | null = null;
+    const schedule = () => {
+        if (pending) clearTimeout(pending);
+        pending = setTimeout(() => {
+            pending = null;
+            void run();
+        }, 1_000);
     };
 
     dropFinishedCycles()
         .catch((error) => logger.error('[ApiV3 Push] Falha ao limpar ciclos de exaustor encerrados:', error))
         .finally(() => {
             void run();
+            exhaustEvents.on('memory.changed', schedule);
             setInterval(() => void run(), TICK_MS).unref();
         });
 };
