@@ -12,6 +12,7 @@ import {
     messageListSchema,
     messageParamsSchema,
     messageSchema,
+    updateCarouselBodySchema,
 } from './message.schema';
 
 // =============================================================================
@@ -19,6 +20,10 @@ import {
 // Leitura: equipe ou morador com unidade liberada — conta recém-criada e sem
 // vínculo não lê comunicados internos. Publicação e arquivamento: síndico e
 // admin. Sem push: morador só recebe push de alarme de incêndio.
+// O carrossel da home (/messages/carousel) tem permanência própria: TTL em
+// horas a partir da publicação (padrão 24; 0 = sai ao ser lido) e fixado
+// (fica até ser desafixado, sempre com TTL 0), ordenado pela prioridade da
+// categoria. A lista de Mensagens não muda com isso.
 // requireAuth explícito: as rotas dependem de request.actor.
 // =============================================================================
 
@@ -30,6 +35,8 @@ const toResponse = (message: messageRepository.CondoMessage) => ({
     body: message.body,
     publishedAt: message.publishedAt.toISOString(),
     expiresAt: message.expiresAt?.toISOString() ?? null,
+    carouselTtlHours: message.carouselTtlHours,
+    pinned: message.pinned,
     read: message.read,
 });
 
@@ -52,6 +59,20 @@ export async function messageRoutes(app: FastifyInstance) {
             );
         } catch (error) {
             logger.error('[ApiV3] Falha ao listar comunicados:', error);
+            return reply.fail({ type: 'internal-error', detail: 'Falha ao carregar os comunicados.', instance: request.url });
+        }
+    });
+
+    // Home do app: até 5 comunicados que ainda estão no carrossel desta conta, já ordenados.
+    typedApp.get('/messages/carousel', {
+        onRequest: readers,
+        schema: { response: { 200: successResponseSchema(messageListSchema) } },
+    }, async (request, reply) => {
+        try {
+            const result = await messageRepository.listCarousel(request.actor!.id);
+            return reply.ok({ items: result.items.map(toResponse), unreadCount: result.unreadCount });
+        } catch (error) {
+            logger.error('[ApiV3] Falha ao montar o carrossel de comunicados:', error);
             return reply.fail({ type: 'internal-error', detail: 'Falha ao carregar os comunicados.', instance: request.url });
         }
     });
@@ -85,10 +106,33 @@ export async function messageRoutes(app: FastifyInstance) {
             body: body.body,
             publishedAt: body.publishedAt ? new Date(body.publishedAt) : null,
             expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+            carouselTtlHours: body.pinned ? 0 : body.carouselTtlHours ?? messageRepository.DEFAULT_CAROUSEL_TTL_HOURS,
+            pinned: body.pinned ?? false,
             createdBy: request.actor!.id,
         });
         logger.info(`[ApiV3] Comunicado ${message.id} publicado por ${request.actor!.id}`);
         return reply.ok(toResponse(message), { status: 201 });
+    });
+
+    // Fixar exige TTL 0; desafixar mantém o TTL 0, então o comunicado sai do carrossel
+    // de quem já leu e, para quem não leu, quando ler (decisão de 13/10/2026).
+    typedApp.patch('/messages/:id', {
+        onRequest: publishers,
+        schema: { params: messageParamsSchema, body: updateCarouselBodySchema, response: { 200: successResponseSchema(messageSchema) } },
+    }, async (request, reply) => {
+        const current = await messageRepository.findEditableMessage(request.actor!.id, request.params.id);
+        if (!current) return reply.fail(notFound(request.url));
+
+        const pinned = request.body.pinned ?? current.pinned;
+        const carouselTtlHours = pinned ? 0 : request.body.carouselTtlHours ?? current.carouselTtlHours;
+        if (pinned && (request.body.carouselTtlHours ?? 0) > 0) {
+            const detail = 'Comunicado fixado tem TTL 0 no carrossel. Desafixe para definir outro TTL.';
+            return reply.fail({ type: 'validation-error', detail, instance: request.url, validationErrors: [{ path: '/carouselTtlHours', message: detail }] });
+        }
+
+        if (!(await messageRepository.updateCarousel(current.id, pinned, carouselTtlHours))) return reply.fail(notFound(request.url));
+        logger.info(`[ApiV3] Comunicado ${current.id}: fixado=${pinned}, ttl=${carouselTtlHours}h por ${request.actor!.id}`);
+        return reply.ok(toResponse({ ...current, pinned, carouselTtlHours }));
     });
 
     typedApp.delete('/messages/:id', {

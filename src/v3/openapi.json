@@ -1025,6 +1025,8 @@
           "body",
           "publishedAt",
           "expiresAt",
+          "carouselTtlHours",
+          "pinned",
           "read"
         ],
         "properties": {
@@ -1059,6 +1061,16 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "carouselTtlHours": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 720,
+            "description": "Horas no carrossel da home a partir da publicação; 0 = sai do carrossel de cada conta quando ela lê."
+          },
+          "pinned": {
+            "type": "boolean",
+            "description": "Fixado: fica no carrossel até ser desafixado. Sempre com carouselTtlHours = 0."
           },
           "read": {
             "type": "boolean",
@@ -5812,7 +5824,7 @@
           }
         ],
         "summary": "Publicar comunicado",
-        "description": "Síndico/admin. `publishedAt` no futuro agenda a publicação; `expiresAt` tira da lista depois da data. Não gera push (morador só recebe push de alarme de incêndio).",
+        "description": "Síndico/admin. `publishedAt` no futuro agenda a publicação; `expiresAt` tira da lista depois da data. `carouselTtlHours` (padrão 24; 0 = sai do carrossel de cada conta ao ser lido) e `pinned` (fixado, exige TTL 0) controlam o carrossel da home. Não gera push (morador só recebe push de alarme de incêndio).",
         "operationId": "createMessage",
         "requestBody": {
           "required": true,
@@ -5855,6 +5867,18 @@
                   "expiresAt": {
                     "type": "string",
                     "format": "date-time"
+                  },
+                  "carouselTtlHours": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 720,
+                    "default": 24,
+                    "description": "Horas no carrossel da home; 0 = sai do carrossel de cada conta ao ser lido."
+                  },
+                  "pinned": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Fixado: fica no carrossel até ser desafixado. Com pinned = true, carouselTtlHours precisa ser 0 ou omitido."
                   }
                 }
               }
@@ -5906,6 +5930,58 @@
           },
           "403": {
             "description": "Somente síndico/admin.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/api/messages/carousel": {
+      "get": {
+        "tags": [
+          "Comunicados"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Carrossel da home",
+        "description": "Equipe ou morador com unidade liberada. Até 5 comunicados visíveis que ainda estão no carrossel desta conta: fixados; com carouselTtlHours > 0, até esse número de horas após a publicação; com carouselTtlHours = 0, enquanto a conta não leu. Ordem: prioridade da categoria (urgente > aviso > manutencao > comunicado), fixados primeiro dentro da categoria, depois o mais recente. unreadCount é o mesmo de GET /messages (contador do sino).",
+        "operationId": "getMessageCarousel",
+        "responses": {
+          "200": {
+            "description": "Carrossel desta conta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CondoMessageList"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Sem permissão.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5972,6 +6048,100 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Comunicados"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Fixar, desafixar ou mudar o TTL do carrossel",
+        "description": "Síndico/admin. Vale também para comunicado agendado ou vencido (não arquivado). Fixar grava carouselTtlHours = 0; desafixar mantém o TTL 0, então o comunicado sai do carrossel de quem já leu e, para quem não leu, ao ler. Mudar o TTL de um fixado é recusado (400): desafixe no mesmo pedido ({ pinned: false, carouselTtlHours }).",
+        "operationId": "updateMessageCarousel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "minProperties": 1,
+                "properties": {
+                  "pinned": {
+                    "type": "boolean"
+                  },
+                  "carouselTtlHours": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 720
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comunicado atualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/CondoMessage"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Corpo inválido ou TTL > 0 em comunicado fixado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Sem permissão.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "404": {
             "$ref": "#/components/responses/NotFound"

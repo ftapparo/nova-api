@@ -1,12 +1,20 @@
 import { pool } from '../utils/db';
 
 // =============================================================================
-// Comunicados do condomínio (Postgres, migração 003). "Visível" = publicado,
-// não arquivado e não expirado. A leitura é por conta (condo_message_read).
+// Comunicados do condomínio (Postgres, migrações 003 e 005). "Visível" =
+// publicado, não arquivado e não expirado. A leitura é por conta
+// (condo_message_read). O carrossel da home é um recorte dos visíveis, com
+// permanência própria (TTL em horas, fixado) e ordem por prioridade.
 // =============================================================================
 
 export const MESSAGE_CATEGORIES = ['manutencao', 'comunicado', 'aviso', 'urgente'] as const;
 export type MessageCategory = (typeof MESSAGE_CATEGORIES)[number];
+
+/** Padrão de permanência no carrossel quando o síndico não informa outro. */
+export const DEFAULT_CAROUSEL_TTL_HOURS = 24;
+export const MAX_CAROUSEL_TTL_HOURS = 720;
+/** Itens do carrossel da home. */
+export const CAROUSEL_LIMIT = 5;
 
 export type CondoMessage = {
     id: number;
@@ -16,6 +24,10 @@ export type CondoMessage = {
     body: string;
     publishedAt: Date;
     expiresAt: Date | null;
+    /** Horas no carrossel a partir da publicação; 0 = sai do carrossel de cada conta ao ser lido. */
+    carouselTtlHours: number;
+    /** Fica no carrossel até ser desafixado (sempre com TTL 0). */
+    pinned: boolean;
     read: boolean;
 };
 
@@ -27,6 +39,8 @@ type MessageRow = {
     body: string;
     published_at: Date;
     expires_at: Date | null;
+    carousel_ttl_hours: number;
+    pinned: boolean;
     read: boolean;
 };
 
@@ -39,6 +53,8 @@ const toMessage = (row: MessageRow): CondoMessage => ({
     body: row.body,
     publishedAt: row.published_at,
     expiresAt: row.expires_at,
+    carouselTtlHours: row.carousel_ttl_hours,
+    pinned: row.pinned,
     read: row.read,
 });
 
@@ -46,9 +62,20 @@ const VISIBLE = `m.archived_at IS NULL AND m.published_at <= now() AND (m.expire
 
 const SELECT_WITH_READ = `
     SELECT m.id, m.category, m.label, m.title, m.body, m.published_at, m.expires_at,
-           (r.message_id IS NOT NULL) AS read
+           m.carousel_ttl_hours, m.pinned, (r.message_id IS NOT NULL) AS read
     FROM condo_message m
     LEFT JOIN condo_message_read r ON r.message_id = m.id AND r.account_id = $1`;
+
+const countVisible = async (accountId: string): Promise<{ total: number; unread: number }> => {
+    const { rows } = await pool.query<{ total: string; unread: string }>(
+        `SELECT count(*) AS total, count(*) FILTER (WHERE r.message_id IS NULL) AS unread
+         FROM condo_message m
+         LEFT JOIN condo_message_read r ON r.message_id = m.id AND r.account_id = $1
+         WHERE ${VISIBLE}`,
+        [accountId],
+    );
+    return { total: Number(rows[0]?.total ?? 0), unread: Number(rows[0]?.unread ?? 0) };
+};
 
 export const listMessages = async (
     accountId: string,
@@ -63,20 +90,41 @@ export const listMessages = async (
              LIMIT $2 OFFSET $3`,
             [accountId, options.limit, options.offset],
         ),
-        pool.query<{ total: string; unread: string }>(
-            `SELECT count(*) AS total, count(*) FILTER (WHERE r.message_id IS NULL) AS unread
-             FROM condo_message m
-             LEFT JOIN condo_message_read r ON r.message_id = m.id AND r.account_id = $1
-             WHERE ${VISIBLE}`,
-            [accountId],
-        ),
+        countVisible(accountId),
     ]);
-    const unreadCount = Number(counts.rows[0]?.unread ?? 0);
     return {
         items: page.rows.map(toMessage),
-        total: options.unreadOnly ? unreadCount : Number(counts.rows[0]?.total ?? 0),
-        unreadCount,
+        total: options.unreadOnly ? counts.unread : counts.total,
+        unreadCount: counts.unread,
     };
+};
+
+// Fixado fica sempre; TTL > 0 conta da publicação; TTL 0 sai quando esta conta lê.
+const IN_CAROUSEL = `(
+    m.pinned
+    OR (m.carousel_ttl_hours > 0 AND m.published_at + make_interval(hours => m.carousel_ttl_hours) > now())
+    OR (m.carousel_ttl_hours = 0 AND r.message_id IS NULL)
+)`;
+
+// Prioridade da categoria acima de tudo (decisão de 13/10/2026); dentro dela,
+// fixados primeiro e depois o mais recente.
+const CAROUSEL_ORDER = `
+    CASE m.category WHEN 'urgente' THEN 0 WHEN 'aviso' THEN 1 WHEN 'manutencao' THEN 2 ELSE 3 END,
+    m.pinned DESC, m.published_at DESC, m.id DESC`;
+
+/** Carrossel da home desta conta, já filtrado e ordenado, com o contador do sino. */
+export const listCarousel = async (accountId: string): Promise<{ items: CondoMessage[]; unreadCount: number }> => {
+    const [page, counts] = await Promise.all([
+        pool.query<MessageRow>(
+            `${SELECT_WITH_READ}
+             WHERE ${VISIBLE} AND ${IN_CAROUSEL}
+             ORDER BY ${CAROUSEL_ORDER}
+             LIMIT $2`,
+            [accountId, CAROUSEL_LIMIT],
+        ),
+        countVisible(accountId),
+    ]);
+    return { items: page.rows.map(toMessage), unreadCount: counts.unread };
 };
 
 export const findMessage = async (accountId: string, id: number): Promise<CondoMessage | null> => {
@@ -104,15 +152,36 @@ export const createMessage = async (input: {
     body: string;
     publishedAt: Date | null;
     expiresAt: Date | null;
+    carouselTtlHours: number;
+    pinned: boolean;
     createdBy: string;
 }): Promise<CondoMessage> => {
     const { rows } = await pool.query<Omit<MessageRow, 'read'>>(
-        `INSERT INTO condo_message (category, label, title, body, published_at, expires_at, created_by)
-         VALUES ($1, $2, $3, $4, COALESCE($5, now()), $6, $7)
-         RETURNING id, category, label, title, body, published_at, expires_at`,
-        [input.category, input.label, input.title, input.body, input.publishedAt, input.expiresAt, input.createdBy],
+        `INSERT INTO condo_message (category, label, title, body, published_at, expires_at, carousel_ttl_hours, pinned, created_by)
+         VALUES ($1, $2, $3, $4, COALESCE($5, now()), $6, $7, $8, $9)
+         RETURNING id, category, label, title, body, published_at, expires_at, carousel_ttl_hours, pinned`,
+        [input.category, input.label, input.title, input.body, input.publishedAt, input.expiresAt,
+            input.carouselTtlHours, input.pinned, input.createdBy],
     );
     return toMessage({ ...rows[0], read: false });
+};
+
+/**
+ * Comunicado não arquivado, inclusive agendado ou vencido: o síndico pode
+ * ajustar o carrossel de um comunicado que ainda não apareceu.
+ */
+export const findEditableMessage = async (accountId: string, id: number): Promise<CondoMessage | null> => {
+    const { rows } = await pool.query<MessageRow>(`${SELECT_WITH_READ} WHERE m.id = $2 AND m.archived_at IS NULL`, [accountId, id]);
+    return rows[0] ? toMessage(rows[0]) : null;
+};
+
+/** Grava fixado e TTL. Quem chama garante a regra "fixado = TTL 0" (a tabela também). */
+export const updateCarousel = async (id: number, pinned: boolean, carouselTtlHours: number): Promise<boolean> => {
+    const result = await pool.query(
+        `UPDATE condo_message SET pinned = $2, carousel_ttl_hours = $3 WHERE id = $1 AND archived_at IS NULL`,
+        [id, pinned, carouselTtlHours],
+    );
+    return (result.rowCount ?? 0) > 0;
 };
 
 /** Arquiva (preserva o registro). Devolve false se não existir ou já estiver arquivado. */

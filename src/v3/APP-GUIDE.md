@@ -289,18 +289,24 @@ Today only **Web Push (VAPID)** exists: `GET /push/public-key`, `POST /push/subs
 | Method | Path | Body / query | Returns |
 |---|---|---|---|
 | GET | `/messages` | `?filter=all\|unread&limit=20&offset=0` (limit ≤ 50) | `{ items: CondoMessage[], unreadCount }` + `meta.pagination` (total of the filter) |
+| GET | `/messages/carousel` | — | `{ items: CondoMessage[], unreadCount }` — home carousel of this account (≤ 5, already filtered and ordered) |
 | GET | `/messages/{id}` | — | `CondoMessage` |
 | POST | `/messages/{id}/read` | — | `CondoMessage` with `read: true` (idempotent; call when the detail opens) |
-| POST | `/messages` | `{ category, label?, title, body, publishedAt?, expiresAt? }` | 201 `CondoMessage` — síndico/admin |
+| POST | `/messages` | `{ category, label?, title, body, publishedAt?, expiresAt?, carouselTtlHours?, pinned? }` | 201 `CondoMessage` — síndico/admin |
+| PATCH | `/messages/{id}` | `{ pinned?, carouselTtlHours? }` | `CondoMessage` — síndico/admin; pin/unpin or change the carousel TTL |
 | DELETE | `/messages/{id}` | — | `null` — síndico/admin; archives (record kept) |
 
 ```json
-{ "id": 12, "category": "manutencao", "label": "Manutenção programada", "title": "Manutenção da bomba de recalque hoje à tarde", "body": "A equipe técnica…", "publishedAt": "2026-10-13T13:30:00.000Z", "expiresAt": null, "read": false }
+{ "id": 12, "category": "manutencao", "label": "Manutenção programada", "title": "Manutenção da bomba de recalque hoje à tarde", "body": "A equipe técnica…", "publishedAt": "2026-10-13T13:30:00.000Z", "expiresAt": null, "carouselTtlHours": 24, "pinned": false, "read": false }
 ```
 
 - `category`: `manutencao` | `comunicado` | `aviso` | `urgente` — the app picks icon/color. `label` is the free tag shown on the card and the detail; `null` → show the category name.
 - Only visible messages are returned: published (`publishedAt` ≤ now), not archived, not expired. Newest first.
-- `unreadCount` ignores filter and page: use it for the bell badge. Home: `GET /messages?limit=5`.
+- `unreadCount` ignores filter and page: use it for the bell badge.
+- Home carousel: `GET /messages/carousel`. The list (`GET /messages`) is not affected by these rules.
+  - `carouselTtlHours` (default 24, max 720): hours in the carousel counted from `publishedAt`. `0` = leaves the carousel of each account once that account reads it.
+  - `pinned`: stays in the carousel until the síndico unpins it. A pinned message always has TTL 0, so after unpinning it leaves for those who already read it and, for the others, when they read it.
+  - Order: category priority first (`urgente` > `aviso` > `manutencao` > `comunicado`), pinned first within the category, then newest. At most 5 items.
 - 403 for accounts without an unblocked unit and without a staff role (pending link). 404 = not visible (archived, expired, scheduled).
 - No push for messages: residents only get push for fire alarms.
 
