@@ -7,7 +7,7 @@
 [![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/ftapparo/nova-api)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)](https://www.typescriptlang.org/)
 [![Node](https://img.shields.io/badge/Node-20.x-green)](https://nodejs.org/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-propriet%C3%A1ria-red.svg)](LICENSE)
 
 </div>
 
@@ -339,7 +339,7 @@ Para ver o histórico completo de versões e alterações, consulte o [CHANGELOG
 
 ## 📝 Licença
 
-Este projeto está licenciado sob a **MIT License** - veja o arquivo [LICENSE](LICENSE) para mais detalhes, se presente.
+Software proprietário: **todos os direitos reservados**. Uso exclusivo do Condomínio Nova Residence; cópia, modificação, distribuição ou publicação dependem de autorização por escrito do autor. Veja o arquivo [LICENSE](LICENSE).
 
 ---
 
