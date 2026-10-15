@@ -7381,6 +7381,65 @@
           }
         }
       }
+    },
+    "/v3/api/notifications/test/fire-alarm": {
+      "post": {
+        "tags": [
+          "Notificações do app"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Testar o alerta de alarme de incêndio",
+        "description": "Somente admin. Envia a um único aparelho (qualquer conta) o mesmo push do alarme real (type: cie.alarm, channel: cie_alarm, prioridade alta, ttl 30 min, target: fire), com título \"Alarme de incêndio (teste)\", sem acionar a central nem alterar o monitor de alarmes. Gravado no histórico de envios como cie.alarm.test, para não contar como alarme enviado. 3 testes a cada 10 min por conta.",
+        "operationId": "sendFireAlarmTestNotification",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "installationId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Aparelho que recebe o teste (notification_device.installation_id)."
+                  }
+                },
+                "required": [
+                  "installationId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resultado do envio (mesmo formato de /notifications/test)."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Conta sem papel admin.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "404": {
+            "description": "Aparelho não encontrado, inválido ou com notificações desativadas.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Muitas tentativas (ver Retry-After).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Envio de notificações desativado no servidor.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
     }
   }
 }

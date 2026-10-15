@@ -4,7 +4,7 @@ import { z } from 'zod';
 import logger from '../../core/utils/logger';
 import * as notificationRepository from '../../core/repositories/notification.repository';
 import { successResponseSchema } from '../shared/response';
-import { requireAuth } from '../shared/require-auth';
+import { requireAuth, requireRole } from '../shared/require-auth';
 import { AttemptLimiter } from '../shared/attempt-limiter';
 import { exhaustExpiringMinutes } from '../exhaust/exhaust.notifications';
 import { isPushAvailable } from './fcm.sender';
@@ -13,6 +13,7 @@ import {
     deviceBodySchema,
     deviceParamsSchema,
     deviceSchema,
+    fireAlarmTestBodySchema,
     preferenceBodySchema,
     preferenceSchema,
     testResultSchema,
@@ -30,6 +31,7 @@ import {
 const registrationsByAccount = new AttemptLimiter(30, 60 * 60 * 1000);
 // Cada teste dispara uma notificação real em todos os aparelhos da conta.
 const testsByAccount = new AttemptLimiter(3, 10 * 60 * 1000);
+const fireAlarmTestsByAccount = new AttemptLimiter(3, 10 * 60 * 1000);
 
 const checkLimit = (limiter: AttemptLimiter, request: FastifyRequest, reply: FastifyReply, accountId: string) => {
     const retryAfter = limiter.retryAfter(accountId);
@@ -163,6 +165,44 @@ export async function notificationRoutes(app: FastifyInstance) {
         } catch (error) {
             logger.error('[ApiV3 Push] Falha ao enviar notificação de teste:', error);
             return reply.fail({ type: 'internal-error', detail: 'Falha ao enviar a notificação de teste.', instance: request.url });
+        }
+    });
+
+    // Teste do alerta prioritário do alarme de incêndio, sem acionar a central:
+    // mesmo payload, canal e prioridade do aviso real (cie.notifications.ts),
+    // para um único aparelho. Só admin: um alarme no celular de outra pessoa assusta.
+    typedApp.post('/notifications/test/fire-alarm', {
+        onRequest: [requireAuth, requireRole('admin')],
+        schema: { body: fireAlarmTestBodySchema, response: { 200: successResponseSchema(testResultSchema) } },
+    }, async (request, reply) => {
+        const accountId = request.actor!.id;
+        const { installationId } = request.body;
+        if (!isPushAvailable()) {
+            return reply.fail({ type: 'upstream-error', detail: 'O envio de notificações está desativado no servidor.', instance: request.url, status: 503 });
+        }
+        if (!checkLimit(fireAlarmTestsByAccount, request, reply, accountId)) return;
+        try {
+            const result = await notify({
+                kind: 'cie.alarm',
+                dispatchKind: 'cie.alarm.test',
+                dedupeKey: `cie.alarm.test:${installationId}:${Date.now()}`,
+                audience: { kind: 'device', installationId },
+                title: 'Alarme de incêndio (teste)',
+                body: 'Teste do alerta prioritário. Nenhum alarme real foi acionado.',
+                channel: 'cie_alarm',
+                priority: 'high',
+                ttlSeconds: 30 * 60,
+                collapseKey: 'cie-alarm',
+                target: 'fire',
+            });
+            if (!result || result.targets === 0) {
+                return reply.fail({ type: 'not-found', detail: 'Aparelho não encontrado ou com notificações desativadas.', instance: request.url });
+            }
+            logger.warn(`[ApiV3 Push] Teste do alarme de incêndio enviado por ${accountId} para ${installationId}.`);
+            return reply.ok({ targets: result.targets, sent: result.success, failed: result.failure });
+        } catch (error) {
+            logger.error('[ApiV3 Push] Falha ao enviar teste do alarme de incêndio:', error);
+            return reply.fail({ type: 'internal-error', detail: 'Falha ao enviar o teste do alarme.', instance: request.url });
         }
     });
 }

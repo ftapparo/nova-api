@@ -291,6 +291,7 @@ The app uses **only** `/notifications/*`. `/push/*` is the web panel's Web Push 
 | GET | `/notifications/preferences` | — | `{ exhaustExpiring, exhaustExpiringMinutes, exhaustOff, messages, cieStaffAlerts }` |
 | PUT | `/notifications/preferences` | `{ exhaustExpiring?, exhaustOff?, messages?, cieStaffAlerts? }` (at least one) | same as GET |
 | POST | `/notifications/test` | — | `{ targets, sent, failed }` — a test push to this account's devices; 503 when push is disabled on the server |
+| POST | `/notifications/test/fire-alarm` | `{ installationId }` | `{ targets, sent, failed }` — **admin only**, for validation: the real `cie.alarm` push (same channel, priority and target, title "Alarme de incêndio (teste)") to one device of any account, without touching the panel; 404 when the device is missing or has notifications off. Not used by the app |
 
 **Registering the device**
 - `installationId`: a UUID the app generates once per installation and keeps; `token`: the FCM registration token. Register after login (when `mustChangePassword` and `mustAcceptTerms` are resolved — the password rule answers 403 here too), on each app start, in `onNewToken`, and when the notification permission or the fire-alarm channel changes.

@@ -130,7 +130,8 @@ export const deleteDevice = async (accountId: string, platform: DevicePlatform, 
 export type DeviceAudience =
     | { kind: 'staff' }
     | { kind: 'staff+residents' }
-    | { kind: 'accounts'; accountIds: string[] };
+    | { kind: 'accounts'; accountIds: string[] }
+    | { kind: 'device'; installationId: string };
 
 /**
  * Aparelhos Android válidos, com permissão de notificação, do público pedido
@@ -145,6 +146,9 @@ export const listDeviceTargets = async (audience: DeviceAudience, preference?: P
     } else if (audience.kind === 'staff+residents') {
         params = [STAFF_ROLES];
         audienceClause = '(d.role = ANY($1::text[]) OR d.resident_active)';
+    } else if (audience.kind === 'device') {
+        params = [audience.installationId];
+        audienceClause = 'd.installation_id = $1';
     } else {
         if (audience.accountIds.length === 0) return [];
         params = [audience.accountIds];

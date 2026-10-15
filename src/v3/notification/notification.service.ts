@@ -50,12 +50,21 @@ export type AppNotification = {
     target: NotificationTarget;
     /** Campos extras do payload (ex.: exhaustId, messageId), sempre texto. */
     extra?: Record<string, string>;
+    /**
+     * Tipo gravado no histórico de envios quando difere do payload. O teste do
+     * alarme sai como cie.alarm para o app tratá-lo igual ao real, mas não pode
+     * contar como alarme enviado (ver lastDispatchAt em cie.notifications.ts).
+     */
+    dispatchKind?: string;
 };
 
 export type DispatchResult = { dispatchId: number; targets: number; success: number; failure: number };
 
-const describeAudience = (audience: DeviceAudience) =>
-    audience.kind === 'accounts' ? `accounts:${audience.accountIds.length}` : audience.kind;
+const describeAudience = (audience: DeviceAudience) => {
+    if (audience.kind === 'accounts') return `accounts:${audience.accountIds.length}`;
+    if (audience.kind === 'device') return `device:${audience.installationId}`;
+    return audience.kind;
+};
 
 /**
  * Envia o aviso aos aparelhos do público. Devolve null se esse aviso já foi
@@ -64,7 +73,7 @@ const describeAudience = (audience: DeviceAudience) =>
  */
 export const notify = async (notification: AppNotification): Promise<DispatchResult | null> => {
     const dispatchId = await notificationRepository.claimDispatch(
-        notification.kind,
+        notification.dispatchKind ?? notification.kind,
         notification.dedupeKey,
         describeAudience(notification.audience),
     );

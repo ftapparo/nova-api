@@ -44,6 +44,11 @@ export const preferenceBodySchema = z.object({
     path: [],
 });
 
+export const fireAlarmTestBodySchema = z.object({
+    /** Aparelho que recebe o teste (qualquer conta); ver notification_device. */
+    installationId: z.uuid(),
+});
+
 export const testResultSchema = z.object({
     targets: z.number().int().nonnegative(),
     sent: z.number().int().nonnegative(),
