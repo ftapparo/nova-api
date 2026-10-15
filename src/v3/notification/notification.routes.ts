@@ -176,29 +176,44 @@ export async function notificationRoutes(app: FastifyInstance) {
         schema: { body: fireAlarmTestBodySchema, response: { 200: successResponseSchema(testResultSchema) } },
     }, async (request, reply) => {
         const accountId = request.actor!.id;
-        const { installationId } = request.body;
+        const { installationId, type } = request.body;
         if (!isPushAvailable()) {
             return reply.fail({ type: 'upstream-error', detail: 'O envio de notificações está desativado no servidor.', instance: request.url, status: 503 });
         }
         if (!checkLimit(fireAlarmTestsByAccount, request, reply, accountId)) return;
         try {
-            const result = await notify({
-                kind: 'cie.alarm',
-                dispatchKind: 'cie.alarm.test',
-                dedupeKey: `cie.alarm.test:${installationId}:${Date.now()}`,
-                audience: { kind: 'device', installationId },
-                title: 'Alarme de incêndio (teste)',
-                body: 'Teste do alerta prioritário. Nenhum alarme real foi acionado.',
-                channel: 'cie_alarm',
-                priority: 'high',
-                ttlSeconds: 30 * 60,
-                collapseKey: 'cie-alarm',
-                target: 'fire',
-            });
+            // Gravados como *.test: não contam na regra de reenvio nem na pendência da normalizada.
+            const result = await notify(type === 'resolved'
+                ? {
+                    kind: 'cie.alarm.resolved',
+                    dispatchKind: 'cie.alarm.resolved.test',
+                    dedupeKey: `cie.alarm.resolved.test:${installationId}:${Date.now()}`,
+                    audience: { kind: 'device', installationId },
+                    title: 'Central de incêndio normalizada (teste)',
+                    body: 'Teste do aviso de volta ao normal. Nenhum alarme real foi acionado.',
+                    channel: 'general',
+                    priority: 'normal',
+                    ttlSeconds: 6 * 60 * 60,
+                    collapseKey: 'cie-alarm',
+                    target: 'fire',
+                }
+                : {
+                    kind: 'cie.alarm',
+                    dispatchKind: 'cie.alarm.test',
+                    dedupeKey: `cie.alarm.test:${installationId}:${Date.now()}`,
+                    audience: { kind: 'device', installationId },
+                    title: 'Alarme de incêndio (teste)',
+                    body: 'Teste do alerta prioritário. Nenhum alarme real foi acionado.',
+                    channel: 'cie_alarm',
+                    priority: 'high',
+                    ttlSeconds: 30 * 60,
+                    collapseKey: 'cie-alarm',
+                    target: 'fire',
+                });
             if (!result || result.targets === 0) {
                 return reply.fail({ type: 'not-found', detail: 'Aparelho não encontrado ou com notificações desativadas.', instance: request.url });
             }
-            logger.warn(`[ApiV3 Push] Teste do alarme de incêndio enviado por ${accountId} para ${installationId}.`);
+            logger.warn(`[ApiV3 Push] Teste do alarme de incêndio (${type}) enviado por ${accountId} para ${installationId}.`);
             return reply.ok({ targets: result.targets, sent: result.success, failed: result.failure });
         } catch (error) {
             logger.error('[ApiV3 Push] Falha ao enviar teste do alarme de incêndio:', error);

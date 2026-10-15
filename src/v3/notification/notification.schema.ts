@@ -47,6 +47,8 @@ export const preferenceBodySchema = z.object({
 export const fireAlarmTestBodySchema = z.object({
     /** Aparelho que recebe o teste (qualquer conta); ver notification_device. */
     installationId: z.uuid(),
+    /** alarm = alarme (padrão); resolved = "central normalizada" que o morador recebe depois do alarme. */
+    type: z.enum(['alarm', 'resolved']).default('alarm'),
 });
 
 export const testResultSchema = z.object({

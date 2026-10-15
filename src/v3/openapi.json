@@ -7406,6 +7406,12 @@
                     "type": "string",
                     "format": "uuid",
                     "description": "Aparelho que recebe o teste (notification_device.installation_id)."
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["alarm", "resolved"],
+                    "default": "alarm",
+                    "description": "alarm = alarme (cie.alarm, prioridade alta); resolved = aviso comum \"Central de incêndio normalizada (teste)\" (cie.alarm.resolved, canal general), que substitui o alarme no aparelho. Gravados como cie.alarm.test e cie.alarm.resolved.test."
                   }
                 },
                 "required": [
