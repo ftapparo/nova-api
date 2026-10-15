@@ -26,7 +26,8 @@ import { notifySafely, type AppNotification, type NotificationKind } from '../no
 //
 // "Sistema normal" é o mesmo critério da tela do app: sem alarme, falha,
 // supervisão, reinício nem falta de contato (bloqueio não conta). Se a API
-// reiniciar no meio do episódio, o aviso de volta ao normal se perde.
+// reiniciar no meio do episódio, a pendência volta pelo histórico de envios
+// (último cie.alarm sem cie.alarm.resolved depois, nas últimas 6 h).
 //
 // Uma borda de descida só vale depois de 30 s estável, para uma oscilação do
 // contador não virar outro aviso. Ao subir a API com alarme ativo, o alarme é
@@ -37,6 +38,9 @@ import { notifySafely, type AppNotification, type NotificationKind } from '../no
 const CLEAR_AFTER_MS = 30_000;
 const TICK_MS = 15_000;
 const ALARM_RESEND_WINDOW_MS = 10 * 60_000;
+// Alarme mais antigo que isso não gera "normalizada" ao subir a API: o aviso
+// chegaria tarde demais para ajudar (e o TTL dele é de 6 h).
+const RESIDENT_NORMAL_MAX_AGE_MS = 6 * 60 * 60_000;
 
 type Flag = 'alarm' | 'failure' | 'supervision' | 'blocked' | 'restarting' | 'offline';
 const COUNTER_FLAGS: Flag[] = ['alarm', 'failure', 'supervision', 'blocked'];
@@ -163,28 +167,34 @@ const onRise = (flag: Flag) => {
     }
 };
 
+/** "Sistema normal", o mesmo critério da tela do app (bloqueio não conta). */
+const isAllClear = () => ['alarm', ...ABNORMAL_FLAGS].every((name) => !state(name as Flag).active);
+
+const sendResidentNormalIfPending = () => {
+    if (!residentNormalPending) return;
+    residentNormalPending = false;
+    void notifySafely({
+        kind: 'cie.alarm.resolved',
+        dedupeKey: `cie.alarm.resolved:${Date.now()}`,
+        audience: { kind: 'residents' },
+        title: 'Central de incêndio normalizada',
+        body: 'O alarme foi encerrado e a central voltou ao estado normal.',
+        channel: 'general',
+        priority: 'normal',
+        ttlSeconds: 6 * 60 * 60,
+        // Mesma chave do alarme: no aparelho, substitui a notificação do alarme.
+        collapseKey: 'cie-alarm',
+        target: 'fire',
+    });
+};
+
 const onFall = (flag: Flag) => {
     if (flag === 'alarm') {
         void notifySafely(staffNotice('cie.alarm.cleared', 'Alarme de incêndio encerrado',
             'A central não indica mais alarme ativo.', 'cie_status'));
     }
-    const allClear = ['alarm', ...ABNORMAL_FLAGS].every((name) => !state(name as Flag).active);
-    if (residentNormalPending && allClear) {
-        residentNormalPending = false;
-        void notifySafely({
-            kind: 'cie.alarm.resolved',
-            dedupeKey: `cie.alarm.resolved:${Date.now()}`,
-            audience: { kind: 'residents' },
-            title: 'Central de incêndio normalizada',
-            body: 'O alarme foi encerrado e a central voltou ao estado normal.',
-            channel: 'general',
-            priority: 'normal',
-            ttlSeconds: 6 * 60 * 60,
-            // Mesma chave do alarme: no aparelho, substitui a notificação do alarme.
-            collapseKey: 'cie-alarm',
-            target: 'fire',
-        });
-    }
+    const allClear = isAllClear();
+    if (allClear) sendResidentNormalIfPending();
     if (abnormalNotified && allClear && ABNORMAL_FLAGS.includes(flag)) {
         abnormalNotified = false;
         void notifySafely(staffNotice('cie.normalized', 'Central de incêndio normalizada',
@@ -217,7 +227,7 @@ type StatusSnapshot = {
 
 const count = (status: Record<string, unknown> | undefined, key: string) => Number(status?.[key] ?? 0) > 0;
 
-/** Primeiro estado depois de subir: vira a base, sem avisos, exceto o alarme (ver cabeçalho). */
+/** Primeiro estado depois de subir: vira a base, sem avisos, exceto o alarme e a volta ao normal pendente (ver cabeçalho). */
 const takeBaseline = async () => {
     for (const name of [...COUNTER_FLAGS, 'restarting'] as Flag[]) {
         const current = state(name);
@@ -225,9 +235,20 @@ const takeBaseline = async () => {
         current.pendingSince = null;
     }
     ready = true;
-    if (!state('alarm').active) return;
 
+    // Alarme enviado antes de reiniciar e ainda sem a volta ao normal: retoma a
+    // pendência pelo histórico do banco. Se a central já está normal, avisa agora.
     const last = await notificationRepository.lastDispatchAt('cie.alarm');
+    const lastResolved = await notificationRepository.lastDispatchAt('cie.alarm.resolved');
+    if (last && Date.now() - last.getTime() < RESIDENT_NORMAL_MAX_AGE_MS
+        && (!lastResolved || lastResolved < last)) {
+        residentNormalPending = true;
+    }
+    if (!state('alarm').active) {
+        if (isAllClear()) sendResidentNormalIfPending();
+        return;
+    }
+
     if (!last || Date.now() - last.getTime() > ALARM_RESEND_WINDOW_MS) {
         logger.warn('[ApiV3 Push] Alarme de incêndio já ativo ao iniciar o monitor; enviando aviso.');
         sendAlarm();
