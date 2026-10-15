@@ -2,6 +2,8 @@ import logger from '../../core/utils/logger';
 import * as notificationRepository from '../../core/repositories/notification.repository';
 import { cieUpstreamEvents, isCieUpstreamConnected } from '../ws/ws.gateway';
 import { notifySafely, type AppNotification, type NotificationKind } from '../notification/notification.service';
+import { pick, type Lang, type Translations } from '../shared/i18n';
+import { localizePlace } from './cie.i18n';
 
 // =============================================================================
 // Push da central de incêndio. O nova-cie só manda estado (cie.status.updated
@@ -88,26 +90,34 @@ const settle = (flag: Flag, now: number): 'rise' | 'fall' | null => {
     return current.active ? 'rise' : 'fall';
 };
 
-type Place = { towerLabel?: string | null; floorLabel?: string | null; area?: string | null };
+type Place = { tower?: string | null; towerLabel?: string | null; floor?: number | null; floorLabel?: string | null; area?: string | null };
 
 /** "Torre B · 8º andar", com o número de outros locais, a partir dos itens interpretados pelo nova-cie. */
-const describePlace = (type: string): string | null => {
+const describePlace = (type: string, lang: Lang): string | null => {
     const items = activeItems.get(type) ?? [];
-    const place = (items[0] as { display?: { place?: Place | null } } | undefined)?.display?.place;
-    if (!place) return null;
+    const raw = (items[0] as { display?: { place?: Place | null } } | undefined)?.display?.place;
+    if (!raw) return null;
+    const place = localizePlace(raw, lang);
     const parts = [place.towerLabel, place.floorLabel].filter((part): part is string => !!part);
     const text = parts.length > 0 ? parts.join(' · ') : place.area ?? null;
     if (!text) return null;
-    return items.length > 1 ? `${text} e mais ${items.length - 1} local(is)` : text;
+    const others = items.length - 1;
+    return others > 0
+        ? pick(lang, `${text} e mais ${others} local(is)`, { en: `${text} and ${others} more location(s)`, es: `${text} y ${others} lugar(es) más` })
+        : text;
 };
 
-const staffNotice = (kind: NotificationKind, title: string, body: string, channel: 'cie_status' | 'cie_info'): AppNotification => ({
+type Text = { pt: string } & Translations;
+
+/** Aviso da equipe com texto fixo; [body] recebe o local já no idioma do aparelho. */
+const staffNotice = (
+    kind: NotificationKind, title: Text, body: (lang: Lang) => string, channel: 'cie_status' | 'cie_info',
+): AppNotification => ({
     kind,
     dedupeKey: `${kind}:${Date.now()}`,
     audience: { kind: 'staff' },
     preference: 'cieStaffAlerts',
-    title,
-    body,
+    text: (lang) => ({ title: pick(lang, title.pt, title), body: body(lang) }),
     channel,
     priority: 'normal',
     ttlSeconds: 6 * 60 * 60,
@@ -117,15 +127,25 @@ const staffNotice = (kind: NotificationKind, title: string, body: string, channe
 
 const sendAlarm = () => {
     residentNormalPending = true;
-    const place = describePlace('alarme');
     void notifySafely({
         kind: 'cie.alarm',
         dedupeKey: `cie.alarm:${Date.now()}`,
         audience: { kind: 'staff+residents' },
-        title: 'Alarme de incêndio',
-        body: place
-            ? `Alarme acionado: ${place}. Siga as orientações de segurança.`
-            : 'Alarme acionado na central de incêndio. Siga as orientações de segurança.',
+        text: (lang) => {
+            const place = describePlace('alarme', lang);
+            return {
+                title: pick(lang, 'Alarme de incêndio', { en: 'Fire alarm', es: 'Alarma de incendio' }),
+                body: place
+                    ? pick(lang, `Alarme acionado: ${place}. Siga as orientações de segurança.`, {
+                        en: `Alarm triggered: ${place}. Follow the safety instructions.`,
+                        es: `Alarma activada: ${place}. Siga las instrucciones de seguridad.`,
+                    })
+                    : pick(lang, 'Alarme acionado na central de incêndio. Siga as orientações de segurança.', {
+                        en: 'Alarm triggered on the fire panel. Follow the safety instructions.',
+                        es: 'Alarma activada en la central de incendios. Siga las instrucciones de seguridad.',
+                    }),
+            };
+        },
         channel: 'cie_alarm',
         priority: 'high',
         // Um alarme que chega meia hora depois mais confunde do que ajuda.
@@ -141,29 +161,53 @@ const onRise = (flag: Flag) => {
         case 'alarm':
             sendAlarm();
             return;
-        case 'failure': {
-            const place = describePlace('falha');
-            void notifySafely(staffNotice('cie.failure', 'Central de incêndio: falha',
-                place ? `Falha registrada: ${place}.` : 'A central registrou uma falha. Verifique o painel.', 'cie_status'));
+        case 'failure':
+            void notifySafely(staffNotice('cie.failure',
+                { pt: 'Central de incêndio: falha', en: 'Fire panel: fault', es: 'Central de incendios: falla' },
+                (lang) => {
+                    const place = describePlace('falha', lang);
+                    return place
+                        ? pick(lang, `Falha registrada: ${place}.`, { en: `Fault recorded: ${place}.`, es: `Falla registrada: ${place}.` })
+                        : pick(lang, 'A central registrou uma falha. Verifique o painel.', {
+                            en: 'The fire panel recorded a fault. Check the panel.', es: 'La central registró una falla. Verifique el panel.',
+                        });
+                }, 'cie_status'));
             return;
-        }
-        case 'supervision': {
-            const place = describePlace('supervisao');
-            void notifySafely(staffNotice('cie.supervision', 'Central de incêndio: supervisão',
-                place ? `Supervisão registrada: ${place}.` : 'A central registrou um evento de supervisão.', 'cie_status'));
+        case 'supervision':
+            void notifySafely(staffNotice('cie.supervision',
+                { pt: 'Central de incêndio: supervisão', en: 'Fire panel: supervision', es: 'Central de incendios: supervisión' },
+                (lang) => {
+                    const place = describePlace('supervisao', lang);
+                    return place
+                        ? pick(lang, `Supervisão registrada: ${place}.`, { en: `Supervision recorded: ${place}.`, es: `Supervisión registrada: ${place}.` })
+                        : pick(lang, 'A central registrou um evento de supervisão.', {
+                            en: 'The fire panel recorded a supervision event.', es: 'La central registró un evento de supervisión.',
+                        });
+                }, 'cie_status'));
             return;
-        }
         case 'blocked':
-            void notifySafely(staffNotice('cie.blocked', 'Central de incêndio: bloqueio',
-                'Há dispositivos bloqueados na central.', 'cie_info'));
+            void notifySafely(staffNotice('cie.blocked',
+                { pt: 'Central de incêndio: bloqueio', en: 'Fire panel: isolation', es: 'Central de incendios: bloqueo' },
+                (lang) => pick(lang, 'Há dispositivos bloqueados na central.', {
+                    en: 'There are isolated devices on the fire panel.', es: 'Hay dispositivos bloqueados en la central.',
+                }), 'cie_info'));
             return;
         case 'restarting':
-            void notifySafely(staffNotice('cie.restarting', 'Central de incêndio reiniciando',
-                'A central está sendo reiniciada.', 'cie_status'));
+            void notifySafely(staffNotice('cie.restarting',
+                { pt: 'Central de incêndio reiniciando', en: 'Fire panel restarting', es: 'Central de incendios reiniciando' },
+                (lang) => pick(lang, 'A central está sendo reiniciada.', {
+                    en: 'The fire panel is restarting.', es: 'La central se está reiniciando.',
+                }), 'cie_status'));
             return;
-        case 'offline':
-            void notifySafely(staffNotice('cie.offline', 'Central de incêndio sem comunicação',
-                `Sem contato com a central há mais de ${offlineMinutes()} minutos.`, 'cie_status'));
+        case 'offline': {
+            const minutes = offlineMinutes();
+            void notifySafely(staffNotice('cie.offline',
+                { pt: 'Central de incêndio sem comunicação', en: 'Fire panel offline', es: 'Central de incendios sin comunicación' },
+                (lang) => pick(lang, `Sem contato com a central há mais de ${minutes} minutos.`, {
+                    en: `No contact with the fire panel for more than ${minutes} minutes.`,
+                    es: `Sin contacto con la central desde hace más de ${minutes} minutos.`,
+                }), 'cie_status'));
+        }
     }
 };
 
@@ -177,8 +221,13 @@ const sendResidentNormalIfPending = () => {
         kind: 'cie.alarm.resolved',
         dedupeKey: `cie.alarm.resolved:${Date.now()}`,
         audience: { kind: 'residents' },
-        title: 'Central de incêndio normalizada',
-        body: 'O alarme foi encerrado e a central voltou ao estado normal.',
+        text: (lang) => ({
+            title: pick(lang, 'Central de incêndio normalizada', { en: 'Fire panel back to normal', es: 'Central de incendios normalizada' }),
+            body: pick(lang, 'O alarme foi encerrado e a central voltou ao estado normal.', {
+                en: 'The alarm has ended and the fire panel is back to normal.',
+                es: 'La alarma terminó y la central volvió a la normalidad.',
+            }),
+        }),
         channel: 'general',
         priority: 'normal',
         ttlSeconds: 6 * 60 * 60,
@@ -190,15 +239,21 @@ const sendResidentNormalIfPending = () => {
 
 const onFall = (flag: Flag) => {
     if (flag === 'alarm') {
-        void notifySafely(staffNotice('cie.alarm.cleared', 'Alarme de incêndio encerrado',
-            'A central não indica mais alarme ativo.', 'cie_status'));
+        void notifySafely(staffNotice('cie.alarm.cleared',
+            { pt: 'Alarme de incêndio encerrado', en: 'Fire alarm ended', es: 'Alarma de incendio terminada' },
+            (lang) => pick(lang, 'A central não indica mais alarme ativo.', {
+                en: 'The fire panel no longer shows an active alarm.', es: 'La central ya no indica una alarma activa.',
+            }), 'cie_status'));
     }
     const allClear = isAllClear();
     if (allClear) sendResidentNormalIfPending();
     if (abnormalNotified && allClear && ABNORMAL_FLAGS.includes(flag)) {
         abnormalNotified = false;
-        void notifySafely(staffNotice('cie.normalized', 'Central de incêndio normalizada',
-            'A central voltou ao estado normal.', 'cie_info'));
+        void notifySafely(staffNotice('cie.normalized',
+            { pt: 'Central de incêndio normalizada', en: 'Fire panel back to normal', es: 'Central de incendios normalizada' },
+            (lang) => pick(lang, 'A central voltou ao estado normal.', {
+                en: 'The fire panel is back to normal.', es: 'La central volvió a la normalidad.',
+            }), 'cie_info'));
     }
 };
 

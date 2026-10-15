@@ -3,6 +3,7 @@ import * as notificationRepository from '../../core/repositories/notification.re
 import type { DeviceAudience, PreferenceKey } from '../../core/repositories/notification.repository';
 import { getResidence } from '../residence/residence.service';
 import { sendAndroid } from './fcm.sender';
+import { toLang, type Lang } from '../shared/i18n';
 
 // =============================================================================
 // Envio de avisos do app. Cada aviso lógico tem uma dedupe_key: o mesmo aviso
@@ -43,8 +44,8 @@ export type AppNotification = {
     audience: DeviceAudience;
     /** Preferência da conta que pode bloquear este aviso; ausente = sempre enviado. */
     preference?: PreferenceKey;
-    title: string;
-    body: string;
+    /** Título e corpo no idioma de cada aparelho (gravado no registro do app). */
+    text: (lang: Lang) => { title: string; body: string };
     channel: NotificationChannel;
     priority: 'high' | 'normal';
     ttlSeconds: number;
@@ -82,21 +83,35 @@ export const notify = async (notification: AppNotification): Promise<DispatchRes
     if (dispatchId === null) return null;
 
     const targets = await notificationRepository.listDeviceTargets(notification.audience, notification.preference);
-    const result = await sendAndroid(targets.map((target) => target.token), {
-        data: {
-            type: notification.kind,
-            title: notification.title,
-            body: notification.body,
-            channel: notification.channel,
-            target: notification.target,
-            sentAt: new Date().toISOString(),
-            dispatchId: String(dispatchId),
-            ...notification.extra,
-        },
-        priority: notification.priority,
-        ttlSeconds: Math.max(0, Math.round(notification.ttlSeconds)),
-        collapseKey: notification.collapseKey,
-    });
+    // Um envio por idioma: o mesmo aviso sai com o texto de cada grupo de aparelhos.
+    const byLang = new Map<Lang, string[]>();
+    for (const target of targets) {
+        const lang = toLang(target.language);
+        byLang.set(lang, [...(byLang.get(lang) ?? []), target.token]);
+    }
+    const sentAt = new Date().toISOString();
+    const result = { success: 0, failure: 0, invalidTokens: [] as string[] };
+    for (const [lang, tokens] of byLang) {
+        const { title, body } = notification.text(lang);
+        const sent = await sendAndroid(tokens, {
+            data: {
+                type: notification.kind,
+                title,
+                body,
+                channel: notification.channel,
+                target: notification.target,
+                sentAt,
+                dispatchId: String(dispatchId),
+                ...notification.extra,
+            },
+            priority: notification.priority,
+            ttlSeconds: Math.max(0, Math.round(notification.ttlSeconds)),
+            collapseKey: notification.collapseKey,
+        });
+        result.success += sent.success;
+        result.failure += sent.failure;
+        result.invalidTokens.push(...sent.invalidTokens);
+    }
 
     await notificationRepository.invalidateTokens(result.invalidTokens);
     await notificationRepository.finishDispatch(dispatchId, {

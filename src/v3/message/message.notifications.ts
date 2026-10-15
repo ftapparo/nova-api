@@ -2,6 +2,7 @@ import logger from '../../core/utils/logger';
 import * as messageRepository from '../../core/repositories/message.repository';
 import type { MessageCategory } from '../../core/repositories/message.repository';
 import { notifySafely } from '../notification/notification.service';
+import type { Lang } from '../shared/i18n';
 
 // =============================================================================
 // Push de comunicado novo (decisão de 13/10/2026, que substitui "comunicado
@@ -16,11 +17,11 @@ const TICK_MS = 60_000;
 const BODY_PREVIEW_LENGTH = 120;
 const MAX_TTL_SECONDS = 3 * 24 * 60 * 60;
 
-const CATEGORY_NAMES: Record<MessageCategory, string> = {
-    manutencao: 'Manutenção',
-    comunicado: 'Comunicado',
-    aviso: 'Aviso',
-    urgente: 'Urgente',
+const CATEGORY_NAMES: Record<MessageCategory, Record<Lang, string>> = {
+    manutencao: { 'pt-BR': 'Manutenção', en: 'Maintenance', es: 'Mantenimiento' },
+    comunicado: { 'pt-BR': 'Comunicado', en: 'Announcement', es: 'Comunicado' },
+    aviso: { 'pt-BR': 'Aviso', en: 'Notice', es: 'Aviso' },
+    urgente: { 'pt-BR': 'Urgente', en: 'Urgent', es: 'Urgente' },
 };
 
 const preview = (text: string) => {
@@ -36,8 +37,11 @@ const tick = async () => {
             dedupeKey: `message.published:${message.id}`,
             audience: { kind: 'staff+residents' },
             preference: 'messages',
-            title: message.title,
-            body: `${message.label ?? CATEGORY_NAMES[message.category]}: ${preview(message.body)}`,
+            // O texto é do síndico e segue como foi escrito; só o nome da categoria acompanha o idioma.
+            text: (lang) => ({
+                title: message.title,
+                body: `${message.label ?? CATEGORY_NAMES[message.category][lang]}: ${preview(message.body)}`,
+            }),
             channel: 'messages',
             priority: message.category === 'urgente' ? 'high' : 'normal',
             ttlSeconds: Math.min(MAX_TTL_SECONDS, untilExpiry),

@@ -1,8 +1,10 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { successResponseSchema } from '../shared/response';
-import { callService, sendServiceResult } from '../shared/service-proxy';
+import { callService, sendServiceResult, type ServiceCallResult } from '../shared/service-proxy';
+import { resolveLang } from '../shared/i18n';
+import { localizeCie } from './cie.i18n';
 import { requireRoleOrResident } from '../residence/residence.guard';
 import {
     activeEventsDataSchema,
@@ -23,6 +25,10 @@ import {
 // Chamado pelo nome do serviço na rede Docker interna (nova-network),
 // mesmo padrão que o CIE já usa para chamar de volta a nova-api
 // (MAIN_API_BASE_URL=http://nova-api:3030).
+
+// Rótulos interpretados pelo nova-cie (em português) no idioma do app.
+const localized = <T>(request: FastifyRequest, result: ServiceCallResult<T>): ServiceCallResult<T> =>
+    result.ok ? { ok: true, data: localizeCie(result.data, resolveLang(request.headers['accept-language'])) } : result;
 
 // Lidas dentro das funções (não no topo do módulo): imports são
 // resolvidos antes de dotenv.config() rodar em server.ts, então uma
@@ -53,40 +59,40 @@ export async function cieRoutes(app: FastifyInstance) {
     typedApp.get('/cie/status', {
         onRequest: cieReadAccess,
         schema: { response: { 200: successResponseSchema(cieStateSnapshotSchema) } },
-    }, async (_request, reply) => {
+    }, async (request, reply) => {
         const result = await callService<z.infer<typeof cieStateSnapshotSchema>>({
             baseUrl: resolveCieV3BaseUrl(),
             token: resolveCieServiceToken(),
             path: '/v3/api/cie/status',
             timeoutMs: resolveCieTimeout(),
         });
-        sendServiceResult(reply, result);
+        sendServiceResult(reply, localized(request, result));
     });
 
     typedApp.get('/cie/panel', {
         onRequest: cieReadAccess,
         schema: { response: { 200: successResponseSchema(panelDataSchema) } },
-    }, async (_request, reply) => {
+    }, async (request, reply) => {
         const result = await callService<z.infer<typeof panelDataSchema>>({
             baseUrl: resolveCieV3BaseUrl(),
             token: resolveCieServiceToken(),
             path: '/v3/api/cie/panel',
             timeoutMs: resolveCieTimeout(),
         });
-        sendServiceResult(reply, result);
+        sendServiceResult(reply, localized(request, result));
     });
 
     typedApp.get('/cie/alarms/active', {
         onRequest: cieReadAccess,
         schema: { response: { 200: successResponseSchema(alarmActiveSnapshotSchema) } },
-    }, async (_request, reply) => {
+    }, async (request, reply) => {
         const result = await callService<z.infer<typeof alarmActiveSnapshotSchema>>({
             baseUrl: resolveCieV3BaseUrl(),
             token: resolveCieServiceToken(),
             path: '/v3/api/cie/alarms/active',
             timeoutMs: resolveCieTimeout(),
         });
-        sendServiceResult(reply, result);
+        sendServiceResult(reply, localized(request, result));
     });
 
     typedApp.get('/cie/events/active', {
@@ -103,7 +109,7 @@ export async function cieRoutes(app: FastifyInstance) {
             params: request.query,
             timeoutMs: resolveCieTimeout(),
         });
-        sendServiceResult(reply, result);
+        sendServiceResult(reply, localized(request, result));
     });
 
     typedApp.get('/cie/logs', {
@@ -125,45 +131,45 @@ export async function cieRoutes(app: FastifyInstance) {
             params: request.query,
             timeoutMs: resolveCieLogsTimeout(),
         });
-        sendServiceResult(reply, result);
+        sendServiceResult(reply, localized(request, result));
     });
 
     typedApp.get('/cie/installation', {
         onRequest: cieReadAccess,
         schema: { response: { 200: successResponseSchema(installationDataSchema) } },
-    }, async (_request, reply) => {
+    }, async (request, reply) => {
         const result = await callService<z.infer<typeof installationDataSchema>>({
             baseUrl: resolveCieV3BaseUrl(),
             token: resolveCieServiceToken(),
             path: '/v3/api/cie/installation',
             timeoutMs: resolveCieTimeout(),
         });
-        sendServiceResult(reply, result);
+        sendServiceResult(reply, localized(request, result));
     });
 
     typedApp.get('/cie/counters/blocks', {
         onRequest: cieReadAccess,
         schema: { response: { 200: successResponseSchema(blockCountersSchema) } },
-    }, async (_request, reply) => {
+    }, async (request, reply) => {
         const result = await callService<z.infer<typeof blockCountersSchema>>({
             baseUrl: resolveCieV3BaseUrl(),
             token: resolveCieServiceToken(),
             path: '/v3/api/cie/counters/blocks',
             timeoutMs: resolveCieTimeout(),
         });
-        sendServiceResult(reply, result);
+        sendServiceResult(reply, localized(request, result));
     });
 
     typedApp.get('/cie/counters/outputs', {
         onRequest: cieReadAccess,
         schema: { response: { 200: successResponseSchema(outputCountersSchema) } },
-    }, async (_request, reply) => {
+    }, async (request, reply) => {
         const result = await callService<z.infer<typeof outputCountersSchema>>({
             baseUrl: resolveCieV3BaseUrl(),
             token: resolveCieServiceToken(),
             path: '/v3/api/cie/counters/outputs',
             timeoutMs: resolveCieTimeout(),
         });
-        sendServiceResult(reply, result);
+        sendServiceResult(reply, localized(request, result));
     });
 }

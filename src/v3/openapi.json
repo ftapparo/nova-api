@@ -3,7 +3,7 @@
   "info": {
     "title": "Nova API — v3",
     "version": "3.0.0",
-    "description": "API v3 - Condomínio Nova Residence"
+    "description": "API v3 - Condomínio Nova Residence. Idioma: envie Accept-Language (pt-BR, en ou es); error.detail, os rótulos da central e os textos do push saem nesse idioma, error.title não muda. Sem cabeçalho = português."
   },
   "tags": [
     {
@@ -1159,6 +1159,15 @@
             "type": "boolean",
             "default": true,
             "description": "Canal do alarme de incêndio não bloqueado (só diagnóstico)."
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "pt-BR",
+              "en",
+              "es"
+            ],
+            "description": "Idioma do app: o push deste aparelho sai nele. Ausente mantém o gravado (padrão pt-BR)."
           }
         }
       },

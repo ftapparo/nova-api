@@ -64,6 +64,8 @@ Branch on `error.type` (closed set), never on `detail` text:
 
 Stable `title`s that carry meaning (documented, safe to compare): `"Troca de senha obrigatória"` (403), `"Confirmação necessária"` (409, vehicle TAG swap) and the exhaust location refusals (403, §5.1): `"Localização necessária"`, `"Localização simulada"`, `"Localização imprecisa"`, `"Fora da área do condomínio"`. Include `meta.requestId` in bug reports.
 
+**Language.** Send `Accept-Language` with the app language (`pt-BR`, `en` or `es`) on every request. The API answers in it the texts it generates: `error.detail`, the fire panel labels (`event.label`, `display.title`, `display.place.*Label` and `area`, `situation.label`) and the push texts (by the `language` stored at device registration, §5). It does **not** translate `error.title` (stable keys above), messages written by the síndico, panel names (`deviceName`, `zoneName`, rules, `areaDetail` free text) or the legal documents (the official text is Portuguese). Missing header or another language = Portuguese.
+
 A suggested Kotlin mapping: one `sealed class ApiError` in `core/network`, built from `type` + `status` + `detail` + `validationErrors` + `Retry-After`; features only see typed results.
 
 ---
@@ -285,7 +287,7 @@ The app uses **only** `/notifications/*`. `/push/*` is the web panel's Web Push 
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| PUT | `/notifications/devices/android` | `{ installationId, token, appVersion?, osVersion?, deviceModel?, notificationsEnabled, alarmChannelEnabled? }` | `{ platform, installationId, notificationsEnabled, alarmChannelEnabled, registeredAt }` |
+| PUT | `/notifications/devices/android` | `{ installationId, token, appVersion?, osVersion?, deviceModel?, notificationsEnabled, alarmChannelEnabled?, language? }` | `{ platform, installationId, notificationsEnabled, alarmChannelEnabled, registeredAt }` |
 | DELETE | `/notifications/devices/android/{installationId}` | — | `null` (idempotent; only removes this account's device) |
 | PUT / DELETE | `/notifications/devices/ios`, `/notifications/devices/ios/{installationId}` | same body | `null` — **reserved**: nothing is stored until the iOS app exists |
 | GET | `/notifications/preferences` | — | `{ exhaustExpiring, exhaustExpiringMinutes, exhaustOff, messages, cieStaffAlerts }` |
@@ -299,6 +301,7 @@ The app uses **only** `/notifications/*`. `/push/*` is the web panel's Web Push 
 - **Logout**: call `DELETE …/android/{installationId}` **before** `/auth/logout` (it needs the access token). `DELETE /auth/me` removes the devices on the server.
 - Limits: 30 registrations per hour and 3 tests per 10 min per account (429 + `Retry-After`).
 - `notificationsEnabled: false` → the server sends nothing to that device. `alarmChannelEnabled` is stored for diagnosis only.
+- `language` (`pt-BR` | `en` | `es`): the push `title`/`body` for this device come in this language (a message keeps the síndico's text; only the category name follows the language). Omitted keeps the stored value (default `pt-BR`). Register again when the user changes the app language.
 
 **Payload (Android).** Data-only message — the app builds the notification, picks the channel and discards the push when there is no session on the device. All values are strings:
 

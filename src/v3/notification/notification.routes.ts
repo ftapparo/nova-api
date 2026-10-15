@@ -4,6 +4,7 @@ import { z } from 'zod';
 import logger from '../../core/utils/logger';
 import * as notificationRepository from '../../core/repositories/notification.repository';
 import { successResponseSchema } from '../shared/response';
+import { pick } from '../shared/i18n';
 import { requireAuth, requireRole } from '../shared/require-auth';
 import { AttemptLimiter } from '../shared/attempt-limiter';
 import { exhaustExpiringMinutes } from '../exhaust/exhaust.notifications';
@@ -70,6 +71,7 @@ export async function notificationRoutes(app: FastifyInstance) {
                 deviceModel: body.deviceModel ?? null,
                 notificationsEnabled: body.notificationsEnabled,
                 alarmChannelEnabled: body.alarmChannelEnabled,
+                language: body.language ?? null,
                 role: actor.role,
                 residentActive: await resolveResidentActive(actor.id),
             });
@@ -153,8 +155,13 @@ export async function notificationRoutes(app: FastifyInstance) {
                 kind: 'test',
                 dedupeKey: `test:${accountId}:${Date.now()}`,
                 audience: { kind: 'accounts', accountIds: [accountId] },
-                title: 'Notificação de teste',
-                body: 'As notificações do Nova Residence estão funcionando neste aparelho.',
+                text: (lang) => ({
+                    title: pick(lang, 'Notificação de teste', { en: 'Test notification', es: 'Notificación de prueba' }),
+                    body: pick(lang, 'As notificações do Nova Residence estão funcionando neste aparelho.', {
+                        en: 'Nova Residence notifications are working on this device.',
+                        es: 'Las notificaciones de Nova Residence funcionan en este dispositivo.',
+                    }),
+                }),
                 channel: 'general',
                 priority: 'normal',
                 ttlSeconds: 10 * 60,
@@ -189,8 +196,15 @@ export async function notificationRoutes(app: FastifyInstance) {
                     dispatchKind: 'cie.alarm.resolved.test',
                     dedupeKey: `cie.alarm.resolved.test:${installationId}:${Date.now()}`,
                     audience: { kind: 'device', installationId },
-                    title: 'Central de incêndio normalizada (teste)',
-                    body: 'Teste do aviso de volta ao normal. Nenhum alarme real foi acionado.',
+                    text: (lang) => ({
+                        title: pick(lang, 'Central de incêndio normalizada (teste)', {
+                            en: 'Fire panel back to normal (test)', es: 'Central de incendios normalizada (prueba)',
+                        }),
+                        body: pick(lang, 'Teste do aviso de volta ao normal. Nenhum alarme real foi acionado.', {
+                            en: 'Test of the back-to-normal notice. No real alarm was triggered.',
+                            es: 'Prueba del aviso de vuelta a la normalidad. No se activó ninguna alarma real.',
+                        }),
+                    }),
                     channel: 'general',
                     priority: 'normal',
                     ttlSeconds: 6 * 60 * 60,
@@ -202,8 +216,13 @@ export async function notificationRoutes(app: FastifyInstance) {
                     dispatchKind: 'cie.alarm.test',
                     dedupeKey: `cie.alarm.test:${installationId}:${Date.now()}`,
                     audience: { kind: 'device', installationId },
-                    title: 'Alarme de incêndio (teste)',
-                    body: 'Teste do alerta prioritário. Nenhum alarme real foi acionado.',
+                    text: (lang) => ({
+                        title: pick(lang, 'Alarme de incêndio (teste)', { en: 'Fire alarm (test)', es: 'Alarma de incendio (prueba)' }),
+                        body: pick(lang, 'Teste do alerta prioritário. Nenhum alarme real foi acionado.', {
+                            en: 'Test of the priority alert. No real alarm was triggered.',
+                            es: 'Prueba de la alerta prioritaria. No se activó ninguna alarma real.',
+                        }),
+                    }),
                     channel: 'cie_alarm',
                     priority: 'high',
                     ttlSeconds: 30 * 60,

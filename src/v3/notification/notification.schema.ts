@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { LANGS } from '../shared/i18n';
 
 export const deviceBodySchema = z.object({
     /** UUID gerado pelo app na instalação; continua o mesmo quando o token FCM troca. */
@@ -12,6 +13,8 @@ export const deviceBodySchema = z.object({
     notificationsEnabled: z.boolean(),
     /** Canal do alarme de incêndio não bloqueado pelo usuário. */
     alarmChannelEnabled: z.boolean().default(true),
+    /** Idioma do app: o push deste aparelho sai nele. Ausente mantém o gravado (padrão pt-BR). */
+    language: z.enum(LANGS).optional(),
 });
 
 export const deviceParamsSchema = z.object({ installationId: z.uuid() });

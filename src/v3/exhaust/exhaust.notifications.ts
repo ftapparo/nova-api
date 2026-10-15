@@ -3,6 +3,7 @@ import { exhaustEvents, getExhaustMemory } from '../../core/services/exhaust.ser
 import { demoExhaustEvents, getDemoMemory, isDemoExhaust, listDemoExhaustIds } from './exhaust.demo';
 import * as notificationRepository from '../../core/repositories/notification.repository';
 import { notifySafely } from '../notification/notification.service';
+import { pick, type Lang } from '../shared/i18n';
 
 // =============================================================================
 // Avisos do exaustor no app: "faltam X minutos" e "desligado".
@@ -39,7 +40,11 @@ export const exhaustExpiringMinutes = (): number => {
  * "Torre A, final 4". O id "A4" confunde com o apartamento A-4 (o exaustor atende a prumada inteira:
  * A-114, A-124…), e o app não mostra esse id em lugar nenhum.
  */
-export const describeExhaust = (exhaustId: string) => `Torre ${exhaustId.slice(0, -1)}, final ${exhaustId.slice(-1)}`;
+export const describeExhaust = (exhaustId: string, lang: Lang = 'pt-BR') => {
+    const tower = exhaustId.slice(0, -1);
+    const final = exhaustId.slice(-1);
+    return pick(lang, `Torre ${tower}, final ${final}`, { en: `Tower ${tower}, line ${final}`, es: `Torre ${tower}, final ${final}` });
+};
 
 const sameCycle = (recorded: Date | null, expiresAt: number | null) =>
     recorded === null ? expiresAt === null : expiresAt !== null && recorded.getTime() === expiresAt;
@@ -90,9 +95,17 @@ const notifyExpiring = async (exhaustId: string, expiresAt: number, accountId: s
         dedupeKey: key,
         audience: { kind: 'accounts', accountIds: [accountId] },
         preference: 'exhaustExpiring',
-        title: 'Exaustor da churrasqueira',
-        body: `Faltam ${minutes} minuto${minutes === 1 ? '' : 's'} para desligar o exaustor da ${describeExhaust(exhaustId)}. `
-            + 'Se ainda estiver usando, reinicie o tempo no app.',
+        text: (lang) => ({
+            title: pick(lang, 'Exaustor da churrasqueira', { en: 'Barbecue exhaust fan', es: 'Extractor de la parrilla' }),
+            body: pick(lang,
+                `Faltam ${minutes} minuto${minutes === 1 ? '' : 's'} para desligar o exaustor da ${describeExhaust(exhaustId)}. `
+                    + 'Se ainda estiver usando, reinicie o tempo no app.', {
+                    en: `The exhaust fan (${describeExhaust(exhaustId, lang)}) turns off in ${minutes} minute${minutes === 1 ? '' : 's'}. `
+                        + 'If you are still using it, restart the timer in the app.',
+                    es: `Falta${minutes === 1 ? '' : 'n'} ${minutes} minuto${minutes === 1 ? '' : 's'} para que se apague el extractor (${describeExhaust(exhaustId, lang)}). `
+                        + 'Si todavía lo está usando, reinicie el tiempo en la app.',
+                }),
+        }),
         channel: 'exhaust',
         // Precisa chegar no horário mesmo com o aparelho em economia de bateria.
         priority: 'high',
@@ -115,10 +128,23 @@ const notifyOff = async (activation: notificationRepository.ExhaustActivation, c
         dedupeKey: key,
         audience: { kind: 'accounts', accountIds: [accountId] },
         preference: 'exhaustOff',
-        title: confirmed ? 'Exaustor desligado' : 'Não foi possível confirmar o desligamento',
-        body: confirmed
-            ? `O exaustor da ${describeExhaust(exhaustId)} foi desligado.`
-            : `Exaustor da ${describeExhaust(exhaustId)}: atualize o estado antes de tentar novamente.`,
+        text: (lang) => confirmed
+            ? {
+                title: pick(lang, 'Exaustor desligado', { en: 'Exhaust fan turned off', es: 'Extractor apagado' }),
+                body: pick(lang, `O exaustor da ${describeExhaust(exhaustId)} foi desligado.`, {
+                    en: `The exhaust fan (${describeExhaust(exhaustId, lang)}) has been turned off.`,
+                    es: `El extractor (${describeExhaust(exhaustId, lang)}) se apagó.`,
+                }),
+            }
+            : {
+                title: pick(lang, 'Não foi possível confirmar o desligamento', {
+                    en: 'Unable to confirm the shutdown', es: 'No fue posible confirmar el apagado',
+                }),
+                body: pick(lang, `Exaustor da ${describeExhaust(exhaustId)}: atualize o estado antes de tentar novamente.`, {
+                    en: `Exhaust fan (${describeExhaust(exhaustId, lang)}): refresh the status before trying again.`,
+                    es: `Extractor (${describeExhaust(exhaustId, lang)}): actualice el estado antes de intentarlo de nuevo.`,
+                }),
+            },
         channel: 'exhaust',
         priority: 'normal',
         ttlSeconds: 60 * 60,

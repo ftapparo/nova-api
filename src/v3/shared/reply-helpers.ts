@@ -9,6 +9,7 @@ import {
     type PaginationMeta,
     type SuccessResponse,
 } from './response';
+import { resolveLang, translateDetail } from './i18n';
 
 declare module 'fastify' {
     interface FastifyReply {
@@ -42,7 +43,9 @@ export const responseHelpersPlugin = fp(async (app: FastifyInstance) => {
     });
 
     app.decorateReply('fail', function (this: FastifyReply, input: BuildProblemInput) {
-        const problem = buildProblemDetails(input);
+        // Só o detail acompanha o idioma do app; title e type são o contrato estável.
+        const lang = resolveLang(this.request.headers['accept-language']);
+        const problem = buildProblemDetails({ ...input, detail: translateDetail(lang, input.detail) });
         const body: ErrorResponse = {
             success: false,
             error: problem,

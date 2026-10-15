@@ -21,7 +21,7 @@ export type RegisteredDevice = {
     registeredAt: Date;
 };
 
-export type DeviceTarget = { id: number; accountId: string; token: string };
+export type DeviceTarget = { id: number; accountId: string; token: string; language: string };
 
 export type NotificationPreference = {
     exhaustExpiring: boolean;
@@ -62,6 +62,8 @@ export const upsertDevice = async (input: {
     deviceModel: string | null;
     notificationsEnabled: boolean;
     alarmChannelEnabled: boolean;
+    /** Idioma do app; nulo (app anterior ao 3.1) mantém o gravado. */
+    language: string | null;
     role: string | null;
     residentActive: boolean | null;
 }): Promise<RegisteredDevice> => {
@@ -81,8 +83,8 @@ export const upsertDevice = async (input: {
         }>(
             `INSERT INTO notification_device (
                  account_id, platform, installation_id, token, app_version, os_version, device_model,
-                 notifications_enabled, alarm_channel_enabled, role, resident_active)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, false))
+                 notifications_enabled, alarm_channel_enabled, role, resident_active, language)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, false), COALESCE($12, 'pt-BR'))
              ON CONFLICT (platform, installation_id) DO UPDATE SET
                  account_id = EXCLUDED.account_id,
                  token = EXCLUDED.token,
@@ -92,6 +94,7 @@ export const upsertDevice = async (input: {
                  notifications_enabled = EXCLUDED.notifications_enabled,
                  alarm_channel_enabled = EXCLUDED.alarm_channel_enabled,
                  role = EXCLUDED.role,
+                 language = COALESCE($12, notification_device.language),
                  resident_active = COALESCE($11, CASE WHEN notification_device.account_id = EXCLUDED.account_id
                                                       THEN notification_device.resident_active ELSE false END),
                  audience_checked_at = CASE WHEN $11 IS NULL THEN notification_device.audience_checked_at ELSE now() END,
@@ -99,7 +102,8 @@ export const upsertDevice = async (input: {
                  invalidated_at = NULL
              RETURNING platform, installation_id, notifications_enabled, alarm_channel_enabled, last_seen_at`,
             [input.accountId, input.platform, input.installationId, input.token, input.appVersion, input.osVersion,
-                input.deviceModel, input.notificationsEnabled, input.alarmChannelEnabled, input.role, input.residentActive],
+                input.deviceModel, input.notificationsEnabled, input.alarmChannelEnabled, input.role, input.residentActive,
+                input.language],
         );
         await client.query('COMMIT');
         const row = rows[0];
@@ -161,15 +165,15 @@ export const listDeviceTargets = async (audience: DeviceAudience, preference?: P
     }
     const preferenceClause = preference ? `AND COALESCE(p.${PREFERENCE_COLUMNS[preference]}, true)` : '';
 
-    const { rows } = await pool.query<{ id: string; account_id: string; token: string }>(
-        `SELECT d.id, d.account_id, d.token
+    const { rows } = await pool.query<{ id: string; account_id: string; token: string; language: string }>(
+        `SELECT d.id, d.account_id, d.token, d.language
          FROM notification_device d
          LEFT JOIN notification_preference p ON p.account_id = d.account_id
          WHERE d.platform = 'android' AND d.invalidated_at IS NULL AND d.notifications_enabled
            AND ${audienceClause} ${preferenceClause}`,
         params,
     );
-    return rows.map((row) => ({ id: Number(row.id), accountId: row.account_id, token: row.token }));
+    return rows.map((row) => ({ id: Number(row.id), accountId: row.account_id, token: row.token, language: row.language }));
 };
 
 /** Tokens que o FCM declarou inválidos deixam de receber até o app registrar de novo. */
