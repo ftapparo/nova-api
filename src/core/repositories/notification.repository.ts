@@ -130,6 +130,7 @@ export const deleteDevice = async (accountId: string, platform: DevicePlatform, 
 export type DeviceAudience =
     | { kind: 'staff' }
     | { kind: 'staff+residents' }
+    | { kind: 'residents' }
     | { kind: 'accounts'; accountIds: string[] }
     | { kind: 'device'; installationId: string };
 
@@ -146,6 +147,10 @@ export const listDeviceTargets = async (audience: DeviceAudience, preference?: P
     } else if (audience.kind === 'staff+residents') {
         params = [STAFF_ROLES];
         audienceClause = '(d.role = ANY($1::text[]) OR d.resident_active)';
+    } else if (audience.kind === 'residents') {
+        // Quem é equipe e também morador recebe como equipe (alarme encerrado e normalização).
+        params = [STAFF_ROLES];
+        audienceClause = '(d.resident_active AND (d.role IS NULL OR NOT d.role = ANY($1::text[])))';
     } else if (audience.kind === 'device') {
         params = [audience.installationId];
         audienceClause = 'd.installation_id = $1';

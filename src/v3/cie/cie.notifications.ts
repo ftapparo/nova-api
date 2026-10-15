@@ -17,9 +17,16 @@ import { notifySafely, type AppNotification, type NotificationKind } from '../no
 // | sem contato por NOTIFY_CIE_OFFLINE_MINUTES | cie.offline    | equipe                   |
 // | volta ao normal depois de falha, supervisão, reinício ou sem contato | cie.normalized | equipe |
 //
-// Morador recebe só o alarme (decisão de 13/10/2026); a prioridade vem da
-// gravidade, nunca da localização. Alarme não depende de preferência: o
-// controle é do canal no aparelho.
+// | volta a "Sistema normal" depois de um alarme | cie.alarm.resolved | morador ativo (não equipe) |
+//
+// Morador recebe só o alarme e, depois dele, o aviso comum de volta ao normal
+// (decisões de 13/10 e 15/10/2026); falha, supervisão e demais ficam com a
+// equipe. A prioridade vem da gravidade, nunca da localização. Alarme não
+// depende de preferência: o controle é do canal no aparelho.
+//
+// "Sistema normal" é o mesmo critério da tela do app: sem alarme, falha,
+// supervisão, reinício nem falta de contato (bloqueio não conta). Se a API
+// reiniciar no meio do episódio, o aviso de volta ao normal se perde.
 //
 // Uma borda de descida só vale depois de 30 s estável, para uma oscilação do
 // contador não virar outro aviso. Ao subir a API com alarme ativo, o alarme é
@@ -53,6 +60,8 @@ let ready = false;
 let upstreamConnected = false;
 let panelConnected = true;
 let abnormalNotified = false;
+/** Um alarme foi enviado aos moradores e a volta ao normal ainda não. */
+let residentNormalPending = false;
 /** Itens ativos por tipo (alarme, falha, supervisão), do último cie.active.updated. */
 const activeItems = new Map<string, unknown[]>();
 
@@ -103,6 +112,7 @@ const staffNotice = (kind: NotificationKind, title: string, body: string, channe
 });
 
 const sendAlarm = () => {
+    residentNormalPending = true;
     const place = describePlace('alarme');
     void notifySafely({
         kind: 'cie.alarm',
@@ -159,6 +169,22 @@ const onFall = (flag: Flag) => {
             'A central não indica mais alarme ativo.', 'cie_status'));
     }
     const allClear = ['alarm', ...ABNORMAL_FLAGS].every((name) => !state(name as Flag).active);
+    if (residentNormalPending && allClear) {
+        residentNormalPending = false;
+        void notifySafely({
+            kind: 'cie.alarm.resolved',
+            dedupeKey: `cie.alarm.resolved:${Date.now()}`,
+            audience: { kind: 'residents' },
+            title: 'Central de incêndio normalizada',
+            body: 'O alarme foi encerrado e a central voltou ao estado normal.',
+            channel: 'general',
+            priority: 'normal',
+            ttlSeconds: 6 * 60 * 60,
+            // Mesma chave do alarme: no aparelho, substitui a notificação do alarme.
+            collapseKey: 'cie-alarm',
+            target: 'fire',
+        });
+    }
     if (abnormalNotified && allClear && ABNORMAL_FLAGS.includes(flag)) {
         abnormalNotified = false;
         void notifySafely(staffNotice('cie.normalized', 'Central de incêndio normalizada',

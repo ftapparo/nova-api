@@ -311,6 +311,7 @@ Extra fields: `exhaustId` (exhaust types), `messageId` and `category` (`message.
 | `type` | Who receives | FCM priority | `channel` |
 |---|---|---|---|
 | `cie.alarm` | staff + residents with an unblocked unit | high | `cie_alarm` (alarm sound) |
+| `cie.alarm.resolved` | residents with an unblocked unit who are not staff, once after each alarm, when the panel is back to normal (no alarm, failure, supervision, restart or loss of contact) | normal | `general` (same collapse key as the alarm) |
 | `cie.alarm.cleared`, `cie.failure`, `cie.supervision`, `cie.restarting`, `cie.offline` | staff only | normal | `cie_status` |
 | `cie.blocked`, `cie.normalized` | staff only | normal | `cie_info` (low importance) |
 | `exhaust.expiring` | owner of the current cycle only | high | `exhaust` |
@@ -319,7 +320,7 @@ Extra fields: `exhaustId` (exhaust types), `messageId` and `category` (`message.
 | `test` | the account that asked | normal | `general` |
 
 - The app must create these channel ids. `cie_alarm` has an alarm sound (`USAGE_ALARM`); a channel's sound cannot change after creation.
-- Fire alarm: one push per alarm episode (a counter dropping for less than 30 s is not a new episode). Residents get **only** `cie.alarm` from the panel. The alarm ignores preferences: the device channel is the user's control.
+- Fire alarm: one push per alarm episode (a counter dropping for less than 30 s is not a new episode). Residents get **only** `cie.alarm` and, after it, `cie.alarm.resolved` from the panel; failures, supervision and the rest stay with staff. The alarm ignores preferences: the device channel is the user's control.
 - `exhaust.expiring` goes out `NOTIFY_EXHAUST_EXPIRING_MINUTES` (server, default 15) before the auto-off. **Owner of the cycle** = the account of the last `POST /exhausts/{id}/on` through the app (turn on or restart timer); earlier accounts stop receiving as soon as someone else restarts. If the timer was changed outside the app (v2 web panel), nobody is notified.
 - `message.published`: when a message with `notify: true` (default) becomes visible, including scheduled ones when their time comes.
 - `ttl`: alarm 30 min, exhaust until the auto-off (1 h for "off"), messages up to 3 days, staff alerts 6 h. Delivery is not guaranteed in real time (battery savers): never promise an immediate warning in the UI.

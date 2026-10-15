@@ -10,6 +10,7 @@ import { sendAndroid } from './fcm.sender';
 // é a API, pelo papel e pela foto de "morador ativo" de cada aparelho:
 //   staff            porteiro, síndico e admin
 //   staff+residents  equipe + morador com unidade liberada
+//   residents        morador com unidade liberada que não é da equipe
 //   accounts         contas específicas (ex.: dono do ciclo do exaustor)
 // =============================================================================
 
@@ -17,6 +18,7 @@ import { sendAndroid } from './fcm.sender';
 export type NotificationKind =
     | 'cie.alarm'
     | 'cie.alarm.cleared'
+    | 'cie.alarm.resolved'
     | 'cie.failure'
     | 'cie.supervision'
     | 'cie.blocked'
