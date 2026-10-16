@@ -47,3 +47,26 @@ export const linkSchema = z.object({
     linkedBy: z.string(),
     linkedAt: z.iso.datetime(),
 });
+
+// Vínculo automático (CPF + celular). Os dois só servem para conferir o
+// cadastro e nunca são gravados.
+export const selfLinkCheckBodySchema = z.object({
+    cpf: z.string().trim().min(11).max(14),
+    phone: z.object({
+        /** DDI sem "+" (ex.: "55", "351"). */
+        ddi: z.string().trim().regex(/^\d{1,4}$/),
+        /** Número sem DDI; no Brasil, DDD + número. */
+        number: z.string().trim().min(6).max(20),
+    }),
+});
+
+export const selfLinkCheckSchema = z.object({
+    /** Token de uso único para confirmar o vínculo (10 minutos). */
+    confirmation: z.string(),
+    person: z.object({ nome: z.string(), cpfMasked: z.string().nullable() }),
+    units: z.array(residenceUnitSchema),
+});
+
+export const selfLinkConfirmBodySchema = z.object({
+    confirmation: z.string().min(10).max(100),
+});

@@ -86,6 +86,12 @@ const DETAILS: Record<string, Translations> = {
     'Conta não encontrada.': { en: 'Account not found.', es: 'Cuenta no encontrada.' },
     'Comunicado não encontrado.': { en: 'Announcement not found.', es: 'Comunicado no encontrado.' },
     'Um ou mais campos da requisição são inválidos.': { en: 'One or more request fields are invalid.', es: 'Uno o más campos de la solicitud no son válidos.' },
+    'Os dados informados não conferem com o cadastro do condomínio.': { en: 'The information provided does not match the condominium records.', es: 'Los datos informados no coinciden con el registro del condominio.' },
+    'Esta pessoa já está vinculada a outra conta. Procure a administração.': { en: 'This person is already linked to another account. Contact the management.', es: 'Esta persona ya está vinculada a otra cuenta. Comuníquese con la administración.' },
+    'Contas da equipe são vinculadas pela administração.': { en: 'Staff accounts are linked by the management.', es: 'Las cuentas del equipo las vincula la administración.' },
+    'Esta conta já está vinculada.': { en: 'This account is already linked.', es: 'Esta cuenta ya está vinculada.' },
+    'CPF inválido.': { en: 'Invalid CPF.', es: 'CPF inválido.' },
+    'A conferência expirou. Informe os dados novamente.': { en: 'The verification has expired. Enter your details again.', es: 'La verificación venció. Ingrese los datos nuevamente.' },
     'Erro inesperado ao chamar serviço interno.': { en: 'Unexpected error calling an internal service.', es: 'Error inesperado al llamar a un servicio interno.' },
 };
 

@@ -124,9 +124,16 @@ Right after login and on app resume, call `GET /residence/me`:
 
 | `status` | UI |
 |---|---|
-| `pendente` | "Cadastro em análise pela administração" — nothing enabled |
+| `pendente` | Account not linked yet: send residents (not staff) to the self-link flow below |
 | `ativo` | Show units; actions only for units with `blocked: false` |
 | `sem-unidade` | "Seu cadastro não possui unidade ativa" — nothing enabled |
+
+**Self-link (07b/07c, decided on 15/10/2026).** A pending resident links the account alone with CPF and mobile number, compared with the condo ERP and **never stored or logged**:
+
+1. `POST /residence/link/self/check` `{ cpf, phone: { ddi, number } }` → `{ confirmation, person: { nome, cpfMasked }, units }`. `ddi` without "+" (`55`, `351`…); for Brazil `number` is DDD + number (the API accepts the record with or without the ninth digit). Errors: 400 invalid CPF · 403 staff account · **404 "data do not match"** (same answer for unknown CPF, other number or no unit) · 409 account already linked, or person linked to another account (contact the management) · 429 + `Retry-After` (5 failed attempts per account and 20 per IP per hour).
+2. Show the person and units for confirmation; `POST /residence/link/self/confirm` `{ confirmation }` (single use, 10 min) → updated `Residence`. 404 = expired, start again.
+
+Self-links are stored with `linkedBy` = the account itself (visible in `GET /residence/links`); staff can undo them with `DELETE /residence/links/{accountId}`.
 
 `blockedReason`: `nao-morador` → "Você não consta como morador desta unidade." · `unidade-com-inquilino` → "Esta unidade possui inquilino cadastrado; o acesso é do inquilino." · `cadastro-inconsistente` → "Seu cadastro precisa ser regularizado na administração." Server caches up to 2 min.
 
@@ -276,6 +283,8 @@ Typical flow (same as the web panel): CPF query → list owner vehicles → plat
 | GET | `/residence/links` | — | Account ↔ person links |
 | PUT | `/residence/links/{accountId}` | `{ personSequencia }` | 404 person not found, 409 person already linked |
 | DELETE | `/residence/links/{accountId}` | — | |
+| POST | `/residence/link/self/check` | `{ cpf, phone: { ddi, number } }` | Self-link, any non-staff account (§4) |
+| POST | `/residence/link/self/confirm` | `{ confirmation }` | Self-link confirmation (§4) |
 
 ### 5.10 Own settings (everyone)
 

@@ -2003,6 +2003,257 @@
         }
       }
     },
+    "/v3/api/residence/link/self/check": {
+      "post": {
+        "tags": [
+          "Residência"
+        ],
+        "summary": "Vínculo automático: conferir CPF e celular",
+        "description": "O próprio morador informa CPF e celular (DDI + número), comparados com PESSOAS.CPF e PESSOAS.TELCELULAR do Freedom e descartados: nada é gravado nem registrado em log. A pessoa precisa ter ao menos uma unidade e não estar vinculada a outra conta. CPF inexistente, celular diferente ou pessoa sem unidade dão a mesma resposta 404, para não revelar se o CPF existe. Só as tentativas que falham contam no limite: 5 por conta e 20 por IP por hora. Contas da equipe recebem 403; conta já vinculada, 409. Devolve um token de uso único (10 minutos) para a confirmação.",
+        "operationId": "checkSelfLink",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cpf": {
+                    "type": "string",
+                    "description": "Com ou sem máscara.",
+                    "example": "123.456.789-09"
+                  },
+                  "phone": {
+                    "type": "object",
+                    "properties": {
+                      "ddi": {
+                        "type": "string",
+                        "pattern": "^\\d{1,4}$",
+                        "example": "55"
+                      },
+                      "number": {
+                        "type": "string",
+                        "description": "Sem DDI; no Brasil, DDD + número.",
+                        "example": "17991234567"
+                      }
+                    },
+                    "required": [
+                      "ddi",
+                      "number"
+                    ]
+                  }
+                },
+                "required": [
+                  "cpf",
+                  "phone"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pessoa encontrada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "confirmation": {
+                          "type": "string",
+                          "description": "Token de uso único, válido por 10 minutos."
+                        },
+                        "person": {
+                          "type": "object",
+                          "properties": {
+                            "nome": {
+                              "type": "string"
+                            },
+                            "cpfMasked": {
+                              "type": "string",
+                              "nullable": true,
+                              "example": "•••.456.789-••"
+                            }
+                          }
+                        },
+                        "units": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ResidenceUnit"
+                          }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "CPF inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Conta da equipe.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Os dados não conferem com o cadastro.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conta já vinculada, ou pessoa vinculada a outra conta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Muitas tentativas (Retry-After).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/api/residence/link/self/confirm": {
+      "post": {
+        "tags": [
+          "Residência"
+        ],
+        "summary": "Vínculo automático: confirmar",
+        "description": "Vincula a conta à pessoa conferida em /residence/link/self/check (linkedBy = a própria conta) e devolve a situação residencial atualizada. Token vencido, já usado ou de outra conta: 404.",
+        "operationId": "confirmSelfLink",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirmation": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "confirmation"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conta vinculada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Residence"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/ResponseMeta"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "Conferência vencida ou inválida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A pessoa foi vinculada a outra conta nesse meio-tempo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v3/api/residence/links": {
       "get": {
         "tags": ["Residência"],

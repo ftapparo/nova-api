@@ -25,6 +25,7 @@ import { wsRoutes } from './ws/ws.routes';
 import { startWsGateway } from './ws/ws.gateway';
 import { enforceUserOrService } from './shared/service-auth';
 import { auditCommand } from './shared/command-audit';
+import { auditRequest, startAuditRetention } from './shared/audit';
 import { registerErrorHandler, responseHelpersPlugin } from './shared/reply-helpers';
 import openapiDocument from './openapi.json';
 
@@ -90,6 +91,8 @@ export async function StartWebServerV3(): Promise<void> {
     // dos documentos legais (o aceite usa requireAuth explícito).
     await app.register(async (instance) => {
         instance.withTypeProvider<ZodTypeProvider>();
+        // Registro de atividades no Postgres (login, cadastro, recuperação, aceite).
+        instance.addHook('onResponse', auditRequest);
         await healthRoutes(instance);
         await authRoutes(instance);
         await legalRoutes(instance);
@@ -105,6 +108,8 @@ export async function StartWebServerV3(): Promise<void> {
         instance.addHook('onRequest', enforceUserOrService);
         // Comandos (POST/PUT/PATCH/DELETE) vão para o mesmo log da v2.
         instance.addHook('onResponse', auditCommand);
+        // Toda escrita também vai para o registro de atividades no Postgres.
+        instance.addHook('onResponse', auditRequest);
         await tagRoutes(instance);
         await tagCommandRoutes(instance);
         await cieRoutes(instance);
@@ -122,6 +127,8 @@ export async function StartWebServerV3(): Promise<void> {
         await notificationRoutes(instance);
         await wsRoutes(instance);
     }, { prefix: '/v3/api' });
+
+    startAuditRetention();
 
     const port = Number(process.env.PORT_V3 || 3031);
 

@@ -74,6 +74,7 @@ export async function authRoutes(app: FastifyInstance) {
             return sendAuthFailure(request, reply, result.reason);
         }
         loginFailuresByEmail.reset(emailKey);
+        request.audit = { accountId: result.data.user.id };
         return reply.ok(result.data);
     });
 
@@ -125,6 +126,7 @@ export async function authRoutes(app: FastifyInstance) {
         // Já devolve a sessão, para o app não precisar de um segundo passo.
         const session = await authService.login(email, password);
         if (!session.ok) return sendAuthFailure(request, reply, session.reason);
+        request.audit = { accountId: session.data.user.id };
         return reply.ok(session.data, { status: 201 });
     });
 
@@ -155,6 +157,7 @@ export async function authRoutes(app: FastifyInstance) {
                 logger.error(`[ApiV3] Falha ao gravar aceite do Termo no login Google de ${session.user.id}:`, error);
             }
         }
+        request.audit = { accountId: session.user.id };
         return reply.ok(session);
     });
 

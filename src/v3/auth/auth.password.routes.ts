@@ -76,6 +76,7 @@ const finishPasswordChange = async (
 
     const session = await authService.login(email, newPassword);
     if (!session.ok) return fail(request, reply, session);
+    request.audit = { accountId: session.data.user.id };
     return reply.ok(session.data);
 };
 
@@ -133,6 +134,7 @@ export async function passwordRoutes(app: FastifyInstance) {
 
         // Nunca logar a senha provisória — só quem resetou e de quem.
         logger.info(`[ApiV3] Senha da conta ${accountId} resetada por ${actor.id} (${actor.role})`);
+        request.audit = { target: { accountId } };
         return reply.ok({ accountId, email: target.data.email, temporaryPassword });
     });
 

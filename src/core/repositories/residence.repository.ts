@@ -91,6 +91,22 @@ export const findPerson = async (personSeq: number): Promise<PersonRecord | null
     return row ? { sequencia: Number(row.SEQUENCIA), nome: text(row.NOME), cpf: text(row.CPF) || null } : null;
 };
 
+export type PersonContactRecord = { sequencia: number; nome: string; cpf: string; celular: string };
+
+/**
+ * Pessoas com este CPF (só dígitos), com o celular do cadastro, para o
+ * vínculo automático. O cadastro pode ter mais de uma pessoa com o mesmo CPF.
+ */
+export const findPersonsByCpf = async (cpf: string): Promise<PersonContactRecord[]> => {
+    const rows = await executeQuery('SELECT SEQUENCIA, NOME, CPF, TELCELULAR FROM PESSOAS WHERE CPF = ?', [cpf]);
+    return (rows ?? []).map((row: Record<string, unknown>) => ({
+        sequencia: Number(row.SEQUENCIA),
+        nome: text(row.NOME),
+        cpf: text(row.CPF),
+        celular: text(row.TELCELULAR),
+    }));
+};
+
 /**
  * Ligações atuais da pessoa com unidades. Ligação removida pelo zelador
  * some da tabela (a linha de PESSOASVINC é apagada), então toda linha
