@@ -33,7 +33,9 @@ const CATALOG: CatalogEntry[] = [
     { document: 'termo-de-uso', title: 'Termo de Uso', publicPath: '/termos-de-uso', version: '1.1', effectiveDate: '2026-10-13', current: true },
     { document: 'politica-de-privacidade', title: 'Política de Privacidade', publicPath: '/politica-de-privacidade', version: '1.1', effectiveDate: '2026-10-13', current: false },
     // Política 1.2: dados do push nativo (token, instalação, modelo e versões), conteúdo dos avisos e retenção.
-    { document: 'politica-de-privacidade', title: 'Política de Privacidade', publicPath: '/politica-de-privacidade', version: '1.2', effectiveDate: '2026-10-14', current: true },
+    { document: 'politica-de-privacidade', title: 'Política de Privacidade', publicPath: '/politica-de-privacidade', version: '1.2', effectiveDate: '2026-10-14', current: false },
+    // Política 1.3: vinculação automática por CPF e celular (sem armazenar) e registro de atividades por 12 meses.
+    { document: 'politica-de-privacidade', title: 'Política de Privacidade', publicPath: '/politica-de-privacidade', version: '1.3', effectiveDate: '2026-10-16', current: true },
 ];
 
 export type LegalDocument = CatalogEntry & { sha256: string; pdf: Buffer; html: string };
