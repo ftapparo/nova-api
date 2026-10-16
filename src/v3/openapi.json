@@ -2080,8 +2080,10 @@
                         "person": {
                           "type": "object",
                           "properties": {
-                            "nome": {
-                              "type": "string"
+                            "nomeMasked": {
+                              "type": "string",
+                              "description": "Nome mascarado: duas letras de cada nome, partículas inteiras.",
+                              "example": "Fl**** Ed***** Ta*****"
                             },
                             "cpfMasked": {
                               "type": "string",

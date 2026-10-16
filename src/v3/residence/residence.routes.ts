@@ -18,7 +18,7 @@ import {
     selfLinkConfirmBodySchema,
 } from './residence.schema';
 import * as residenceService from './residence.service';
-import { createConfirmation, phoneMatches, takeConfirmation } from './residence.self-link';
+import { createConfirmation, maskName, phoneMatches, takeConfirmation } from './residence.self-link';
 
 // Vínculo automático: só as conferências que falham contam (erro de digitação
 // do próprio morador não deve travar quem acerta na segunda vez).
@@ -110,7 +110,7 @@ export async function residenceRoutes(app: FastifyInstance) {
         request.audit = { action: 'residence.self_link.check', outcome: 'matched', details: { personSeq: person.sequencia } };
         return reply.ok({
             confirmation: createConfirmation(actor.id, person.sequencia),
-            person: { nome: person.nome, cpfMasked: residenceService.maskCpf(person.cpf) },
+            person: { nomeMasked: maskName(person.nome), cpfMasked: residenceService.maskCpf(person.cpf) },
             units,
         });
     });

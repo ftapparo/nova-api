@@ -15,6 +15,22 @@ import { randomBytes } from 'node:crypto';
 
 const onlyDigits = (value: string) => value.replace(/\D/g, '');
 
+// Partículas ficam como estão: mascará-las não protege nada e só dificulta a leitura.
+const NAME_PARTICLES = new Set(['da', 'das', 'de', 'do', 'dos', 'e']);
+
+/**
+ * "FLAVIO EDUARDO DE SOUZA" → "Fl**** Ed***** de So***": a conferência do vínculo (07c) não pode mostrar
+ * o nome inteiro a quem só sabe o CPF e o celular de outra pessoa. Duas letras de cada nome bastam para o
+ * morador reconhecer o próprio cadastro.
+ */
+export const maskName = (name: string): string => name.trim().toLowerCase().split(/\s+/).filter(Boolean)
+    .map((word) => {
+        if (NAME_PARTICLES.has(word)) return word;
+        const visible = word.length <= 2 ? 1 : 2;
+        return word.charAt(0).toUpperCase() + word.slice(1, visible) + '*'.repeat(Math.max(1, word.length - visible));
+    })
+    .join(' ');
+
 /** O celular digitado (DDI + número) corresponde ao do cadastro? */
 export const phoneMatches = (storedRaw: string, ddiRaw: string, numberRaw: string): boolean => {
     const stored = onlyDigits(storedRaw);

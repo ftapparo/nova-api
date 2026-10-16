@@ -63,7 +63,8 @@ export const selfLinkCheckBodySchema = z.object({
 export const selfLinkCheckSchema = z.object({
     /** Token de uso único para confirmar o vínculo (10 minutos). */
     confirmation: z.string(),
-    person: z.object({ nome: z.string(), cpfMasked: z.string().nullable() }),
+    /** Nome e CPF mascarados: a conferência não revela o cadastro inteiro a quem só sabe CPF e celular. */
+    person: z.object({ nomeMasked: z.string(), cpfMasked: z.string().nullable() }),
     units: z.array(residenceUnitSchema),
 });
 
