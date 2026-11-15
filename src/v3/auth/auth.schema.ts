@@ -53,6 +53,23 @@ export const signupBodySchema = createUserBodySchema.omit({ role: true }).extend
     acceptedTermsVersion: z.string().min(1).max(20),
 });
 
+export const accountParamsSchema = z.object({
+    accountId: z.uuid(),
+});
+
+// Troca de papel de uma conta existente. null tira o papel: a conta volta a
+// ser comum e o acesso passa a depender só do vínculo com a unidade. Sem
+// 'morador': papel de morador gravado não libera nada (ver require-auth).
+export const updateUserBodySchema = z.object({
+    role: z.enum(APP_ROLES).exclude(['morador']).nullable(),
+});
+
+// Mesmo desenho de DELETE /auth/me: confirmação explícita no corpo, para uma
+// chamada montada errada não apagar uma conta.
+export const deleteUserBodySchema = z.object({
+    confirm: z.literal(true),
+});
+
 export const listUsersQuerySchema = z.object({
     page: z.coerce.number().int().positive().default(1),
     perPage: z.coerce.number().int().min(1).max(100).default(50),

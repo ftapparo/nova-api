@@ -6,9 +6,9 @@ import { extractBearerToken, requireAuth, requireRole, revokeAccountTokens } fro
 import { deleteAccountData } from '../../core/repositories/account.repository';
 import { invalidatePerson } from '../residence/residence.service';
 import logger from '../../core/utils/logger';
-import { authUserSchema, createUserBodySchema, googleLoginBodySchema, listUsersQuerySchema, loginBodySchema, refreshBodySchema, sessionDataSchema, sessionUserSchema, signupBodySchema } from './auth.schema';
+import { accountParamsSchema, authUserSchema, createUserBodySchema, deleteUserBodySchema, googleLoginBodySchema, listUsersQuerySchema, loginBodySchema, refreshBodySchema, sessionDataSchema, sessionUserSchema, signupBodySchema, updateUserBodySchema, type AuthUser } from './auth.schema';
 import * as authService from './auth.service';
-import { passwordRoutes } from './auth.password.routes';
+import { canManageAccount, passwordRoutes } from './auth.password.routes';
 import { loginByIp, loginFailuresByEmail, normalizeEmailKey, resolveClientIp, signupByIp } from './auth.rate-limit';
 import { currentTermsVersion, mustAcceptTermsSafe, recordTermsAcceptance } from '../legal/legal.acceptance';
 
@@ -17,6 +17,8 @@ import { currentTermsVersion, mustAcceptTermsSafe, recordTermsAcceptance } from 
 // mesmo com AUTH_ENFORCE=false. /signup é o cadastro público do morador.
 // /users (listar e criar contas) exige síndico ou admin; só admin cria admin. O primeiro
 // admin é promovido direto no banco (auth.users.raw_app_meta_data).
+// /users/:accountId (trocar papel, excluir) segue a hierarquia do reset de
+// senha e nunca age sobre a própria conta de quem chama.
 
 const sendAuthFailure = (request: FastifyRequest, reply: FastifyReply, reason: authService.AuthFailure) => {
     if (reason === 'rate-limited') {
@@ -46,6 +48,31 @@ const sendCreateUserFailure = (
         return reply.fail({ type: 'validation-error', detail: failure.detail ?? 'Dados recusados pelo serviço de autenticação.', instance: request.url });
     }
     return reply.fail({ type: 'upstream-error', detail: 'Serviço de autenticação indisponível.', instance: request.url, status: 503 });
+};
+
+/**
+ * Conta de outra pessoa que o ator pode gerenciar, ou null com a recusa já
+ * respondida. A própria conta fica de fora: é o que garante que sempre sobra
+ * um admin (ninguém se rebaixa nem se exclui) e que ninguém se promove.
+ */
+const findManageableAccount = async (request: FastifyRequest, reply: FastifyReply, accountId: string): Promise<AuthUser | null> => {
+    const actor = request.actor!;
+    if (actor.id === accountId) {
+        reply.fail({ type: 'forbidden', detail: 'Não é possível alterar a própria conta por esta rota.', instance: request.url });
+        return null;
+    }
+
+    const target = await authService.getUser(accountId);
+    if (!target.ok) {
+        if (target.reason === 'not-found') reply.fail({ type: 'not-found', detail: 'Conta não encontrada.', instance: request.url });
+        else sendAuthFailure(request, reply, target.reason);
+        return null;
+    }
+    if (!canManageAccount(actor, target.data.role)) {
+        reply.fail({ type: 'forbidden', detail: 'Acesso negado.', instance: request.url });
+        return null;
+    }
+    return target.data;
 };
 
 export async function authRoutes(app: FastifyInstance) {
@@ -253,6 +280,65 @@ export async function authRoutes(app: FastifyInstance) {
         const result = await authService.listUsers(request.query.page, request.query.perPage);
         if (!result.ok) return sendAuthFailure(request, reply, result.reason);
         return reply.ok(result.data);
+    });
+
+    typedApp.patch('/auth/users/:accountId', {
+        onRequest: [requireAuth, requireRole('sindico', 'admin')],
+        schema: {
+            params: accountParamsSchema,
+            body: updateUserBodySchema,
+            response: { 200: successResponseSchema(authUserSchema) },
+        },
+    }, async (request, reply) => {
+        const actor = request.actor!;
+        const { role } = request.body;
+        // Mesma trava da criação: só admin concede o papel de admin.
+        if (role === 'admin' && actor.role !== 'admin') {
+            return reply.fail({ type: 'forbidden', detail: 'Acesso negado.', instance: request.url });
+        }
+
+        const target = await findManageableAccount(request, reply, request.params.accountId);
+        if (!target) return reply;
+
+        const updated = await authService.adminUpdateUser(target.id, { appMetadata: { role } });
+        if (!updated.ok) return sendCreateUserFailure(request, reply, updated);
+
+        // O papel viaja dentro do access token: um token já emitido segue com
+        // o papel antigo até expirar (15 min), mesmo trade-off do reset de
+        // senha. Revogar os tokens da conta aqui também barraria, pelo mesmo
+        // tempo, a sessão nova que ela abrir com o papel certo.
+        logger.info(`[ApiV3] Papel da conta ${target.id} alterado de ${target.role} para ${role} por ${actor.id} (${actor.role})`);
+        request.audit = { target: { accountId: target.id }, details: { from: target.role, to: role } };
+        return reply.ok({ ...target, role });
+    });
+
+    // Exclusão pela administração. Apaga o mesmo que a exclusão da própria
+    // conta (DELETE /auth/me) e conserva o mesmo: aceite do Termo e logs.
+    typedApp.delete('/auth/users/:accountId', {
+        onRequest: [requireAuth, requireRole('sindico', 'admin')],
+        schema: {
+            params: accountParamsSchema,
+            body: deleteUserBodySchema,
+            response: { 200: successResponseSchema(z.null()) },
+        },
+    }, async (request, reply) => {
+        const actor = request.actor!;
+        const target = await findManageableAccount(request, reply, request.params.accountId);
+        if (!target) return reply;
+
+        let loginFailure: authService.AuthFailure | null = null;
+        const deleted = await deleteAccountData(target.id, async () => {
+            const result = await authService.deleteUser(target.id);
+            if (!result.ok) loginFailure = result.reason;
+            return result.ok;
+        });
+        if (!deleted) return sendAuthFailure(request, reply, loginFailure ?? 'unavailable');
+
+        revokeAccountTokens(target.id);
+        if (deleted.personSeq !== null) invalidatePerson(deleted.personSeq);
+        logger.info(`[ApiV3] Conta ${target.id} (papel ${target.role}) excluída por ${actor.id} (${actor.role})`);
+        request.audit = { target: { accountId: target.id } };
+        return reply.ok(null);
     });
 
     await passwordRoutes(app);

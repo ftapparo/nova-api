@@ -39,10 +39,11 @@ const generateTemporaryPassword = (): string =>
 
 // Hierarquia do reset: quem recebe a senha provisória assume a conta, então
 // ninguém reseta conta de nível igual ou maior que o seu — senão o porteiro
-// tomaria a conta de um admin. Admin reseta qualquer uma.
+// tomaria a conta de um admin. Admin reseta qualquer uma. A mesma regra vale
+// para trocar o papel e excluir a conta de outra pessoa (auth.routes.ts).
 const ROLE_RANK: Record<AppRole, number> = { morador: 0, porteiro: 1, sindico: 2, admin: 3 };
 const rankOf = (role: AppRole | null) => (role ? ROLE_RANK[role] : 0);
-const canReset = (actor: Actor, targetRole: AppRole | null) =>
+export const canManageAccount = (actor: Actor, targetRole: AppRole | null) =>
     actor.role === 'admin' || rankOf(actor.role) > rankOf(targetRole);
 
 const fail = (request: FastifyRequest, reply: FastifyReply, failure: { reason: string; detail?: string }) => {
@@ -121,7 +122,7 @@ export async function passwordRoutes(app: FastifyInstance) {
                 ? reply.fail({ type: 'not-found', detail: 'Conta não encontrada.', instance: request.url })
                 : fail(request, reply, target);
         }
-        if (!canReset(actor, target.data.role)) {
+        if (!canManageAccount(actor, target.data.role)) {
             return reply.fail({ type: 'forbidden', detail: 'Acesso negado.', instance: request.url });
         }
 

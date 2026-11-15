@@ -2,7 +2,7 @@
 
 Audience: the agent/developer building the Android app (Kotlin). This file explains what the backend offers today and how to use it. The OpenAPI spec next to this file (`openapi.json`, served live at `GET <V3_BASE_URL>/v3/apispec_1.json` and `/v3/swagger` while `SWAGGER_V3_ENABLED=true`) is the source of truth for exact field shapes — when they disagree, the spec wins.
 
-Last updated: 2026-10-14 (exhaust `location` and condo area check).
+Last updated: 2026-11-12 (change role and delete accounts, §5.9).
 
 ---
 
@@ -151,6 +151,7 @@ Self-links are stored with `linkedBy` = the account itself (visible in `GET /res
 | CPF/plate/TAG queries, vehicles | — | ✓ | ✓ | ✓ |
 | Command history | — | ✓ | ✓ | ✓ |
 | Accounts and links, list users | — | — | ✓ | ✓ |
+| Change role, delete account | — | — | below síndico | anyone but self |
 | Staff password reset | — | residents | residents + porteiros | anyone |
 | Web Push broadcast (web panel) | — | — | ✓ | ✓ |
 | Own settings, device registration and push preferences, WebSocket | ✓ | ✓ | ✓ | ✓ |
@@ -279,6 +280,8 @@ Typical flow (same as the web panel): CPF query → list owner vehicles → plat
 |---|---|---|---|
 | GET | `/auth/users?page=1&perPage=50` | — | Accounts |
 | POST | `/auth/users` | `{ email, password, role }` | 201 (only admin creates admin) |
+| PATCH | `/auth/users/{accountId}` | `{ role }` (`porteiro` \| `sindico` \| `admin` \| `null`) | `AuthUser` with the new role. 403 = own account, an account of equal or higher level, or a non-admin granting `admin`; 404 = account not found. An access token already issued keeps the old role until it expires (15 min) |
+| DELETE | `/auth/users/{accountId}` | `{ confirm: true }` | `null` — deletes another person's account (same data as `DELETE /auth/me`). Same 403/404 rules; 503 = nothing was deleted |
 | POST | `/auth/password/staff-reset` | `{ accountId }` or `{ personSequencia }` | `{ accountId, email, temporaryPassword }` — show once, never store/log |
 | GET | `/residence/links` | — | Account ↔ person links |
 | PUT | `/residence/links/{accountId}` | `{ personSequencia }` | 404 person not found, 409 person already linked |

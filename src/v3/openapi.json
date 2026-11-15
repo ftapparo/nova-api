@@ -1554,6 +1554,100 @@
         }
       }
     },
+    "/v3/api/auth/users/{accountId}": {
+      "patch": {
+        "tags": ["Auth"],
+        "summary": "Trocar o papel de uma conta (síndico/admin)",
+        "description": "Define o papel de equipe de uma conta existente, ou `null` para tirar o papel (a conta volta a ser comum). Só admin concede `admin`. Ninguém altera a própria conta por aqui, e ninguém altera conta de nível igual ou maior que o seu (admin altera qualquer uma). O papel vai dentro do access token: um token já emitido segue com o papel antigo até expirar (15 min).",
+        "operationId": "authUpdateUser",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": { "type": "string", "nullable": true, "enum": ["porteiro", "sindico", "admin", null] }
+                },
+                "required": ["role"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conta com o papel novo.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthUserResponse" } } }
+          },
+          "400": {
+            "description": "Dados de entrada inválidos.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Papel sem permissão, conta de nível igual ou maior, ou a própria conta.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "404": {
+            "description": "Conta não encontrada.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Auth"],
+        "summary": "Excluir uma conta (síndico/admin)",
+        "description": "Exclui o login e os dados da conta de outra pessoa: vínculo com o cadastro, preferências, inscrições de push, aparelhos e leituras de comunicados. Conserva o aceite do Termo e os logs de comando, como em `DELETE /auth/me`. Mesmas regras da troca de papel: nunca a própria conta, nunca conta de nível igual ou maior (admin exclui qualquer uma). O access token da conta excluída passa a ser recusado.",
+        "operationId": "authDeleteUser",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "accountId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "confirm": { "type": "boolean", "enum": [true] } },
+                "required": ["confirm"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conta excluída.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LogoutResponse" } } }
+          },
+          "400": {
+            "description": "Falta a confirmação (`confirm: true`).",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": {
+            "description": "Papel sem permissão, conta de nível igual ou maior, ou a própria conta.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "404": {
+            "description": "Conta não encontrada.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "503": {
+            "description": "Serviço de autenticação indisponível; nada foi excluído.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
     "/v3/api/auth/google": {
       "post": {
         "tags": ["Auth"],
