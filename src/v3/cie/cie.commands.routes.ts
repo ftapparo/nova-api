@@ -39,6 +39,9 @@ const resolveCommandTimeout = (): number => {
 const commandsByAccount = new AttemptLimiter(10, 60 * 1000);
 
 const staffOnly = [requireAuth, requireRole('porteiro', 'sindico', 'admin')];
+// Bloqueio e saída mexem direto na detecção e nas sirenes (um item bloqueado
+// deixa de gerar alarme): só admin (decisão de 16/11/2026).
+const adminOnly = [requireAuth, requireRole('admin')];
 
 const checkCommandLimit = (request: FastifyRequest, reply: FastifyReply, accountId: string) => {
     const retryAfter = commandsByAccount.retryAfter(accountId);
@@ -90,7 +93,7 @@ export async function cieCommandRoutes(app: FastifyInstance) {
     const typedApp = app.withTypeProvider<ZodTypeProvider>();
 
     typedApp.post('/cie/commands/block', {
-        onRequest: staffOnly,
+        onRequest: adminOnly,
         schema: {
             body: blockCommandBodySchema,
             response: { 200: successResponseSchema(commandResultSchema) },
@@ -102,7 +105,7 @@ export async function cieCommandRoutes(app: FastifyInstance) {
     });
 
     typedApp.post('/cie/commands/output', {
-        onRequest: staffOnly,
+        onRequest: adminOnly,
         schema: {
             body: outputCommandBodySchema,
             response: { 200: successResponseSchema(commandResultSchema) },

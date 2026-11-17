@@ -3189,7 +3189,8 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Bloquear ou desbloquear dispositivo",
+        "summary": "Bloquear ou desbloquear dispositivo (admin)",
+        "description": "Bloqueia ou desbloqueia dispositivo, zona, regra ou laço na central. Item bloqueado deixa de gerar alarme e falha. Só admin. `tipoBloqueio`: 0 dispositivo (inclui sirene, saída e atuador), 1 zona, 2 regra, 3 laço.",
         "operationId": "executeCieBlockCommand",
         "requestBody": {
           "required": true,
@@ -3278,7 +3279,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Apenas porteiro, síndico ou admin.",
+            "description": "Apenas admin.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3328,7 +3329,8 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Ativar ou desativar saída",
+        "summary": "Ativar ou desativar saída (admin)",
+        "description": "Aciona ou desliga uma saída da central (sirene, saída, atuador) pelo laço e endereço. Só admin.",
         "operationId": "executeCieOutputCommand",
         "requestBody": {
           "required": true,
@@ -3413,7 +3415,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "Apenas porteiro, síndico ou admin.",
+            "description": "Apenas admin.",
             "content": {
               "application/json": {
                 "schema": {

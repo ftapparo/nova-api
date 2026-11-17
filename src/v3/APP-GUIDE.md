@@ -2,7 +2,7 @@
 
 Audience: the agent/developer building the Android app (Kotlin). This file explains what the backend offers today and how to use it. The OpenAPI spec next to this file (`openapi.json`, served live at `GET <V3_BASE_URL>/v3/apispec_1.json` and `/v3/swagger` while `SWAGGER_V3_ENABLED=true`) is the source of truth for exact field shapes — when they disagree, the spec wins.
 
-Last updated: 2026-11-12 (change role and delete accounts, §5.9).
+Last updated: 2026-11-16 (fire panel block/output admin only; queries return long ERP texts as text).
 
 ---
 
@@ -144,7 +144,8 @@ Self-links are stored with `linkedBy` = the account itself (visible in `GET /res
 | Exhaust fans (own prumada / all 24) | ✓ own | ✓ all | ✓ all | ✓ all |
 | Exhaust module config | — | — | — | ✓ |
 | Fire panel — read | ✓ | ✓ | ✓ | ✓ |
-| Fire panel — commands | — | ✓ | ✓ | ✓ |
+| Fire panel — commands (buttons) | — | ✓ | ✓ | ✓ |
+| Fire panel — block/unblock, outputs | — | — | — | ✓ |
 | Gates (open/close/state/cache read) | — | ✓ | ✓ | ✓ |
 | Gate restart, cache clear, `keepOpen` | — | — | ✓ | ✓ |
 | Doors, access history/verify/register | — | ✓ | ✓ | ✓ |
@@ -206,8 +207,8 @@ Commands (staff only — hide for residents):
 | Method | Path | Body |
 |---|---|---|
 | POST | `/cie/commands/{action}` | `{ confirm? }` — actions: `silence`, `release`, `release-bip`, `release-siren`, `restart`, `brigade-siren`, `alarm-general`, `delay-siren`, `silence-bip`, `silence-siren` |
-| POST | `/cie/commands/block` | `{ tipoBloqueio, laco, numero, bloquear: 0\|1 }` |
-| POST | `/cie/commands/output` | `{ laco, numero, ativo: 0\|1 }` |
+| POST | `/cie/commands/block` | `{ tipoBloqueio, laco, numero, bloquear: 0\|1 }` — **admin only**. `tipoBloqueio`: 0 device (also siren, output, actuator), 1 zone, 2 rule, 3 loop |
+| POST | `/cie/commands/output` | `{ laco, numero, ativo: 0\|1 }` — **admin only** |
 
 - `alarm-general` and `restart` need `{ "confirm": true }` — show a second confirmation dialog first.
 - Several commands are toggles: **never retry automatically**. 409 = panel refused (show `detail`). 502/503/504 = panel unreachable.
