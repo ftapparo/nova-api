@@ -20,6 +20,20 @@ const staffOnly = [requireAuth, requireRole('porteiro', 'sindico', 'admin')];
 // documentado no openapi.json, aqui só se garante o envelope.
 const payloadSchema = successResponseSchema(z.record(z.string(), z.unknown()));
 
+// Campos de texto longo do ERP (observações, aviso para a portaria) chegam
+// do Firebird como Buffer, apesar do tipo no repositório: o executeQuery lê
+// todo BLOB como bytes. Sem converter, o JSON levava { type: "Buffer", data }.
+// O ERP grava em Windows-1252; se vier UTF-8 válido, vale UTF-8.
+const blobText = (value: unknown): string | null => {
+    if (value === null || value === undefined) return null;
+    if (!Buffer.isBuffer(value)) return String(value);
+    try {
+        return new TextDecoder('utf-8', { fatal: true }).decode(value);
+    } catch {
+        return new TextDecoder('windows-1252').decode(value);
+    }
+};
+
 type VehicleQueryRow = Awaited<ReturnType<typeof findVehicleByPlate>>[number];
 type PersonRow = Awaited<ReturnType<typeof findPersonByCpf>>[number];
 
@@ -39,8 +53,8 @@ const toOwner = (row: VehicleQueryRow | PersonRow) => ({
     classificacao: row.P_CLASSIFICACAO,
     empresa: row.P_EMPRESA,
     funcao: row.P_FUNCAO,
-    observacoes: row.P_OBSERVACOES,
-    alertaPortaria: row.P_ALERTAPORTARIA,
+    observacoes: blobText(row.P_OBSERVACOES),
+    alertaPortaria: blobText(row.P_ALERTAPORTARIA),
     prop: row.P_PROP,
     propTit: row.P_PROPTIT,
     loc: row.P_LOC,
@@ -55,7 +69,7 @@ const toUnit = (row: VehicleQueryRow | PersonRow) => ({
     quadra: row.U_QUADRA,
     lote: row.U_LOTE,
     status: row.U_STATUS,
-    observacoes: row.U_OBSERVACOES,
+    observacoes: blobText(row.U_OBSERVACOES),
     ramal: row.U_RAMAL,
     bloquear: row.U_BLOQUEAR,
 });
