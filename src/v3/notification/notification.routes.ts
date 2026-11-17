@@ -7,6 +7,7 @@ import { successResponseSchema } from '../shared/response';
 import { pick } from '../shared/i18n';
 import { requireAuth, requireRole } from '../shared/require-auth';
 import { AttemptLimiter } from '../shared/attempt-limiter';
+import * as authService from '../auth/auth.service';
 import { exhaustExpiringMinutes } from '../exhaust/exhaust.notifications';
 import { isPushAvailable } from './fcm.sender';
 import { notify, resolveResidentActive } from './notification.service';
@@ -14,6 +15,7 @@ import {
     deviceBodySchema,
     deviceParamsSchema,
     deviceSchema,
+    deviceSummarySchema,
     fireAlarmTestBodySchema,
     preferenceBodySchema,
     preferenceSchema,
@@ -172,6 +174,33 @@ export async function notificationRoutes(app: FastifyInstance) {
         } catch (error) {
             logger.error('[ApiV3 Push] Falha ao enviar notificação de teste:', error);
             return reply.fail({ type: 'internal-error', detail: 'Falha ao enviar a notificação de teste.', instance: request.url });
+        }
+    });
+
+    // Aparelhos registrados de todas as contas, para o admin escolher o destino
+    // do teste do alarme. Expõe dados de outras contas: só admin.
+    typedApp.get('/notifications/devices', {
+        onRequest: [requireAuth, requireRole('admin')],
+        schema: { response: { 200: successResponseSchema(z.array(deviceSummarySchema)) } },
+    }, async (request, reply) => {
+        try {
+            const devices = await notificationRepository.listDevices();
+            // Poucas contas com app: uma consulta ao GoTrue por conta. Falha
+            // numa delas não derruba a lista, só deixa o e-mail nulo.
+            const accountIds = [...new Set(devices.map((device) => device.accountId))];
+            const emails = new Map(await Promise.all(accountIds.map(async (id) => {
+                const user = await authService.getUser(id);
+                return [id, user.ok ? user.data.email : null] as const;
+            })));
+            return reply.ok(devices.map((device) => ({
+                ...device,
+                email: emails.get(device.accountId) ?? null,
+                createdAt: device.createdAt.toISOString(),
+                lastSeenAt: device.lastSeenAt.toISOString(),
+            })));
+        } catch (error) {
+            logger.error('[ApiV3 Push] Falha ao listar aparelhos:', error);
+            return reply.fail({ type: 'internal-error', detail: 'Falha ao listar os aparelhos.', instance: request.url });
         }
     });
 

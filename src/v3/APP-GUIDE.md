@@ -306,6 +306,7 @@ The app uses **only** `/notifications/*`. `/push/*` is the web panel's Web Push 
 | GET | `/notifications/preferences` | — | `{ exhaustExpiring, exhaustExpiringMinutes, exhaustOff, messages, cieStaffAlerts }` |
 | PUT | `/notifications/preferences` | `{ exhaustExpiring?, exhaustOff?, messages?, cieStaffAlerts? }` (at least one) | same as GET |
 | POST | `/notifications/test` | — | `{ targets, sent, failed }` — a test push to this account's devices; 503 when push is disabled on the server |
+| GET | `/notifications/devices` | — | `NotificationDeviceSummary[]` (account e-mail, model, app/OS version, `notificationsEnabled`, `alarmChannelEnabled`, `tokenValid`, `lastSeenAt`; no FCM token) — **admin only**, used by the web panel to pick the device for the fire-alarm test. Not used by the app |
 | POST | `/notifications/test/fire-alarm` | `{ installationId, type? }` (`alarm` default, or `resolved` for the "back to normal" notice) | `{ targets, sent, failed }` — **admin only**, for validation: the real `cie.alarm` push (same channel, priority and target, title "Alarme de incêndio (teste)") to one device of any account, without touching the panel; 404 when the device is missing or has notifications off. Not used by the app |
 
 **Registering the device**

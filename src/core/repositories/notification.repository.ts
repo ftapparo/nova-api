@@ -131,6 +131,53 @@ export const deleteDevice = async (accountId: string, platform: DevicePlatform, 
     return (result.rowCount ?? 0) > 0;
 };
 
+export type DeviceSummary = {
+    accountId: string;
+    platform: DevicePlatform;
+    installationId: string;
+    appVersion: string | null;
+    osVersion: string | null;
+    deviceModel: string | null;
+    language: string;
+    role: string | null;
+    notificationsEnabled: boolean;
+    alarmChannelEnabled: boolean;
+    /** Falso quando o FCM recusou o token: o aparelho só volta a receber quando o app registrar de novo. */
+    tokenValid: boolean;
+    createdAt: Date;
+    lastSeenAt: Date;
+};
+
+/** Todos os aparelhos registrados, vistos por último primeiro (tela de teste do admin). Sem o token FCM. */
+export const listDevices = async (): Promise<DeviceSummary[]> => {
+    const { rows } = await pool.query<{
+        account_id: string; platform: DevicePlatform; installation_id: string;
+        app_version: string | null; os_version: string | null; device_model: string | null;
+        language: string; role: string | null; notifications_enabled: boolean; alarm_channel_enabled: boolean;
+        invalidated_at: Date | null; created_at: Date; last_seen_at: Date;
+    }>(
+        `SELECT account_id, platform, installation_id, app_version, os_version, device_model, language, role,
+                notifications_enabled, alarm_channel_enabled, invalidated_at, created_at, last_seen_at
+         FROM notification_device
+         ORDER BY last_seen_at DESC`,
+    );
+    return rows.map((row) => ({
+        accountId: row.account_id,
+        platform: row.platform,
+        installationId: row.installation_id,
+        appVersion: row.app_version,
+        osVersion: row.os_version,
+        deviceModel: row.device_model,
+        language: row.language,
+        role: row.role,
+        notificationsEnabled: row.notifications_enabled,
+        alarmChannelEnabled: row.alarm_channel_enabled,
+        tokenValid: row.invalidated_at === null,
+        createdAt: row.created_at,
+        lastSeenAt: row.last_seen_at,
+    }));
+};
+
 export type DeviceAudience =
     | { kind: 'staff' }
     | { kind: 'staff+residents' }

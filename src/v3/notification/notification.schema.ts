@@ -54,6 +54,27 @@ export const fireAlarmTestBodySchema = z.object({
     type: z.enum(['alarm', 'resolved']).default('alarm'),
 });
 
+/** Aparelho registrado, para o admin escolher o destino do teste do alarme. Sem o token FCM. */
+export const deviceSummarySchema = z.object({
+    accountId: z.string(),
+    /** E-mail da conta no momento da consulta; nulo se a conta não existe mais ou o serviço de contas falhou. */
+    email: z.string().nullable(),
+    platform: z.enum(['android', 'ios']),
+    installationId: z.string(),
+    appVersion: z.string().nullable(),
+    osVersion: z.string().nullable(),
+    deviceModel: z.string().nullable(),
+    language: z.string(),
+    /** Papel gravado no último registro do aparelho. */
+    role: z.string().nullable(),
+    notificationsEnabled: z.boolean(),
+    alarmChannelEnabled: z.boolean(),
+    /** Falso quando o FCM recusou o token; volta a valer quando o app registrar de novo. */
+    tokenValid: z.boolean(),
+    createdAt: z.iso.datetime(),
+    lastSeenAt: z.iso.datetime(),
+});
+
 export const testResultSchema = z.object({
     targets: z.number().int().nonnegative(),
     sent: z.number().int().nonnegative(),

@@ -1197,6 +1197,29 @@
           }
         }
       },
+      "NotificationDeviceSummary": {
+        "type": "object",
+        "required": [
+          "accountId", "email", "platform", "installationId", "appVersion", "osVersion", "deviceModel",
+          "language", "role", "notificationsEnabled", "alarmChannelEnabled", "tokenValid", "createdAt", "lastSeenAt"
+        ],
+        "properties": {
+          "accountId": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "nullable": true, "description": "E-mail da conta; nulo se a conta não existe mais ou o serviço de contas falhou." },
+          "platform": { "type": "string", "enum": ["android", "ios"] },
+          "installationId": { "type": "string", "format": "uuid" },
+          "appVersion": { "type": "string", "nullable": true },
+          "osVersion": { "type": "string", "nullable": true },
+          "deviceModel": { "type": "string", "nullable": true },
+          "language": { "type": "string" },
+          "role": { "type": "string", "nullable": true, "description": "Papel gravado no último registro do aparelho." },
+          "notificationsEnabled": { "type": "boolean", "description": "Permissão de notificação do sistema." },
+          "alarmChannelEnabled": { "type": "boolean", "description": "Canal do alarme de incêndio não bloqueado no aparelho." },
+          "tokenValid": { "type": "boolean", "description": "Falso quando o FCM recusou o token; volta a valer quando o app registrar de novo." },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "lastSeenAt": { "type": "string", "format": "date-time", "description": "Último registro do app (cada abertura)." }
+        }
+      },
       "NotificationPreferences": {
         "type": "object",
         "properties": {
@@ -7256,6 +7279,49 @@
         }
       }
     },
+    "/v3/api/notifications/devices": {
+      "get": {
+        "tags": [
+          "Notificações do app"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Listar os aparelhos registrados (admin)",
+        "description": "Somente admin. Todos os aparelhos do app registrados, de todas as contas, vistos por último primeiro, com o e-mail da conta. Serve para escolher o installationId do teste do alarme de incêndio (POST /notifications/test/fire-alarm). Não inclui o token FCM. O teste só chega a aparelho Android com notificationsEnabled e tokenValid.",
+        "operationId": "listNotificationDevices",
+        "responses": {
+          "200": {
+            "description": "Aparelhos registrados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/NotificationDeviceSummary" }
+                    },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Conta sem papel admin.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
     "/v3/api/notifications/devices/android": {
       "put": {
         "tags": [
@@ -7781,7 +7847,28 @@
         },
         "responses": {
           "200": {
-            "description": "Resultado do envio (mesmo formato de /notifications/test)."
+            "description": "Resultado do envio (mesmo formato de /notifications/test).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": {
+                      "type": "object",
+                      "required": ["targets", "sent", "failed"],
+                      "properties": {
+                        "targets": { "type": "integer", "description": "Aparelhos selecionados (1)." },
+                        "sent": { "type": "integer" },
+                        "failed": { "type": "integer" }
+                      }
+                    },
+                    "meta": { "$ref": "#/components/schemas/ResponseMeta" }
+                  },
+                  "required": ["success", "data", "meta"]
+                }
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
